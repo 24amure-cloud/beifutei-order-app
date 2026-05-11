@@ -7,6 +7,8 @@ import { getDrinkSectionHeroCandidates } from './data/drinkHeroImages.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getNomihodaiForTable } from './nomihodaiSession.js';
 import { useMenuMaster } from './MenuMasterContext.jsx';
+import { isSupabaseConfigured } from './supabaseClient.js';
+import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 
 const NOMIHODAI_PLAN_CART_ID = 'nomihodai-plan-charge';
 import {
@@ -1750,6 +1752,10 @@ function App() {
     }
     showNotice('お会計のご依頼を受け付けました。スタッフが伺います。', 'ok');
   };
+
+  if (!isSupabaseConfigured) {
+    return <SupabaseConfigMissingScreen />;
+  }
 
   return (
     <div className="app-container">

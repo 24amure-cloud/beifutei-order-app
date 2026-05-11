@@ -6,6 +6,8 @@ import { MenuMasterProvider } from './MenuMasterContext.jsx';
 import { NomihodaiCatalogProvider } from './NomihodaiCatalogContext.jsx';
 import { NomihodaiSessionProvider } from './NomihodaiSessionContext.jsx';
 import MasterMenuPage from './MasterMenuPage.jsx';
+import { isSupabaseConfigured } from './supabaseClient.js';
+import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 
 function MasterAppShell() {
   useEffect(() => {
@@ -14,6 +16,10 @@ function MasterAppShell() {
       console.info('[beifutei] 日次CSV 自動バックアップ', r.dateKey, r.rowCount, '件');
     }
   }, []);
+
+  if (!isSupabaseConfigured) {
+    return <SupabaseConfigMissingScreen />;
+  }
 
   return (
     <div className="master-app-root">

@@ -6,6 +6,8 @@ import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import TableMemoRibbon from './TableMemoRibbon.jsx';
 import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
 import { KitchenDiagnosticsFooter, KitchenRealtimeBadge } from './KitchenStaffDiagnostics.jsx';
+import { isSupabaseConfigured } from './supabaseClient.js';
+import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 
 function fmtTime(ms) {
   const d = new Date(ms);
@@ -567,6 +569,10 @@ export default function KitchenApp() {
     window.addEventListener('beifutei-daily-ledger-updated', onLedger);
     return () => window.removeEventListener('beifutei-daily-ledger-updated', onLedger);
   }, []);
+
+  if (!isSupabaseConfigured) {
+    return <SupabaseConfigMissingScreen />;
+  }
 
   return (
     <div className="kitchen-v2">
