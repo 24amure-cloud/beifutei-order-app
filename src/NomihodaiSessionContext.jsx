@@ -1,0 +1,891 @@
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  NOMIHODAI_CHANNEL_NAME,
+  NOMIHODAI_SESSION_KEY,
+  broadcastSession,
+  getNomihodaiForTable,
+  getGuestIntentForTable,
+  listGuestIntentTableLabels,
+  normalizeTableMemos,
+  countActiveNomihodaiTables,
+} from './nomihodaiSession.js';
+import { appendDailyLedgerEntry } from './dailyLedger.js';
+import { TABLE_MEMO_MAX_LEN } from './nomihodaiSession.js';
+import {
+  NOMIHODAI_BASE_MS,
+  NOMIHODAI_EXTENSION_MS,
+  NOMIHODAI_EXTENSION_PRICE_YEN,
+  NOMIHODAI_EXTENSION_MINUTES,
+  NOMIHODAI_BASE_MINUTES,
+  NOMIHODAI_LO_BEFORE_END_MS,
+} from './nomihodaiConstants.js';
+import { supabase } from './supabaseClient.js';
+import {
+  markKitchenRestSyncError,
+  markKitchenRestSyncOk,
+  pushKitchenDiag,
+  pushKitchenDiagFromSupabase,
+  reportRealtimeChannelStatus,
+} from './kitchenDiagnostics.js';
+
+const Ctx = createContext(null);
+
+/** 会計依頼：行が無いと update が 0 件で届かないため、存在時は update のみ（NH 等を壊さない） */
+async function setCheckoutRequestedAtForTable(supabaseClient, tableLabel, atMs) {
+  const lbl = String(tableLabel);
+  const ts = Number(atMs) || Date.now();
+  const { data: row, error: selErr } = await supabaseClient
+    .from('beifutei_table_states')
+    .select('table_label')
+    .eq('table_label', lbl)
+    .maybeSingle();
+  if (selErr) return { error: selErr };
+  if (row?.table_label) {
+    return supabaseClient.from('beifutei_table_states').update({ checkout_requested_at: ts }).eq('table_label', lbl);
+  }
+  return supabaseClient.from('beifutei_table_states').insert({
+    table_label: lbl,
+    checkout_requested_at: ts,
+    nomihodai_active: false,
+    nomihodai_people: 0,
+    nomihodai_men: 0,
+    nomihodai_women: 0,
+    nomihodai_bill_total: 0,
+    nomihodai_extension_count: 0,
+  });
+}
+
+const NOMIHODAI_PRICE_MEN = 3500;
+const NOMIHODAI_PRICE_WOMEN = 3000;
+
+/** Supabase beifutei_table_states 行から客席フロー用オブジェクトを生成 */
+function farewellFromTableRow(row) {
+  if (!row) return null;
+  const rq = Number(row.guest_farewell_requested_at);
+  const cp = Number(row.guest_farewell_completed_at);
+  if (!Number.isFinite(rq) || rq <= 0 || !Number.isFinite(cp) || cp <= 0) return null;
+  return { checkoutRequestedAt: rq, checkoutCompletedAt: cp };
+}
+
+/** 列未追加の Supabase でも他処理を壊さないよう、客席フロー列だけベストエフォート更新 */
+async function patchGuestFarewellColumns(supabaseClient, tableLabel, pair) {
+  const tl = String(tableLabel);
+  const payload =
+    pair && Number.isFinite(Number(pair.requestedAt)) && Number.isFinite(Number(pair.completedAt))
+      ? {
+          guest_farewell_requested_at: Number(pair.requestedAt),
+          guest_farewell_completed_at: Number(pair.completedAt),
+        }
+      : { guest_farewell_requested_at: null, guest_farewell_completed_at: null };
+  /* 列未マイグレーション時は PostgREST がエラーを返すが、会計・NH 本体は継続済みのため握りつぶす */
+  await supabaseClient.from('beifutei_table_states').update(payload).eq('table_label', tl);
+}
+
+function normalizeItemPriceYen(raw) {
+  if (raw == null || raw === '') return 0;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return Math.max(0, raw);
+  const direct = Number(raw);
+  if (Number.isFinite(direct)) return Math.max(0, direct);
+  if (typeof raw === 'string') {
+    const compact = raw.replace(/[,\s　]/g, '');
+    const m = compact.match(/-?\d+/);
+    if (m) {
+      const n = Number(m[0]);
+      return Number.isFinite(n) ? Math.max(0, n) : 0;
+    }
+  }
+  return 0;
+}
+
+export function NomihodaiSessionProvider({ children }) {
+  const [localDeviceState, setLocalDeviceState] = useState(() => {
+    try {
+      const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        return {
+          tableId: p.tableId || 'default',
+          tableLabel: p.tableLabel || '3',
+          nomihodaiFarewell: p.nomihodaiFarewell || null,
+        };
+      }
+    } catch {}
+    return { tableId: 'default', tableLabel: '3', nomihodaiFarewell: null };
+  });
+
+  const saveLocalDeviceState = useCallback((updater) => {
+    setLocalDeviceState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try {
+        localStorage.setItem(NOMIHODAI_SESSION_KEY, JSON.stringify({ ...next, updatedAt: Date.now() }));
+        broadcastSession();
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  const reloadLocalDeviceFromStorage = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (!p || typeof p !== 'object') return;
+      setLocalDeviceState({
+        tableId: p.tableId || 'default',
+        tableLabel: p.tableLabel || '3',
+        nomihodaiFarewell: p.nomihodaiFarewell || null,
+      });
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const [dbOrders, setDbOrders] = useState([]);
+  const [dbTables, setDbTables] = useState([]);
+  const [now, setNow] = useState(() => Date.now());
+  /** 楽観追加直後に SELECT が空（RLS 等）で全消ししないよう refetch で参照する */
+  const ordersRecentOptimisticRef = useRef(0);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === NOMIHODAI_SESSION_KEY) reloadLocalDeviceFromStorage();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [reloadLocalDeviceFromStorage]);
+
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return undefined;
+    const ch = new BroadcastChannel(NOMIHODAI_CHANNEL_NAME);
+    ch.onmessage = (ev) => {
+      if (ev?.data?.type === 'session-updated') reloadLocalDeviceFromStorage();
+    };
+    return () => ch.close();
+  }, [reloadLocalDeviceFromStorage]);
+
+  /** DB でフローが消えたのに local に古い farewell が残る場合のみ掃除（マイグレーション済み環境） */
+  useEffect(() => {
+    const myLabel = String(localDeviceState.tableLabel || '3');
+    const row = dbTables.find((r) => String(r.table_label) === myLabel);
+    if (!row || !('guest_farewell_completed_at' in row)) return;
+    if (farewellFromTableRow(row) || !localDeviceState.nomihodaiFarewell) return;
+    saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
+  }, [dbTables, localDeviceState.tableLabel, localDeviceState.nomihodaiFarewell, saveLocalDeviceState]);
+
+  /** Realtime 購読の明示的 teardown（再同期で WS を張り直す） */
+  const stopRealtimeRef = useRef(() => {});
+
+  const startRealtimeChannels = useCallback(() => {
+    stopRealtimeRef.current();
+    const ordersSub = supabase
+      .channel('public:beifutei_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'beifutei_orders' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setDbOrders((prev) => {
+            const row = payload.new;
+            const id = row?.id;
+            if (!id) return [...prev, row];
+            const idx = prev.findIndex((o) => o.id === id);
+            if (idx >= 0) {
+              const copy = [...prev];
+              copy[idx] = row;
+              return copy;
+            }
+            return [...prev, row];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setDbOrders((prev) => prev.map((o) => (o.id === payload.new.id ? payload.new : o)));
+        } else if (payload.eventType === 'DELETE') {
+          setDbOrders((prev) => prev.filter((o) => o.id !== payload.old.id));
+        }
+      })
+      .subscribe((status, err) => {
+        reportRealtimeChannelStatus('orders', status, err);
+      });
+
+    const tablesSub = supabase
+      .channel('public:beifutei_table_states')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'beifutei_table_states' }, (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          setDbTables((prev) => {
+            const idx = prev.findIndex((t) => t.table_label === payload.new.table_label);
+            if (idx >= 0) {
+              const copy = [...prev];
+              copy[idx] = payload.new;
+              return copy;
+            }
+            return [...prev, payload.new];
+          });
+        } else if (payload.eventType === 'DELETE') {
+          setDbTables((prev) => prev.filter((t) => t.table_label !== payload.old.table_label));
+        }
+      })
+      .subscribe((status, err) => {
+        reportRealtimeChannelStatus('tables', status, err);
+      });
+
+    stopRealtimeRef.current = () => {
+      supabase.removeChannel(ordersSub);
+      supabase.removeChannel(tablesSub);
+    };
+  }, []);
+
+  // Supabase 初回取得 + Realtime（再同期ボタンで購読だけ張り直せる）
+  useEffect(() => {
+    const fetchInitial = async () => {
+      const [ordersRes, tablesRes] = await Promise.all([
+        supabase.from('beifutei_orders').select('*').order('created_at', { ascending: true }),
+        supabase.from('beifutei_table_states').select('*'),
+      ]);
+      if (ordersRes.error) markKitchenRestSyncError('beifutei_orders:initial', ordersRes.error);
+      else if (Array.isArray(ordersRes.data)) setDbOrders(ordersRes.data);
+      if (tablesRes.error) markKitchenRestSyncError('beifutei_table_states:initial', tablesRes.error);
+      else if (Array.isArray(tablesRes.data)) setDbTables(tablesRes.data);
+      if (!ordersRes.error && !tablesRes.error) markKitchenRestSyncOk();
+    };
+    void fetchInitial();
+    startRealtimeChannels();
+    return () => {
+      stopRealtimeRef.current();
+    };
+  }, [startRealtimeChannels]);
+
+  const refetchOrdersFromDb = useCallback(async (opts = {}) => {
+    const force = !!opts.force;
+    const { data, error } = await supabase.from('beifutei_orders').select('*').order('created_at', { ascending: true });
+    if (error) {
+      markKitchenRestSyncError('beifutei_orders:poll', error);
+      return;
+    }
+    if (!Array.isArray(data)) return;
+    markKitchenRestSyncOk();
+    setDbOrders((prev) => {
+      if (
+        !force &&
+        data.length === 0 &&
+        prev.length > 0 &&
+        Date.now() - ordersRecentOptimisticRef.current < 25000
+      ) {
+        return prev;
+      }
+      return data;
+    });
+  }, []);
+
+  const refetchTablesFromDb = useCallback(async () => {
+    const { data, error } = await supabase.from('beifutei_table_states').select('*');
+    if (error) {
+      markKitchenRestSyncError('beifutei_table_states:poll', error);
+      return;
+    }
+    markKitchenRestSyncOk();
+    if (data) setDbTables(data);
+  }, []);
+
+  /**
+   * DB の真実をそのまま state に反映（楽観 INSERT ガードなし）＋任意で Realtime 購読を張り直す。
+   * スリープ／Wi‑Fi 瞬断後に「注文が届かないがリロードすると出る」系の保険。
+   */
+  const fullResyncDbFromSupabase = useCallback(
+    async (opts = {}) => {
+      const reconnectRealtime = !!opts.reconnectRealtime;
+      const log = !!opts.log;
+      const [ordersRes, tablesRes] = await Promise.all([
+        supabase.from('beifutei_orders').select('*').order('created_at', { ascending: true }),
+        supabase.from('beifutei_table_states').select('*'),
+      ]);
+      let ok = true;
+      if (ordersRes.error) {
+        ok = false;
+        markKitchenRestSyncError('beifutei_orders:resync', ordersRes.error);
+      } else if (Array.isArray(ordersRes.data)) {
+        setDbOrders(ordersRes.data);
+      }
+      if (tablesRes.error) {
+        ok = false;
+        markKitchenRestSyncError('beifutei_table_states:resync', tablesRes.error);
+      } else if (Array.isArray(tablesRes.data)) {
+        setDbTables(tablesRes.data);
+      }
+      if (ok) markKitchenRestSyncOk();
+      if (reconnectRealtime) startRealtimeChannels();
+      if (log) {
+        pushKitchenDiag(
+          ok ? 'ok' : 'warn',
+          'resync',
+          reconnectRealtime
+            ? '再同期: 注文・卓状態をDBから取得し Realtime を再接続しました'
+            : '再同期: 注文・卓状態をDBから再取得しました',
+          ok ? '' : 'SELECT エラーを確認してください',
+        );
+      }
+      return { ok, ordersError: ordersRes.error, tablesError: tablesRes.error };
+    },
+    [startRealtimeChannels],
+  );
+
+  /** Realtime 未設定・接続途切れでも厨房と客席が揃うよう定期同期 */
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void refetchOrdersFromDb();
+      void refetchTablesFromDb();
+    }, 8000);
+    return () => clearInterval(id);
+  }, [refetchOrdersFromDb, refetchTablesFromDb]);
+
+  useEffect(() => {
+    const pull = () => {
+      void refetchOrdersFromDb({ force: true });
+      void refetchTablesFromDb();
+    };
+    const onVis = () => {
+      if (document.visibilityState === 'visible') pull();
+    };
+    const onFocus = () => {
+      pull();
+    };
+    const onOnline = () => {
+      pull();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onOnline);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onOnline);
+    };
+  }, [refetchOrdersFromDb, refetchTablesFromDb]);
+
+  /** PWA / bfcache 復帰: Realtime が死んだままのときに備え SELECT ＋購読張り直し */
+  useEffect(() => {
+    const onPageShow = (e) => {
+      if (e.persisted) void fullResyncDbFromSupabase({ reconnectRealtime: true, log: false });
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [fullResyncDbFromSupabase]);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Build the `session` object compatible with existing UI
+  const session = useMemo(() => {
+    const nomihodaiByLabel = {};
+    const nomihodaiGuestIntentByLabel = {};
+    const tableMemoByLabel = {};
+    /** 卓ラベル → 会計依頼時刻（厨房は全卓分を参照） */
+    const checkoutRequestByLabel = {};
+    let checkoutRequestAt = null;
+
+    dbTables.forEach(row => {
+      const lbl = row.table_label;
+      if (row.nomihodai_active) {
+        nomihodaiByLabel[lbl] = {
+          active: true,
+          startMs: Number(row.nomihodai_start_ms),
+          endMs: Number(row.nomihodai_end_ms),
+          lastOrderMs: Number(row.nomihodai_end_ms) - NOMIHODAI_LO_BEFORE_END_MS,
+          people: Number(row.nomihodai_people),
+          menCount: Number(row.nomihodai_men),
+          womenCount: Number(row.nomihodai_women),
+          billTotal: Number(row.nomihodai_bill_total),
+          extensionCount: Number(row.nomihodai_extension_count),
+          guestCheckoutRequestedAt: row.checkout_requested_at ? Number(row.checkout_requested_at) : null,
+          nextAutoExtendMs: Number(row.nomihodai_end_ms)
+        };
+      }
+      if (row.guest_intent_requested_at) {
+        nomihodaiGuestIntentByLabel[lbl] = { requestedAt: Number(row.guest_intent_requested_at) };
+      }
+      if (row.table_memo) {
+        tableMemoByLabel[lbl] = row.table_memo;
+      }
+      const cq = row.checkout_requested_at != null ? Number(row.checkout_requested_at) : null;
+      if (Number.isFinite(cq) && cq > 0) {
+        checkoutRequestByLabel[String(lbl)] = cq;
+      }
+      if (String(lbl) === String(localDeviceState.tableLabel) && Number.isFinite(cq) && cq > 0) {
+        checkoutRequestAt = cq;
+      }
+    });
+
+    const orders = dbOrders.map(row => ({
+      id: row.id,
+      tableId: 'default',
+      tableLabel: row.table_label,
+      itemId: row.item_id,
+      itemName: row.item_name,
+      itemPrice: Number(row.item_price),
+      status: row.status,
+      isNomihodai: row.is_nomihodai,
+      createdAt: Number(row.created_at)
+    }));
+
+    const myLabel = String(localDeviceState.tableLabel || '3');
+    const myTableRow = dbTables.find((r) => String(r.table_label) === myLabel);
+    const farewellFromDb = farewellFromTableRow(myTableRow);
+
+    /** 厨房：会計後の THANK YOU / SESSION CLOSED が卓タブレットに出ている卓 */
+    const guestFarewellActiveByLabel = {};
+    for (const row of dbTables) {
+      const lbl = String(row.table_label);
+      if (farewellFromTableRow(row)) guestFarewellActiveByLabel[lbl] = true;
+    }
+
+    return {
+      tableId: localDeviceState.tableId,
+      tableLabel: localDeviceState.tableLabel,
+      /** DB（全端末共有）を優先。未マイグレーション時は従来どおり local のみ */
+      nomihodaiFarewell: farewellFromDb ?? localDeviceState.nomihodaiFarewell,
+      nomihodaiByLabel,
+      nomihodaiGuestIntentByLabel,
+      tableMemoByLabel,
+      checkoutRequestByLabel,
+      checkoutRequestAt,
+      guestFarewellActiveByLabel,
+      orders,
+      updatedAt: Date.now()
+    };
+  }, [dbOrders, dbTables, localDeviceState]);
+
+  const setSessionTableLabel = useCallback((label) => {
+    saveLocalDeviceState(s => ({ ...s, tableLabel: String(label ?? s.tableLabel) }));
+  }, [saveLocalDeviceState]);
+
+  // Actions translating to Supabase Updates
+  const addGuestOrders = useCallback(async (rows) => {
+    if (!Array.isArray(rows) || rows.length === 0) return { ok: true };
+    const t = Date.now();
+    const inserts = rows.map((r, idx) => ({
+      id: `ord-${t}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
+      table_label: session.tableLabel,
+      item_id: r.itemId || `guest-item-${idx}`,
+      item_name: r.itemName,
+      item_price: normalizeItemPriceYen(r.itemPrice ?? r.price),
+      status: 'pending',
+      is_nomihodai: !!r.isNomihodai,
+      created_at: Date.now() + idx,
+    }));
+    ordersRecentOptimisticRef.current = Date.now();
+    setDbOrders((prev) => [...prev, ...inserts]);
+    const { error } = await supabase.from('beifutei_orders').insert(inserts);
+    if (error) {
+      pushKitchenDiagFromSupabase('beifutei_orders:insert', error, '客席まとめINSERT');
+      setDbOrders((prev) => prev.filter((o) => !inserts.some((i) => i.id === o.id)));
+      return { ok: false, errorMessage: error.message || String(error) };
+    }
+    /* INSERT 成功後の即時 select は RLS で [] になり得るため行わない（楽観行＋Realtime／定期 refetch に任せる） */
+    return { ok: true };
+  }, [session.tableLabel]);
+
+  const startNomihodai = useCallback(async ({ tableLabel, menCount, womenCount, durationMs = NOMIHODAI_BASE_MS }) => {
+    const lbl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);
+    const men = Math.max(0, Number(menCount) || 0);
+    const women = Math.max(0, Number(womenCount) || 0);
+    const people = Math.max(1, men + women || 1);
+    const billTotal = men * NOMIHODAI_PRICE_MEN + women * NOMIHODAI_PRICE_WOMEN || people * NOMIHODAI_PRICE_MEN;
+    const startMs = Date.now();
+    const endMs = startMs + durationMs;
+    
+    // Optimistic
+    setDbTables(prev => {
+      const copy = [...prev];
+      const idx = copy.findIndex(t => t.table_label === lbl);
+      const newRow = {
+        table_label: lbl,
+        nomihodai_active: true,
+        nomihodai_start_ms: startMs,
+        nomihodai_end_ms: endMs,
+        nomihodai_people: people,
+        nomihodai_men: men,
+        nomihodai_women: women,
+        nomihodai_bill_total: billTotal,
+        nomihodai_extension_count: 0,
+        guest_intent_requested_at: null,
+      };
+      if (idx >= 0) copy[idx] = { ...copy[idx], ...newRow };
+      else copy.push(newRow);
+      return copy;
+    });
+
+    await supabase.from('beifutei_table_states').upsert({
+      table_label: lbl,
+      nomihodai_active: true,
+      nomihodai_start_ms: startMs,
+      nomihodai_end_ms: endMs,
+      nomihodai_people: people,
+      nomihodai_men: men,
+      nomihodai_women: women,
+      nomihodai_bill_total: billTotal,
+      nomihodai_extension_count: 0,
+      guest_intent_requested_at: null, // clear intent
+    });
+    await patchGuestFarewellColumns(supabase, lbl, null);
+  }, [session.tableLabel]);
+
+  const endNomihodai = useCallback(async (tableLabel) => {
+    const lbl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);
+    
+    // Clear it
+    await supabase.from('beifutei_table_states').update({
+      nomihodai_active: false,
+      checkout_requested_at: null,
+    }).eq('table_label', lbl);
+    await patchGuestFarewellColumns(supabase, lbl, null);
+
+    // Delete pending nomihodai orders
+    await supabase.from('beifutei_orders').delete().match({ table_label: lbl, is_nomihodai: true });
+  }, [session.tableLabel]);
+
+  const requestGuestCheckout = useCallback(async () => {
+    const lbl = String(session.tableLabel);
+    return setCheckoutRequestedAtForTable(supabase, lbl, Date.now());
+  }, [session.tableLabel]);
+
+  const requestTableCheckout = useCallback(async () => {
+    const lbl = String(session.tableLabel);
+    return setCheckoutRequestedAtForTable(supabase, lbl, Date.now());
+  }, [session.tableLabel]);
+
+  const clearCheckoutRequestForTable = useCallback(async (tableLabel) => {
+    const lbl = String(tableLabel);
+    await supabase.from('beifutei_table_states').update({ checkout_requested_at: null }).eq('table_label', lbl);
+  }, []);
+
+  const clearTableCheckoutRequest = useCallback(async () => {
+    await clearCheckoutRequestForTable(String(session.tableLabel));
+  }, [clearCheckoutRequestForTable, session.tableLabel]);
+
+  const setTableMemo = useCallback(async (tableLabel, memoText) => {
+    const lbl = String(tableLabel ?? session.tableLabel);
+    const m = String(memoText ?? '').replace(/\s+/g, ' ').trim().slice(0, TABLE_MEMO_MAX_LEN);
+    await supabase.from('beifutei_table_states').upsert({ table_label: lbl, table_memo: m });
+  }, [session.tableLabel]);
+
+  const requestNomihodaiGuestIntent = useCallback(async () => {
+    const lbl = String(session.tableLabel);
+    await supabase.from('beifutei_table_states').upsert({ table_label: lbl, guest_intent_requested_at: Date.now() });
+  }, [session.tableLabel]);
+
+  const clearNomihodaiGuestIntent = useCallback(async (tableLabel) => {
+    if (tableLabel != null) {
+      await supabase.from('beifutei_table_states').upsert({ table_label: String(tableLabel), guest_intent_requested_at: null });
+    } else {
+      // Clear all - edge case, maybe we don't need this exactly
+      dbTables.forEach(t => {
+        if (t.guest_intent_requested_at) {
+          supabase.from('beifutei_table_states').update({ guest_intent_requested_at: null }).eq('table_label', t.table_label);
+        }
+      });
+    }
+  }, [dbTables]);
+
+  const extendNomihodai = useCallback(async (extraMs = NOMIHODAI_EXTENSION_MS, tableLabel) => {
+    const lbl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);
+    const n = session.nomihodaiByLabel[lbl];
+    if (!n?.active) return;
+    const endMs = n.endMs + extraMs;
+    const billTotal = Math.max(0, Number(n.billTotal) || 0) + NOMIHODAI_EXTENSION_PRICE_YEN;
+    const extCount = Math.max(0, Number(n.extensionCount) || 0) + 1;
+    await supabase.from('beifutei_table_states').update({
+      nomihodai_end_ms: endMs,
+      nomihodai_bill_total: billTotal,
+      nomihodai_extension_count: extCount
+    }).eq('table_label', lbl);
+  }, [session.tableLabel, session.nomihodaiByLabel]);
+
+  const addNomihodaiOrder = useCallback(async ({ itemId, itemName, itemPrice }) => {
+    const lbl = String(session.tableLabel);
+    const n = session.nomihodaiByLabel[lbl];
+    if (!n?.active) return;
+    const id = `nh-ord-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const row = {
+      id,
+      table_label: lbl,
+      item_id: itemId,
+      item_name: itemName,
+      item_price: normalizeItemPriceYen(itemPrice),
+      status: 'pending',
+      is_nomihodai: true,
+      created_at: Date.now(),
+    };
+    ordersRecentOptimisticRef.current = Date.now();
+    setDbOrders((prev) => [...prev, row]);
+    const { error } = await supabase.from('beifutei_orders').insert([row]);
+    if (error) {
+      pushKitchenDiagFromSupabase('beifutei_orders:insert', error, '飲み放題内注文INSERT');
+      setDbOrders((prev) => prev.filter((o) => o.id !== id));
+    }
+  }, [session.tableLabel, session.nomihodaiByLabel]);
+
+  const cancelNomihodaiOrder = useCallback(async (orderId) => {
+    await supabase.from('beifutei_orders').delete().match({ id: orderId, is_nomihodai: true, status: 'pending' });
+  }, []);
+
+  const markOrderServed = useCallback(async (orderId) => {
+    await supabase.from('beifutei_orders').update({ status: 'served' }).eq('id', orderId);
+  }, []);
+
+  /** 厨房：口頭注文の訂正など。客席の isNomihodai もここで上書き可能 */
+  const setOrderIsNomihodai = useCallback(async (orderId, isNomihodai) => {
+    const v = !!isNomihodai;
+    setDbOrders((prev) => prev.map((row) => (row.id === orderId ? { ...row, is_nomihodai: v } : row)));
+    await supabase.from('beifutei_orders').update({ is_nomihodai: v }).eq('id', orderId);
+  }, []);
+
+  const markPendingServedForTable = useCallback(async (tableId, tableLabel) => {
+    const tl = String(tableLabel ?? session.tableLabel);
+    await supabase.from('beifutei_orders').update({ status: 'served' }).match({ table_label: tl, status: 'pending' });
+  }, [session.tableLabel]);
+
+  const finalizeSlipCheckout = useCallback(async ({ tableId, tableLabel, payment }) => {
+    const tl = String(tableLabel ?? session.tableLabel);
+    const pay =
+      payment === 'card_5pct' || payment === 'card-5pct'
+        ? 'card_5pct'
+        : payment === 'card'
+          ? 'card'
+          : 'cash';
+
+    // Gather data
+    const tableOrders = session.orders.filter(o => o.status === 'served' && String(o.tableLabel) === tl);
+    let normalSubtotal = 0;
+    let normalCount = 0;
+    let nomihodaiCount = 0;
+    const lines = [];
+
+    tableOrders.forEach(o => {
+      const itemId = String(o.itemId ?? '');
+      if (o.isNomihodai) {
+        nomihodaiCount++;
+        lines.push({ kind: 'nh', name: o.itemName, itemId });
+      } else {
+        normalCount++;
+        const p = Math.max(0, Number(o.itemPrice) || 0);
+        normalSubtotal += p;
+        lines.push({ kind: 'normal', name: o.itemName, price: p, itemId });
+      }
+    });
+
+    const n = session.nomihodaiByLabel[tl];
+    const nomihodaiPlanYen = n?.active ? Math.max(0, Number(n.billTotal) || 0) : 0;
+    const baseTotal = normalSubtotal + nomihodaiPlanYen;
+    const total = pay === 'card_5pct' ? Math.ceil(baseTotal * 1.05) : baseTotal;
+
+    const hasSlipBody = normalCount > 0 || nomihodaiCount > 0 || nomihodaiPlanYen > 0;
+    if (!hasSlipBody) return { ok: false, reason: 'empty_slip' };
+
+    const checkoutNow = Date.now();
+    const stayMinutes = nomihodaiPlanYen > 0 && n?.startMs ? Math.max(0, Math.round((checkoutNow - n.startMs) / 60000)) : null;
+    const rawMemo = session.tableMemoByLabel[tl];
+    const checkoutMemo = typeof rawMemo === 'string' ? rawMemo.replace(/\s+/g, ' ').trim().slice(0, TABLE_MEMO_MAX_LEN) : '';
+
+    appendDailyLedgerEntry({
+      recordedAt: checkoutNow,
+      tableKey: `default::${tl}`,
+      tableLabel: tl,
+      payment: pay,
+      total,
+      normalSubtotal,
+      nomihodaiPlanYen,
+      normalCount,
+      nomihodaiCount,
+      lines,
+      hadNomihodaiCheckout: nomihodaiPlanYen > 0,
+      nhStartMs: nomihodaiPlanYen > 0 && n ? n.startMs : null,
+      nhEndMsAtCheckout: nomihodaiPlanYen > 0 && n ? n.endMs : null,
+      extensionCount: nomihodaiPlanYen > 0 && n ? Math.max(0, Number(n.extensionCount) || 0) : 0,
+      menCount: nomihodaiPlanYen > 0 && n ? Math.max(0, Number(n.menCount) || 0) : 0,
+      womenCount: nomihodaiPlanYen > 0 && n ? Math.max(0, Number(n.womenCount) || 0) : 0,
+      people: nomihodaiPlanYen > 0 && n ? Math.max(1, Number(n.people) || 1) : 1,
+      stayMinutes,
+      checkoutMemo,
+    });
+
+    // Cleanup Supabase
+    // 1. Delete served orders for this table
+    const orderIds = tableOrders.map(o => o.id);
+    if (orderIds.length > 0) {
+      await supabase.from('beifutei_orders').delete().in('id', orderIds);
+    }
+
+    // 2. Clear table state
+    await supabase.from('beifutei_table_states').upsert({
+      table_label: tl,
+      nomihodai_active: false,
+      checkout_requested_at: null,
+      table_memo: null,
+    });
+
+    if (nomihodaiPlanYen > 0 && n?.active) {
+      await patchGuestFarewellColumns(supabase, tl, {
+        requestedAt: n.guestCheckoutRequestedAt || checkoutNow,
+        completedAt: checkoutNow,
+      });
+    } else {
+      await patchGuestFarewellColumns(supabase, tl, null);
+    }
+
+    if (nomihodaiPlanYen > 0 && n?.active && tl === String(localDeviceState.tableLabel)) {
+      saveLocalDeviceState((s) => ({
+        ...s,
+        nomihodaiFarewell: {
+          checkoutRequestedAt: n.guestCheckoutRequestedAt || checkoutNow,
+          checkoutCompletedAt: checkoutNow,
+        },
+      }));
+    }
+
+    return { ok: true };
+  }, [
+    session.tableLabel,
+    session.orders,
+    session.nomihodaiByLabel,
+    session.tableMemoByLabel,
+    saveLocalDeviceState,
+    localDeviceState.tableLabel,
+  ]);
+
+  /** バッシング完了：卓タブレットの退席メッセージを消し、飲み放題タブを再利用可能にする */
+  const clearGuestFarewellForReuse = useCallback(
+    async (tableLabel) => {
+      const tl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);
+      await patchGuestFarewellColumns(supabase, tl, null);
+      if (tl === String(localDeviceState.tableLabel)) {
+        saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
+      }
+    },
+    [session.tableLabel, localDeviceState.tableLabel, saveLocalDeviceState]
+  );
+
+  const nomihodaiActive = !!getNomihodaiForTable(session, session.tableLabel)?.active;
+  const n = getNomihodaiForTable(session, session.tableLabel);
+
+  const countdown = useMemo(() => {
+    if (!n?.active) return { endMin: null, loMin: null, loPhase: false, ended: true };
+    const endLeft = Math.max(0, n.endMs - now);
+    const loLeft = Math.max(0, n.lastOrderMs - now);
+    return {
+      endMin: Math.ceil(endLeft / 60000),
+      loMin: Math.ceil(loLeft / 60000),
+      loPhase: now >= n.lastOrderMs,
+      ended: now >= n.endMs,
+    };
+  }, [n, now]);
+
+  const pendingNomihodaiCount = useMemo(() => {
+    const lbl = String(session.tableLabel || '3');
+    return session.orders.filter(
+      (o) =>
+        o.isNomihodai &&
+        o.status === 'pending' &&
+        String(o.tableLabel ?? '3') === lbl
+    ).length;
+  }, [session.orders, session.tableLabel]);
+
+  const canOrderMoreNomihodai = useMemo(() => {
+    if (!n?.active) return false;
+    return pendingNomihodaiCount < n.people;
+  }, [n, pendingNomihodaiCount]);
+
+  const guestNomihodaiIntentPending = useMemo(() => {
+    const lbl = String(session.tableLabel || '3');
+    const intent = getGuestIntentForTable(session, lbl);
+    const nh = getNomihodaiForTable(session, lbl);
+    return !!(intent && !nh?.active);
+  }, [session.tableLabel, session.nomihodaiGuestIntentByLabel, session.nomihodaiByLabel]);
+
+  const guestNomihodaiIntentLabels = useMemo(
+    () => listGuestIntentTableLabels(session),
+    [session.nomihodaiGuestIntentByLabel]
+  );
+
+  const activeNomihodaiTableCount = useMemo(
+    () => countActiveNomihodaiTables(session),
+    [session.nomihodaiByLabel]
+  );
+
+  const value = useMemo(
+    () => ({
+      session,
+      now,
+      setSession: () => {}, // Deprecated but kept for surface compatibility
+      refresh: () => {}, // Handled by realtime
+      fullResyncDbFromSupabase,
+      startNomihodai,
+      endNomihodai,
+      extendNomihodai,
+      addNomihodaiOrder,
+      cancelNomihodaiOrder,
+      markOrderServed,
+      setOrderIsNomihodai,
+      markPendingServedForTable,
+      requestNomihodaiGuestIntent,
+      clearNomihodaiGuestIntent,
+      setSessionTableLabel,
+      setTableMemo,
+      requestGuestCheckout,
+      addGuestOrders,
+      requestTableCheckout,
+      clearCheckoutRequestForTable,
+      clearTableCheckoutRequest,
+      finalizeSlipCheckout,
+      clearGuestFarewellForReuse,
+      nomihodaiActive,
+      guestNomihodaiIntentPending,
+      guestNomihodaiIntentLabels,
+      activeNomihodaiTableCount,
+      countdown,
+      pendingNomihodaiCount,
+      canOrderMoreNomihodai,
+      prices: { men: NOMIHODAI_PRICE_MEN, women: NOMIHODAI_PRICE_WOMEN },
+      nomihodaiPlan: {
+        baseMinutes: NOMIHODAI_BASE_MINUTES,
+        extensionMinutes: NOMIHODAI_EXTENSION_MINUTES,
+        extensionPriceYen: NOMIHODAI_EXTENSION_PRICE_YEN,
+      },
+    }),
+    [
+      session,
+      now,
+      fullResyncDbFromSupabase,
+      startNomihodai,
+      endNomihodai,
+      extendNomihodai,
+      addNomihodaiOrder,
+      cancelNomihodaiOrder,
+      markOrderServed,
+      setOrderIsNomihodai,
+      markPendingServedForTable,
+      requestNomihodaiGuestIntent,
+      clearNomihodaiGuestIntent,
+      setSessionTableLabel,
+      setTableMemo,
+      requestGuestCheckout,
+      addGuestOrders,
+      requestTableCheckout,
+      clearCheckoutRequestForTable,
+      clearTableCheckoutRequest,
+      finalizeSlipCheckout,
+      clearGuestFarewellForReuse,
+      nomihodaiActive,
+      guestNomihodaiIntentPending,
+      guestNomihodaiIntentLabels,
+      activeNomihodaiTableCount,
+      countdown,
+      pendingNomihodaiCount,
+      canOrderMoreNomihodai,
+    ]
+  );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+export function useNomihodaiSession() {
+  const v = useContext(Ctx);
+  if (!v) throw new Error('useNomihodaiSession requires NomihodaiSessionProvider');
+  return v;
+}
