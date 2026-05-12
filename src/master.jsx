@@ -8,6 +8,7 @@ import { NomihodaiSessionProvider } from './NomihodaiSessionContext.jsx';
 import MasterMenuPage from './MasterMenuPage.jsx';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
+import RootErrorBoundary from './RootErrorBoundary.jsx';
 
 function MasterAppShell() {
   useEffect(() => {
@@ -36,12 +37,14 @@ function MasterAppShell() {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <NomihodaiSessionProvider>
-      <MenuMasterProvider>
-        <NomihodaiCatalogProvider>
-          <MasterAppShell />
-        </NomihodaiCatalogProvider>
-      </MenuMasterProvider>
-    </NomihodaiSessionProvider>
+    <RootErrorBoundary>
+      <NomihodaiSessionProvider>
+        <MenuMasterProvider>
+          <NomihodaiCatalogProvider>
+            <MasterAppShell />
+          </NomihodaiCatalogProvider>
+        </MenuMasterProvider>
+      </NomihodaiSessionProvider>
+    </RootErrorBoundary>
   </StrictMode>,
 );

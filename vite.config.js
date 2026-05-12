@@ -26,11 +26,30 @@ export default defineConfig({
         /** MPA（index / master / kitchen）で document を index に吸わせない */
         navigateFallback: null,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
-        /** メニュー PNG が 2MiB 超 → Workbox 既定でビルド失敗するため上限を拡張 */
-        maximumFileSizeToCacheInBytes: 15 * 1024 * 1024,
+        /**
+         * public 配下のメニュー画像をプリキャッシュに含めると SW 初回が数十 MB になり、
+         * 店舗 Wi‑Fi / 古いタブレットで install が落ちる・途中で壊れると main の import が届かず
+         * 「背景色だけ」の真っ白に近い状態になる（ローカル dev は PWA 無効のため再現しない）。
+         */
+        globIgnores: ['**/*.{png,jpg,jpeg,webp}'],
+        /** JS/CSS/HTML 以外の巨大ファイルは globIgnores で外す前提。残りはフォント等 */
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, request }) =>
+              url.origin === self.location.origin &&
+              request.destination === 'image' &&
+              /\.(?:png|webp|jpe?g|svg)$/i.test(url.pathname),
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'beifutei-media',
+              expiration: { maxEntries: 260, maxAgeSeconds: 60 * 60 * 24 * 14 },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,
