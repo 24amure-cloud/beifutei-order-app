@@ -46,7 +46,7 @@ export function useMasterMenuEditor() {
         id,
         titleEn: 'NEW CATEGORY',
         titleJa: '新規カテゴリ',
-        items: [{ id: newMasterItemId(), name: '品名', price: 500 }],
+        items: [{ id: newMasterItemId(), name: '品名', nameEn: '', price: 500 }],
       },
     ]);
   }, [setDrinkSections]);
@@ -83,7 +83,7 @@ export function useMasterMenuEditor() {
       setDrinkSections((prev) =>
         prev.map((s) =>
           s.id === sectionId
-            ? { ...s, items: [...s.items, { id: newMasterItemId(), name: '品名', price: 500 }] }
+            ? { ...s, items: [...s.items, { id: newMasterItemId(), name: '品名', nameEn: '', price: 500 }] }
             : s
         )
       );
@@ -119,7 +119,7 @@ export function useMasterMenuEditor() {
         id,
         titleEn: 'NEW CATEGORY',
         titleJa: '新規カテゴリ',
-        items: [{ id: newMasterNhItemId(), name: '品名' }],
+        items: [{ id: newMasterNhItemId(), name: '品名', nameEn: '' }],
       },
     ]);
   }, [setNomihodaiCatalog]);
@@ -155,7 +155,7 @@ export function useMasterMenuEditor() {
     (sectionId) => {
       setNomihodaiCatalog((prev) =>
         prev.map((s) =>
-          s.id === sectionId ? { ...s, items: [...s.items, { id: newMasterNhItemId(), name: '品名' }] } : s
+          s.id === sectionId ? { ...s, items: [...s.items, { id: newMasterNhItemId(), name: '品名', nameEn: '' }] } : s
         )
       );
     },

@@ -43,7 +43,8 @@ export function buildDailyReport(entries, dateKey, options = {}) {
 
     const nh = Math.max(0, Number(e.nomihodaiPlanYen) || 0);
     nhPlanTotal += nh;
-    foodTotal += Math.max(0, Number(e.normalSubtotal) || 0);
+    const alc = Math.max(0, Number(e.alcoholChargeYen) || 0);
+    foodTotal += Math.max(0, Number(e.normalSubtotal) || 0) + alc;
 
     const tl = String(e.tableLabel || '?');
     const curT =
@@ -84,7 +85,11 @@ export function buildDailyReport(entries, dateKey, options = {}) {
       const key = `${ln.kind || 'n'}::${label}`;
       const p = productMap.get(key) || { key, label, kind: ln.kind || 'normal', count: 0, revenue: 0 };
       p.count += 1;
-      if (ln.kind === 'normal' && ln.price != null) p.revenue += Math.max(0, Number(ln.price) || 0);
+      if (
+        (ln.kind === 'normal' || ln.kind === 'nh_extra' || ln.kind === 'alcohol_charge') &&
+        ln.price != null
+      )
+        p.revenue += Math.max(0, Number(ln.price) || 0);
       productMap.set(key, p);
     }
   }

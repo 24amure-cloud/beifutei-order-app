@@ -5,27 +5,29 @@ import {
   getNomihodaiHeroCandidatesForCategory,
   resolveNomihodaiVisualSlot,
 } from './data/drinkHeroImages.js';
+import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import { useNomihodaiCatalog } from './NomihodaiCatalogContext.jsx';
 import {
   NOMIHODAI_SECTION_KEYS,
-  NOMIHODAI_SECTION_EMPTY_HINTS,
+  NOMIHODAI_SECTION_EMPTY_HINT_KEYS,
   partitionNomihodaiCatalog,
 } from './nomihodaiMenuCorners.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
-import { getNomihodaiForTable } from './nomihodaiSession.js';
+import { getNomihodaiForTable, NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED } from './nomihodaiSession.js';
 import { playNomihodaiSoftEndSound } from './nomihodaiSoftEndSound.js';
+import {
+  buildNomihodaiGuestLabelIndex,
+  nomihodaiGuestItemLabel,
+  nomihodaiGuestItemLabelFromItem,
+  nomihodaiExtraShotRowLabel,
+} from './nomihodaiGuestItemLabels.js';
 
-function fmtHM(ms) {
+function fmtOrderClock(ms, locale) {
   try {
-    return new Date(ms).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return '—';
-  }
-}
-
-function fmtOrderClock(ms) {
-  try {
-    return new Date(ms ?? Date.now()).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    return new Date(ms ?? Date.now()).toLocaleTimeString(locale === 'en' ? 'en-US' : 'ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   } catch {
     return '—';
   }
@@ -77,7 +79,8 @@ function WineGlassIcon({ className = '' }) {
   );
 }
 
-export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
+export default function NomihodaiGuestDrinkMenu({ onOpenBill }) {
+  const { t, locale } = useGuestUiLocale();
   const { nomihodaiCatalog } = useNomihodaiCatalog();
   const {
     addNomihodaiOrder,
@@ -109,17 +112,56 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [session.orders, session.tableLabel]);
 
+  /** ビール以外・過去に注文したドリンクをワンタップ用に（新しい順・重複除く） */
+  const okawariCandidates = useMemo(() => {
+    const byItemId = new Map();
+    for (const cat of nomihodaiCatalog || []) {
+      const slot = resolveNomihodaiVisualSlot(cat);
+      if (slot === 'beer') continue;
+      for (const it of cat.items || []) {
+        byItemId.set(it.id, { cat, it, slot });
+      }
+    }
+    const seen = new Set();
+    const out = [];
+    for (const o of nhOrders) {
+      const name = String(o.itemName || '');
+      if (/ビール|ＢＥＥＲ|beer/i.test(name)) continue;
+      const meta = byItemId.get(o.itemId);
+      if (!meta || meta.slot === 'beer') continue;
+      const key = String(o.itemId || name);
+      if (seen.has(key)) continue;
+      seen.add(key);
+    out.push({
+      itemId: meta.it.id,
+      itemName: meta.it.name,
+    });
+      if (out.length >= 16) break;
+    }
+    return out;
+  }, [nhOrders, nomihodaiCatalog]);
+
   const sectionBuckets = useMemo(() => partitionNomihodaiCatalog(nomihodaiCatalog), [nomihodaiCatalog]);
 
-  const freeKitchenSlots = Math.max(0, people - pendingNomihodaiCount);
+  const nhGuestLabelIndex = useMemo(
+    () => buildNomihodaiGuestLabelIndex(nomihodaiCatalog),
+    [nomihodaiCatalog]
+  );
 
-  const addDraftLine = (itemId, itemName) => {
+  const freeKitchenSlots = NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED
+    ? Math.max(0, people - pendingNomihodaiCount)
+    : Number.MAX_SAFE_INTEGER;
+
+  const addDraftLine = (itemId, itemName, itemPrice) => {
     setDraftCart((prev) => [
       ...prev,
       {
         draftId: `d-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         itemId,
         itemName,
+        ...(itemPrice != null && Number.isFinite(Number(itemPrice)) && Number(itemPrice) > 0
+          ? { itemPrice: Number(itemPrice) }
+          : {}),
       },
     ]);
   };
@@ -132,7 +174,13 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
     if (draftCart.length === 0 || freeKitchenSlots === 0) return;
     const nSend = Math.min(draftCart.length, freeKitchenSlots);
     const batch = draftCart.slice(0, nSend);
-    batch.forEach((row) => addNomihodaiOrder({ itemId: row.itemId, itemName: row.itemName }));
+    batch.forEach((row) =>
+      addNomihodaiOrder({
+        itemId: row.itemId,
+        itemName: row.itemName,
+        itemPrice: row.itemPrice,
+      })
+    );
     setDraftCart((prev) => prev.slice(nSend));
   };
 
@@ -142,28 +190,36 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
     const slot = resolveNomihodaiVisualSlot(cat);
     return (
       <article key={cat.id} className={`nh-active__card nh-active__card--ff nh-active__card--slot-${slot}`}>
-        <div className="nh-active__card-ribbon">
-          <span className="nh-active__card-ribbon-en">{cat.titleEn}</span>
-          <span className="nh-active__card-ribbon-ja">{cat.titleJa}</span>
+        <div className="nh-active__card-ribbon nh-active__card-ribbon--hero-inline">
+          <div className="nh-active__card-ribbon-titles">
+            {locale === 'en' ? (
+              <span className="nh-active__card-ribbon-en">{cat.titleEn}</span>
+            ) : (
+              <>
+                <span className="nh-active__card-ribbon-en">{cat.titleEn}</span>
+                <span className="nh-active__card-ribbon-ja">{cat.titleJa}</span>
+              </>
+            )}
+          </div>
+          <DrinkHeroImage
+            candidates={getNomihodaiHeroCandidatesForCategory(cat)}
+            className="nh-active__card-ribbon-photo"
+            imgClassName="nh-active__card-ribbon-photo-img"
+          />
         </div>
         <div className="nh-active__card-inner">
           <div className="nh-active__card-list-wrap">
             <ul className="nh-active__card-list">
               {cat.items.map((it) => (
                 <li key={it.id} className="nh-active__card-row">
-                  <span>{it.name}</span>
+                  <span>{nomihodaiGuestItemLabelFromItem(it, locale)}</span>
                   <button type="button" className="nh-active__order-btn" onClick={() => addDraftLine(it.id, it.name)}>
-                    注文
+                    {t('nh_drink_order')}
                   </button>
                 </li>
               ))}
             </ul>
           </div>
-          <DrinkHeroImage
-            candidates={getNomihodaiHeroCandidatesForCategory(cat)}
-            className="nh-active__card-photo"
-            imgClassName="nh-active__card-photo-img"
-          />
         </div>
       </article>
     );
@@ -176,12 +232,12 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
   return (
     <main className="main-content nh-active nh-active--ff">
       <div className="nh-active__shell">
-        <header className="nh-luxe-bar" aria-label="セッションステータス">
+        <header className="nh-luxe-bar" aria-label={t('nh_drink_bar_aria')}>
           <div className="nh-luxe-bar__segment">
             <ClockIcon />
             <span className="nh-luxe-bar__en">SESSION TIME</span>
             <span className="nh-luxe-bar__hero nh-luxe-bar__hero--time">{sessionClock}</span>
-            <span className="nh-luxe-bar__ja">ご利用残り時間</span>
+            <span className="nh-luxe-bar__ja">{t('nh_drink_remain')}</span>
           </div>
           <div className="nh-luxe-bar__rule" aria-hidden="true" />
           <div className="nh-luxe-bar__segment nh-luxe-bar__segment--next-charge">
@@ -191,19 +247,26 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
               <strong>{nextChargeMin}</strong>
               <span className="nh-luxe-bar__min">MIN</span>
             </p>
-            <span className="nh-luxe-bar__ja">次回自動延長まで</span>
+            <span className="nh-luxe-bar__ja">{t('nh_drink_extend_until')}</span>
           </div>
           <div className="nh-luxe-bar__rule" aria-hidden="true" />
           <div className="nh-luxe-bar__segment nh-luxe-bar__segment--extend nh-luxe-bar__segment--extend-info">
             <span className="nh-luxe-bar__en">AUTO EXTEND</span>
-            <span className="nh-luxe-bar__mid nh-luxe-bar__mid--extend-title">自動延長システム</span>
+            <span className="nh-luxe-bar__mid nh-luxe-bar__mid--extend-title">{t('nh_drink_extend_system')}</span>
             <div className="nh-luxe-bar__extend-detail">
-              <span className="nh-luxe-bar__extend-min">{nomihodaiPlan.extensionMinutes}分</span>
+              <span className="nh-luxe-bar__extend-min">
+                {t('nh_drink_extend_min', { n: nomihodaiPlan.extensionMinutes })}
+              </span>
               <span className="nh-luxe-bar__extend-sep">／</span>
-              <span className="nh-luxe-bar__extend-yen">￥{nomihodaiPlan.extensionPriceYen.toLocaleString()}</span>
-              <span className="nh-luxe-bar__extend-tax">（税込）</span>
+              <span className="nh-luxe-bar__extend-yen">
+                ￥
+                {nomihodaiPlan.extensionPriceYen.toLocaleString(
+                  locale === 'en' ? 'en-US' : 'ja-JP'
+                )}
+              </span>
+              <span className="nh-luxe-bar__extend-tax">{t('nh_drink_extend_tax')}</span>
             </div>
-            <p className="nh-luxe-bar__extend-caption">延長1回あたり · 男女共通</p>
+            <p className="nh-luxe-bar__extend-caption">{t('nh_drink_extend_cap')}</p>
           </div>
           <div className="nh-luxe-bar__rule" aria-hidden="true" />
           <div className="nh-luxe-bar__segment nh-luxe-bar__segment--checkout-big">
@@ -216,13 +279,15 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
                 setCheckoutError(null);
                 const { error } = await requestTableCheckout();
                 if (error) {
-                  setCheckoutError(error.message || '送信に失敗しました');
+                  setCheckoutError(
+                    error.message === 'NO_TABLE' ? t('notice_checkout_no_table') : error.message || t('nh_drink_send_fail'),
+                  );
                   return;
                 }
                 onOpenBill?.();
               }}
             >
-              お会計する
+              {t('nh_drink_checkout')}
             </button>
             {checkoutError ? (
               <p className="nh-luxe-bar__checkout-error" role="alert">
@@ -238,17 +303,17 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
               <div className="nh-ff-menu-head__pending">
                 {!canOrderMoreNomihodai ? (
                   <p className="nh-ff-pending nh-ff-pending--warn" role="alert">
-                    提供後に次のご注文が可能です（未提供：{pendingNomihodaiCount}／{people}）
+                    {t('nh_drink_queue_full', { p: pendingNomihodaiCount, people })}
                   </p>
                 ) : (
                   <p className="nh-ff-pending nh-ff-pending--ok">
-                    未提供：{pendingNomihodaiCount}／{people}
+                    {t('nh_drink_queue_short', { p: pendingNomihodaiCount, people })}
                   </p>
                 )}
               </div>
               <div className="nh-ff-menu-head__title">
                 <h2 className="nh-ff-title-en">FREE FLOW MENU</h2>
-                <p className="nh-ff-title-ja">飲み放題メニュー</p>
+                <p className="nh-ff-title-ja">{t('nh_drink_menu_title')}</p>
               </div>
               <div className="nh-ff-menu-head__balance" aria-hidden="true" />
             </div>
@@ -260,7 +325,7 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
                   <section key={sectionKey} className={`nh-corner nh-corner--${sectionKey}`}>
                     <div className="nh-corner__cards">
                       {cats.length === 0 ? (
-                        <p className="nh-corner__empty">{NOMIHODAI_SECTION_EMPTY_HINTS[sectionKey]}</p>
+                        <p className="nh-corner__empty">{t(NOMIHODAI_SECTION_EMPTY_HINT_KEYS[sectionKey])}</p>
                       ) : (
                         cats.map(renderCategoryCard)
                       )}
@@ -269,52 +334,62 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
                 );
               })}
 
-              {typeof addToCart === 'function' ? (
-                <section className="nh-corner nh-corner--shots">
-                  <div className="nh-corner-shots">
-                    <ul className="nh-corner-shots__list">
-                      {NOMIHODAI_EXTRA_SHOTS.map((s) => (
-                        <li key={s.id} className="nh-corner-shots__row">
-                          <span className="nh-corner-shots__name">{s.label}</span>
-                          <span className="nh-corner-shots__price">￥{s.price.toLocaleString()}</span>
-                          <button
-                            type="button"
-                            className="nh-corner-shots__add"
-                            onClick={() => addToCart({ id: s.id, name: s.name, price: s.price })}
-                          >
-                            追加
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </section>
-              ) : null}
+              <section className="nh-corner nh-corner--shots">
+                <div className="nh-corner-shots">
+                  <ul className="nh-corner-shots__list">
+                    {NOMIHODAI_EXTRA_SHOTS.map((s) => (
+                      <li key={s.id} className="nh-corner-shots__row">
+                        <span className="nh-corner-shots__name">{nomihodaiExtraShotRowLabel(s, locale)}</span>
+                        <span className="nh-corner-shots__price">
+                          ￥{s.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+                        </span>
+                        <button
+                          type="button"
+                          className="nh-corner-shots__add"
+                          onClick={() => addDraftLine(s.id, s.name, s.price)}
+                        >
+                          {t('nh_drink_add_cart')}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
             </div>
-            <p className="nh-ff-menu-foot">※飲み残しは別途料金をいただく場合がございます。</p>
+            <p className="nh-ff-menu-foot">{t('nh_drink_menu_foot')}</p>
           </div>
 
           <aside className="nh-active__side nh-active__side--hub nh-active__side--ff">
             <section className="nh-draft-cart" aria-labelledby="nh-draft-h">
               <div className="nh-draft-cart__bar">
                 <h2 id="nh-draft-h" className="nh-draft-cart__title">
-                  注文カート
+                  {t('nh_drink_cart_title')}
                 </h2>
                 <span className="nh-draft-cart__count">{draftCart.length}</span>
               </div>
               <p className="nh-draft-cart__lead"></p>
               {draftCart.length === 0 ? (
-                <p className="nh-draft-cart__empty">メニューの「注文」でここに追加されます</p>
+                <p className="nh-draft-cart__empty">{t('nh_drink_cart_empty')}</p>
               ) : (
                 <ul className="nh-draft-cart__list">
                   {draftCart.map((row) => (
                     <li key={row.draftId} className="nh-draft-cart__row">
-                      <span className="nh-draft-cart__name">{row.itemName}</span>
+                      <span className="nh-draft-cart__name">
+                        {nomihodaiGuestItemLabel(nhGuestLabelIndex, row.itemId, row.itemName, locale)}
+                        {row.itemPrice != null && row.itemPrice > 0 ? (
+                          <span className="nh-draft-cart__subprice">
+                            {' '}
+                            ￥{row.itemPrice.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+                          </span>
+                        ) : null}
+                      </span>
                       <button
                         type="button"
                         className="nh-draft-cart__remove"
                         onClick={() => removeDraftLine(row.draftId)}
-                        aria-label={`${row.itemName}をカートから削除`}
+                        aria-label={t('nh_drink_remove_aria', {
+                          name: nomihodaiGuestItemLabel(nhGuestLabelIndex, row.itemId, row.itemName, locale),
+                        })}
                       >
                         ✕
                       </button>
@@ -329,7 +404,7 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
                   disabled={draftCart.length === 0 || freeKitchenSlots === 0}
                   onClick={sendDraftToKitchen}
                 >
-                  送信
+                  {t('nh_drink_send')}
                   {draftCart.length > 0 && freeKitchenSlots > 0 ? (
                     <span className="nh-draft-cart__send-note">
                     </span>
@@ -337,35 +412,62 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
                 </button>
                 {freeKitchenSlots === 0 && draftCart.length > 0 ? (
                   <p className="nh-draft-cart__warn" role="status">
-                    未提供が人数分あるため、送信は提供後までお待ちください。
+                    {t('nh_drink_send_wait')}
                   </p>
                 ) : null}
               </div>
-              <p className="nh-draft-cart__foot">送信後はキッチンへ通知され、こちらから変更できません。</p>
+              <p className="nh-draft-cart__foot">{t('nh_drink_cart_foot')}</p>
             </section>
+
+            {okawariCandidates.length > 0 ? (
+              <section className="nh-okawari" aria-labelledby="nh-okawari-h">
+                <div className="nh-okawari__bar">
+                  <h2 id="nh-okawari-h" className="nh-okawari__title">
+                    {t('nh_drink_refill')}
+                  </h2>
+                </div>
+                <div className="nh-okawari__strip" role="list">
+                  {okawariCandidates.map((row) => (
+                    <button
+                      key={row.itemId}
+                      type="button"
+                      className="nh-okawari__chip"
+                      role="listitem"
+                      onClick={() => addDraftLine(row.itemId, row.itemName)}
+                    >
+                      <span className="nh-okawari__chip-name">
+                        {nomihodaiGuestItemLabel(nhGuestLabelIndex, row.itemId, row.itemName, locale)}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <section className="nh-hub__orders nh-hub__orders--in-side nh-hub__orders--ff" aria-labelledby="nh-side-orders-h">
               <div className="nh-hub__orders-bar">
                 <h2 id="nh-side-orders-h" className="nh-hub__orders-bar-title">
-                  ご注文状況
+                  {t('nh_drink_hub_title')}
                 </h2>
-                <p className="nh-hub__orders-bar-hint">※提供済にすると次のご注文が可能になります</p>
+                <p className="nh-hub__orders-bar-hint">
+                  {NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED
+                    ? t('nh_drink_hub_hint_served')
+                    : t('nh_drink_hub_hint_kitchen')}
+                </p>
               </div>
               <div className="nh-hub__orders-body">
                 <div className="nh-hub__stat-row">
-                  <span>
-                    未提供ドリンク <strong>{pendingNomihodaiCount}</strong> 杯
-                  </span>
-                  <span className="nh-hub__stat-people">（ご利用人数：{people}名）</span>
+                  <span>{t('nh_drink_hub_pending', { n: pendingNomihodaiCount })}</span>
+                  <span className="nh-hub__stat-people">{t('nh_drink_hub_people', { n: people })}</span>
                 </div>
                 <div className="nh-hub__people-icons" aria-hidden="true">
                   {men > 0 && (
-                    <span className="nh-hub__p-icon nh-hub__p-icon--m" title={`男性${men}`}>
+                    <span className="nh-hub__p-icon nh-hub__p-icon--m" title={t('nh_drink_hub_male_title', { m: men })}>
                       🚹×{men}
                     </span>
                   )}
                   {women > 0 && (
-                    <span className="nh-hub__p-icon nh-hub__p-icon--f" title={`女性${women}`}>
+                    <span className="nh-hub__p-icon nh-hub__p-icon--f" title={t('nh_drink_hub_female_title', { f: women })}>
                       🚺×{women}
                     </span>
                   )}
@@ -382,24 +484,30 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
                     <div className="nh-hub__progress-fill" style={{ width: `${progressPct}%` }} />
                   </div>
                 </div>
-                <p className="nh-hub__progress-msg">
-                  {pendingNomihodaiCount > 0
-                    ? `あと${pendingNomihodaiCount}杯ご提供で次のご注文が可能になります`
-                    : '未提供のドリンクはありません。追加注文が可能です。'}
-                </p>
+                {(NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED || pendingNomihodaiCount === 0) && (
+                  <p className="nh-hub__progress-msg">
+                    {NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED
+                      ? pendingNomihodaiCount > 0
+                        ? t('nh_drink_hub_more', { n: pendingNomihodaiCount })
+                        : t('nh_drink_hub_ready')
+                      : t('nh_drink_hub_none')}
+                  </p>
+                )}
                 <ul className="nh-hub__order-list nh-hub__order-list--scroll">
                   {nhOrders.length === 0 ? (
-                    <li className="nh-hub__order-empty">まだ注文がありません</li>
+                    <li className="nh-hub__order-empty">{t('nh_drink_hub_no_orders')}</li>
                   ) : (
                     nhOrders.map((o) => (
                       <li key={o.id} className="nh-hub__order-row">
                         <span
                           className={`nh-hub__badge ${o.status === 'served' ? 'nh-hub__badge--done' : 'nh-hub__badge--wait'}`}
                         >
-                          {o.status === 'served' ? '提供済' : '注文中'}
+                          {o.status === 'served' ? t('nh_drink_status_served') : t('nh_drink_status_pending')}
                         </span>
-                        <span className="nh-hub__order-name">{o.itemName}</span>
-                        <span className="nh-hub__order-time">{fmtOrderClock(o.createdAt)}</span>
+                        <span className="nh-hub__order-name">
+                          {nomihodaiGuestItemLabel(nhGuestLabelIndex, o.itemId, o.itemName, locale)}
+                        </span>
+                        <span className="nh-hub__order-time">{fmtOrderClock(o.createdAt, locale)}</span>
                         <span className="nh-hub__order-chev" aria-hidden="true">
                           ›
                         </span>
@@ -412,7 +520,7 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill, addToCart }) {
 
             <div className="nh-ff-sidebar-remind" role="note">
               <WineGlassIcon />
-              <span>グラス交換制です。空いたグラスをお渡しください。</span>
+              <span>{t('nh_drink_glass_note')}</span>
             </div>
           </aside>
         </div>

@@ -6,11 +6,13 @@ import {
   getNomihodaiForTable,
   getGuestIntentForTable,
   listGuestIntentTableLabels,
+  normalizeTableLabelKey,
   normalizeTableMemos,
   countActiveNomihodaiTables,
+  isDbNomihodaiActiveFlag,
 } from './nomihodaiSession.js';
 import { appendDailyLedgerEntry } from './dailyLedger.js';
-import { TABLE_MEMO_MAX_LEN } from './nomihodaiSession.js';
+import { NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED, TABLE_MEMO_MAX_LEN } from './nomihodaiSession.js';
 import {
   NOMIHODAI_BASE_MS,
   NOMIHODAI_EXTENSION_MS,
@@ -27,22 +29,34 @@ import {
   pushKitchenDiagFromSupabase,
   reportRealtimeChannelStatus,
 } from './kitchenDiagnostics.js';
+import {
+  ALCOHOL_CHARGE_AFTER_21_YEN,
+  ALCOHOL_CHARGE_BEFORE_21_YEN,
+  getAlcoholTableCharge,
+} from './alcoholTableCharge.js';
 
 const Ctx = createContext(null);
 
-/** 会計依頼：行が無いと update が 0 件で届かないため、存在時は update のみ（NH 等を壊さない） */
+/** 会計依頼：checkout_requested_at のみ書き込み（upsert → 失敗時は update→件数確認→insert） */
 async function setCheckoutRequestedAtForTable(supabaseClient, tableLabel, atMs) {
-  const lbl = String(tableLabel);
-  const ts = Number(atMs) || Date.now();
-  const { data: row, error: selErr } = await supabaseClient
-    .from('beifutei_table_states')
-    .select('table_label')
-    .eq('table_label', lbl)
-    .maybeSingle();
-  if (selErr) return { error: selErr };
-  if (row?.table_label) {
-    return supabaseClient.from('beifutei_table_states').update({ checkout_requested_at: ts }).eq('table_label', lbl);
+  const lbl = String(tableLabel ?? '').trim();
+  if (!lbl) {
+    return { error: { message: 'NO_TABLE' } };
   }
+  const ts = Number(atMs) || Date.now();
+
+  const upMerge = await supabaseClient
+    .from('beifutei_table_states')
+    .upsert({ table_label: lbl, checkout_requested_at: ts }, { onConflict: 'table_label', defaultToNull: false });
+  if (!upMerge.error) return upMerge;
+
+  const upOnly = await supabaseClient
+    .from('beifutei_table_states')
+    .update({ checkout_requested_at: ts })
+    .eq('table_label', lbl)
+    .select('table_label');
+  if (!upOnly.error && Array.isArray(upOnly.data) && upOnly.data.length > 0) return upOnly;
+
   return supabaseClient.from('beifutei_table_states').insert({
     table_label: lbl,
     checkout_requested_at: ts,
@@ -81,6 +95,40 @@ async function patchGuestFarewellColumns(supabaseClient, tableLabel, pair) {
   await supabaseClient.from('beifutei_table_states').update(payload).eq('table_label', tl);
 }
 
+/** 会計確定後に卓状態へ書き込むリセット（飲み放題停止・依頼解除・メモ・チャージ解除） */
+function checkoutTableResetPayload(tableLabel) {
+  const tl = String(tableLabel ?? '').trim();
+  return {
+    table_label: tl,
+    nomihodai_active: false,
+    nomihodai_start_ms: null,
+    nomihodai_end_ms: null,
+    nomihodai_people: 0,
+    nomihodai_men: 0,
+    nomihodai_women: 0,
+    nomihodai_bill_total: 0,
+    nomihodai_extension_count: 0,
+    guest_intent_requested_at: null,
+    checkout_requested_at: null,
+    table_memo: null,
+    alcohol_charge_people: 0,
+    alcohol_charge_yen_per_person: 0,
+  };
+}
+
+/** 同一卓が複数行になったとき（Realtime と trim 表記ゆれ）を1行にまとめる */
+function normalizeTableStatesRows(rows) {
+  if (!Array.isArray(rows)) return [];
+  const by = new Map();
+  for (const row of rows) {
+    const k = normalizeTableLabelKey(row?.table_label ?? '');
+    if (!k) continue;
+    const prev = by.get(k);
+    by.set(k, prev ? { ...prev, ...row, table_label: k } : { ...row, table_label: k });
+  }
+  return [...by.values()];
+}
+
 function normalizeItemPriceYen(raw) {
   if (raw == null || raw === '') return 0;
   if (typeof raw === 'number' && Number.isFinite(raw)) return Math.max(0, raw);
@@ -105,7 +153,7 @@ export function NomihodaiSessionProvider({ children }) {
         const p = JSON.parse(raw);
         return {
           tableId: p.tableId || 'default',
-          tableLabel: p.tableLabel || '3',
+          tableLabel: normalizeTableLabelKey(p.tableLabel ?? '') || '3',
           nomihodaiFarewell: p.nomihodaiFarewell || null,
         };
       }
@@ -132,7 +180,7 @@ export function NomihodaiSessionProvider({ children }) {
       if (!p || typeof p !== 'object') return;
       setLocalDeviceState({
         tableId: p.tableId || 'default',
-        tableLabel: p.tableLabel || '3',
+        tableLabel: normalizeTableLabelKey(p.tableLabel ?? '') || '3',
         nomihodaiFarewell: p.nomihodaiFarewell || null,
       });
     } catch {
@@ -165,8 +213,8 @@ export function NomihodaiSessionProvider({ children }) {
 
   /** DB でフローが消えたのに local に古い farewell が残る場合のみ掃除（マイグレーション済み環境） */
   useEffect(() => {
-    const myLabel = String(localDeviceState.tableLabel || '3');
-    const row = dbTables.find((r) => String(r.table_label) === myLabel);
+    const myLabel = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
+    const row = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === myLabel);
     if (!row || !('guest_farewell_completed_at' in row)) return;
     if (farewellFromTableRow(row) || !localDeviceState.nomihodaiFarewell) return;
     saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
@@ -208,16 +256,20 @@ export function NomihodaiSessionProvider({ children }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'beifutei_table_states' }, (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           setDbTables((prev) => {
-            const idx = prev.findIndex((t) => t.table_label === payload.new.table_label);
+            const key = normalizeTableLabelKey(payload.new?.table_label ?? '');
+            if (!key) return prev;
+            const mergedNew = { ...payload.new, table_label: key };
+            const idx = prev.findIndex((t) => normalizeTableLabelKey(t.table_label ?? '') === key);
             if (idx >= 0) {
               const copy = [...prev];
-              copy[idx] = payload.new;
-              return copy;
+              copy[idx] = { ...copy[idx], ...mergedNew };
+              return normalizeTableStatesRows(copy);
             }
-            return [...prev, payload.new];
+            return normalizeTableStatesRows([...prev, mergedNew]);
           });
         } else if (payload.eventType === 'DELETE') {
-          setDbTables((prev) => prev.filter((t) => t.table_label !== payload.old.table_label));
+          const key = normalizeTableLabelKey(payload.old?.table_label ?? '');
+          setDbTables((prev) => normalizeTableStatesRows(prev.filter((t) => normalizeTableLabelKey(t.table_label ?? '') !== key)));
         }
       })
       .subscribe((status, err) => {
@@ -240,7 +292,7 @@ export function NomihodaiSessionProvider({ children }) {
       if (ordersRes.error) markKitchenRestSyncError('beifutei_orders:initial', ordersRes.error);
       else if (Array.isArray(ordersRes.data)) setDbOrders(ordersRes.data);
       if (tablesRes.error) markKitchenRestSyncError('beifutei_table_states:initial', tablesRes.error);
-      else if (Array.isArray(tablesRes.data)) setDbTables(tablesRes.data);
+      else if (Array.isArray(tablesRes.data)) setDbTables(normalizeTableStatesRows(tablesRes.data));
       if (!ordersRes.error && !tablesRes.error) markKitchenRestSyncOk();
     };
     void fetchInitial();
@@ -279,7 +331,7 @@ export function NomihodaiSessionProvider({ children }) {
       return;
     }
     markKitchenRestSyncOk();
-    if (data) setDbTables(data);
+    if (data) setDbTables(normalizeTableStatesRows(data));
   }, []);
 
   /**
@@ -305,7 +357,7 @@ export function NomihodaiSessionProvider({ children }) {
         ok = false;
         markKitchenRestSyncError('beifutei_table_states:resync', tablesRes.error);
       } else if (Array.isArray(tablesRes.data)) {
-        setDbTables(tablesRes.data);
+        setDbTables(normalizeTableStatesRows(tablesRes.data));
       }
       if (ok) markKitchenRestSyncOk();
       if (reconnectRealtime) startRealtimeChannels();
@@ -380,9 +432,12 @@ export function NomihodaiSessionProvider({ children }) {
     const checkoutRequestByLabel = {};
     let checkoutRequestAt = null;
 
-    dbTables.forEach(row => {
-      const lbl = row.table_label;
-      if (row.nomihodai_active) {
+    const deviceLabel = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
+
+    dbTables.forEach((row) => {
+      const lbl = normalizeTableLabelKey(row.table_label ?? '');
+      if (!lbl) return;
+      if (isDbNomihodaiActiveFlag(row.nomihodai_active)) {
         nomihodaiByLabel[lbl] = {
           active: true,
           startMs: Number(row.nomihodai_start_ms),
@@ -405,9 +460,9 @@ export function NomihodaiSessionProvider({ children }) {
       }
       const cq = row.checkout_requested_at != null ? Number(row.checkout_requested_at) : null;
       if (Number.isFinite(cq) && cq > 0) {
-        checkoutRequestByLabel[String(lbl)] = cq;
+        checkoutRequestByLabel[lbl] = cq;
       }
-      if (String(lbl) === String(localDeviceState.tableLabel) && Number.isFinite(cq) && cq > 0) {
+      if (lbl === deviceLabel && Number.isFinite(cq) && cq > 0) {
         checkoutRequestAt = cq;
       }
     });
@@ -415,7 +470,7 @@ export function NomihodaiSessionProvider({ children }) {
     const orders = dbOrders.map(row => ({
       id: row.id,
       tableId: 'default',
-      tableLabel: row.table_label,
+      tableLabel: normalizeTableLabelKey(row.table_label ?? '') || String(row.table_label ?? '').trim(),
       itemId: row.item_id,
       itemName: row.item_name,
       itemPrice: Number(row.item_price),
@@ -424,20 +479,32 @@ export function NomihodaiSessionProvider({ children }) {
       createdAt: Number(row.created_at)
     }));
 
-    const myLabel = String(localDeviceState.tableLabel || '3');
-    const myTableRow = dbTables.find((r) => String(r.table_label) === myLabel);
+    const myLabel = deviceLabel;
+    const myTableRow = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === myLabel);
     const farewellFromDb = farewellFromTableRow(myTableRow);
 
     /** 厨房：会計後の THANK YOU / SESSION CLOSED が卓タブレットに出ている卓 */
     const guestFarewellActiveByLabel = {};
     for (const row of dbTables) {
-      const lbl = String(row.table_label);
+      const lbl = normalizeTableLabelKey(row.table_label ?? '');
+      if (!lbl) continue;
       if (farewellFromTableRow(row)) guestFarewellActiveByLabel[lbl] = true;
     }
 
+    const alcoholChargeByLabel = {};
+    dbTables.forEach((row) => {
+      const lbl = normalizeTableLabelKey(row.table_label ?? '');
+      if (!lbl) return;
+      const pe = Math.max(0, Number(row.alcohol_charge_people) || 0);
+      const ypp = Math.max(0, Number(row.alcohol_charge_yen_per_person) || 0);
+      if (pe > 0 && ypp > 0) {
+        alcoholChargeByLabel[lbl] = { people: pe, yenPerPerson: ypp };
+      }
+    });
+
     return {
       tableId: localDeviceState.tableId,
-      tableLabel: localDeviceState.tableLabel,
+      tableLabel: deviceLabel,
       /** DB（全端末共有）を優先。未マイグレーション時は従来どおり local のみ */
       nomihodaiFarewell: farewellFromDb ?? localDeviceState.nomihodaiFarewell,
       nomihodaiByLabel,
@@ -446,13 +513,18 @@ export function NomihodaiSessionProvider({ children }) {
       checkoutRequestByLabel,
       checkoutRequestAt,
       guestFarewellActiveByLabel,
+      alcoholChargeByLabel,
       orders,
       updatedAt: Date.now()
     };
   }, [dbOrders, dbTables, localDeviceState]);
 
   const setSessionTableLabel = useCallback((label) => {
-    saveLocalDeviceState(s => ({ ...s, tableLabel: String(label ?? s.tableLabel) }));
+    const next = normalizeTableLabelKey(label ?? '');
+    saveLocalDeviceState((s) => ({
+      ...s,
+      tableLabel: next !== '' ? next : normalizeTableLabelKey(s.tableLabel ?? '') || '3',
+    }));
   }, [saveLocalDeviceState]);
 
   // Actions translating to Supabase Updates
@@ -482,7 +554,8 @@ export function NomihodaiSessionProvider({ children }) {
   }, [session.tableLabel]);
 
   const startNomihodai = useCallback(async ({ tableLabel, menCount, womenCount, durationMs = NOMIHODAI_BASE_MS }) => {
-    const lbl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);
+    const lbl = normalizeTableLabelKey(tableLabel != null ? String(tableLabel) : String(session.tableLabel));
+    if (!lbl) return;
     const men = Math.max(0, Number(menCount) || 0);
     const women = Math.max(0, Number(womenCount) || 0);
     const people = Math.max(1, men + women || 1);
@@ -493,7 +566,7 @@ export function NomihodaiSessionProvider({ children }) {
     // Optimistic
     setDbTables(prev => {
       const copy = [...prev];
-      const idx = copy.findIndex(t => t.table_label === lbl);
+      const idx = copy.findIndex((t) => normalizeTableLabelKey(t.table_label ?? '') === lbl);
       const newRow = {
         table_label: lbl,
         nomihodai_active: true,
@@ -508,7 +581,7 @@ export function NomihodaiSessionProvider({ children }) {
       };
       if (idx >= 0) copy[idx] = { ...copy[idx], ...newRow };
       else copy.push(newRow);
-      return copy;
+      return normalizeTableStatesRows(copy);
     });
 
     await supabase.from('beifutei_table_states').upsert({
@@ -540,13 +613,13 @@ export function NomihodaiSessionProvider({ children }) {
     await supabase.from('beifutei_orders').delete().match({ table_label: lbl, is_nomihodai: true });
   }, [session.tableLabel]);
 
-  const requestGuestCheckout = useCallback(async () => {
-    const lbl = String(session.tableLabel);
+  const requestTableCheckout = useCallback(async () => {
+    const lbl = String(session.tableLabel ?? '').trim();
     return setCheckoutRequestedAtForTable(supabase, lbl, Date.now());
   }, [session.tableLabel]);
 
-  const requestTableCheckout = useCallback(async () => {
-    const lbl = String(session.tableLabel);
+  const requestGuestCheckout = useCallback(async () => {
+    const lbl = String(session.tableLabel ?? '').trim();
     return setCheckoutRequestedAtForTable(supabase, lbl, Date.now());
   }, [session.tableLabel]);
 
@@ -564,6 +637,102 @@ export function NomihodaiSessionProvider({ children }) {
     const m = String(memoText ?? '').replace(/\s+/g, ' ').trim().slice(0, TABLE_MEMO_MAX_LEN);
     await supabase.from('beifutei_table_states').upsert({ table_label: lbl, table_memo: m });
   }, [session.tableLabel]);
+
+  /** 卓チャージ（人数×1名あたり円・税込）。金額は店舗任意。DB は upsert で反映 */
+  const setTableAlcoholCharge = useCallback(
+    async (tableLabel, { people, yenPerPerson }) => {
+      const lbl = normalizeTableLabelKey(tableLabel ?? '');
+      if (!lbl) return;
+
+      const pe = Math.max(0, Math.min(99, Number(people) || 0));
+      const yRaw = Number(yenPerPerson);
+      const ypp = Number.isFinite(yRaw) ? Math.max(0, Math.min(999999, Math.floor(yRaw))) : 0;
+
+      setDbTables((prev) => {
+        const idx = prev.findIndex((t) => normalizeTableLabelKey(t.table_label ?? '') === lbl);
+        const patch = {
+          alcohol_charge_people: pe,
+          alcohol_charge_yen_per_person: ypp,
+        };
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...patch };
+          return normalizeTableStatesRows(next);
+        }
+        return normalizeTableStatesRows([
+          ...prev,
+          {
+            table_label: lbl,
+            ...patch,
+            nomihodai_active: false,
+            nomihodai_start_ms: null,
+            nomihodai_end_ms: null,
+            nomihodai_people: 0,
+            nomihodai_men: 0,
+            nomihodai_women: 0,
+            nomihodai_bill_total: 0,
+            nomihodai_extension_count: 0,
+            guest_intent_requested_at: null,
+            checkout_requested_at: null,
+            table_memo: null,
+          },
+        ]);
+      });
+
+      const { data, error } = await supabase
+        .from('beifutei_table_states')
+        .upsert(
+          {
+            table_label: lbl,
+            alcohol_charge_people: pe,
+            alcohol_charge_yen_per_person: ypp,
+          },
+          { onConflict: 'table_label', defaultToNull: false },
+        )
+        .select('table_label, alcohol_charge_people, alcohol_charge_yen_per_person')
+        .maybeSingle();
+
+      if (error) {
+        pushKitchenDiagFromSupabase('beifutei_table_states:upsert', error, '卓チャージupsert');
+      } else if (data) {
+        const key = normalizeTableLabelKey(data.table_label ?? lbl);
+        const peDb = Math.max(0, Math.min(99, Number(data.alcohol_charge_people) || 0));
+        const yppDb = Math.max(0, Math.min(999999, Math.floor(Number(data.alcohol_charge_yen_per_person) || 0)));
+        setDbTables((prev) => {
+          const idx = prev.findIndex((t) => normalizeTableLabelKey(t.table_label ?? '') === key);
+          const patch = {
+            table_label: key,
+            alcohol_charge_people: peDb,
+            alcohol_charge_yen_per_person: yppDb,
+          };
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...patch };
+            return normalizeTableStatesRows(next);
+          }
+          return normalizeTableStatesRows([
+            ...prev,
+            {
+              ...patch,
+              nomihodai_active: false,
+              nomihodai_start_ms: null,
+              nomihodai_end_ms: null,
+              nomihodai_people: 0,
+              nomihodai_men: 0,
+              nomihodai_women: 0,
+              nomihodai_bill_total: 0,
+              nomihodai_extension_count: 0,
+              guest_intent_requested_at: null,
+              checkout_requested_at: null,
+              table_memo: null,
+            },
+          ]);
+        });
+      }
+      void refetchTablesFromDb();
+    },
+    [refetchTablesFromDb],
+  );
 
   const requestNomihodaiGuestIntent = useCallback(async () => {
     const lbl = String(session.tableLabel);
@@ -642,7 +811,7 @@ export function NomihodaiSessionProvider({ children }) {
   }, [session.tableLabel]);
 
   const finalizeSlipCheckout = useCallback(async ({ tableId, tableLabel, payment }) => {
-    const tl = String(tableLabel ?? session.tableLabel);
+    const tl = normalizeTableLabelKey(String(tableLabel ?? session.tableLabel)) || '3';
     const pay =
       payment === 'card_5pct' || payment === 'card-5pct'
         ? 'card_5pct'
@@ -651,7 +820,7 @@ export function NomihodaiSessionProvider({ children }) {
           : 'cash';
 
     // Gather data
-    const tableOrders = session.orders.filter(o => o.status === 'served' && String(o.tableLabel) === tl);
+    const tableOrders = session.orders.filter(o => o.status === 'served' && normalizeTableLabelKey(String(o.tableLabel ?? '')) === tl);
     let normalSubtotal = 0;
     let normalCount = 0;
     let nomihodaiCount = 0;
@@ -659,12 +828,17 @@ export function NomihodaiSessionProvider({ children }) {
 
     tableOrders.forEach(o => {
       const itemId = String(o.itemId ?? '');
+      const p = Math.max(0, Number(o.itemPrice) || 0);
       if (o.isNomihodai) {
         nomihodaiCount++;
-        lines.push({ kind: 'nh', name: o.itemName, itemId });
+        if (p > 0) {
+          normalSubtotal += p;
+          lines.push({ kind: 'nh_extra', name: o.itemName, price: p, itemId });
+        } else {
+          lines.push({ kind: 'nh', name: o.itemName, itemId });
+        }
       } else {
         normalCount++;
-        const p = Math.max(0, Number(o.itemPrice) || 0);
         normalSubtotal += p;
         lines.push({ kind: 'normal', name: o.itemName, price: p, itemId });
       }
@@ -672,10 +846,15 @@ export function NomihodaiSessionProvider({ children }) {
 
     const n = session.nomihodaiByLabel[tl];
     const nomihodaiPlanYen = n?.active ? Math.max(0, Number(n.billTotal) || 0) : 0;
-    const baseTotal = normalSubtotal + nomihodaiPlanYen;
+    const ac = getAlcoholTableCharge(session, tl);
+    if (ac.totalYen > 0) {
+      lines.push({ kind: 'alcohol_charge', name: ac.lineName, price: ac.totalYen });
+    }
+    const baseTotal = normalSubtotal + nomihodaiPlanYen + ac.totalYen;
     const total = pay === 'card_5pct' ? Math.ceil(baseTotal * 1.05) : baseTotal;
 
-    const hasSlipBody = normalCount > 0 || nomihodaiCount > 0 || nomihodaiPlanYen > 0;
+    const hasSlipBody =
+      normalCount > 0 || nomihodaiCount > 0 || nomihodaiPlanYen > 0 || ac.totalYen > 0;
     if (!hasSlipBody) return { ok: false, reason: 'empty_slip' };
 
     const checkoutNow = Date.now();
@@ -691,6 +870,7 @@ export function NomihodaiSessionProvider({ children }) {
       total,
       normalSubtotal,
       nomihodaiPlanYen,
+      alcoholChargeYen: ac.totalYen,
       normalCount,
       nomihodaiCount,
       lines,
@@ -712,13 +892,37 @@ export function NomihodaiSessionProvider({ children }) {
       await supabase.from('beifutei_orders').delete().in('id', orderIds);
     }
 
-    // 2. Clear table state
-    await supabase.from('beifutei_table_states').upsert({
-      table_label: tl,
-      nomihodai_active: false,
-      checkout_requested_at: null,
-      table_memo: null,
+    // 2. 未提供の飲み放題注文を削除（卓に残ると NH が続いているように見える）
+    await supabase
+      .from('beifutei_orders')
+      .delete()
+      .eq('table_label', tl)
+      .eq('is_nomihodai', true)
+      .eq('status', 'pending');
+
+    // 3. 卓状態を確実にリセット（update だけだと行が無い／DBエラーで NH が止まらないことがある → upsert）
+    const payloadFull = checkoutTableResetPayload(tl);
+    let { error: tblErr } = await supabase.from('beifutei_table_states').upsert(payloadFull);
+    if (tblErr) {
+      const { alcohol_charge_people, alcohol_charge_yen_per_person, ...payloadNoAlc } = payloadFull;
+      const retry = await supabase.from('beifutei_table_states').upsert(payloadNoAlc);
+      tblErr = retry.error;
+    }
+    if (tblErr) {
+      pushKitchenDiagFromSupabase('beifutei_table_states:upsert', tblErr, '会計後卓リセット');
+    }
+
+    setDbTables((prev) => {
+      const idx = prev.findIndex((r) => normalizeTableLabelKey(r.table_label ?? '') === tl);
+      const merged = checkoutTableResetPayload(tl);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...merged };
+        return normalizeTableStatesRows(next);
+      }
+      return normalizeTableStatesRows([...prev, merged]);
     });
+    void refetchTablesFromDb();
 
     if (nomihodaiPlanYen > 0 && n?.active) {
       await patchGuestFarewellColumns(supabase, tl, {
@@ -729,7 +933,7 @@ export function NomihodaiSessionProvider({ children }) {
       await patchGuestFarewellColumns(supabase, tl, null);
     }
 
-    if (nomihodaiPlanYen > 0 && n?.active && tl === String(localDeviceState.tableLabel)) {
+    if (nomihodaiPlanYen > 0 && n?.active && String(tl).trim() === String(session.tableLabel ?? '').trim()) {
       saveLocalDeviceState((s) => ({
         ...s,
         nomihodaiFarewell: {
@@ -745,31 +949,54 @@ export function NomihodaiSessionProvider({ children }) {
     session.orders,
     session.nomihodaiByLabel,
     session.tableMemoByLabel,
+    session.alcoholChargeByLabel,
     saveLocalDeviceState,
     localDeviceState.tableLabel,
+    setDbTables,
+    refetchTablesFromDb,
   ]);
 
   /** バッシング完了：卓タブレットの退席メッセージを消し、飲み放題タブを再利用可能にする */
   const clearGuestFarewellForReuse = useCallback(
     async (tableLabel) => {
-      const tl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);
+      const tl = String(tableLabel != null ? tableLabel : session.tableLabel).trim();
       await patchGuestFarewellColumns(supabase, tl, null);
-      if (tl === String(localDeviceState.tableLabel)) {
+      if (tl === String(session.tableLabel ?? '').trim()) {
         saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
       }
     },
     [session.tableLabel, localDeviceState.tableLabel, saveLocalDeviceState]
   );
 
-  const nomihodaiActive = !!getNomihodaiForTable(session, session.tableLabel)?.active;
+  /** 会計完了後も Realtime 遅れで NH が残るのを防ぐ（farewell 確定時は帯・ロックを消す） */
+  const nomihodaiActive = useMemo(() => {
+    const lbl = normalizeTableLabelKey(session.tableLabel ?? '') || '3';
+    const myRow = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === lbl);
+    const farewellCompleted =
+      !!farewellFromTableRow(myRow) ||
+      (!!session.nomihodaiFarewell &&
+        Number.isFinite(Number(session.nomihodaiFarewell.checkoutCompletedAt)) &&
+        Number(session.nomihodaiFarewell.checkoutCompletedAt) > 0);
+    if (farewellCompleted) return false;
+    return !!getNomihodaiForTable(session, lbl)?.active;
+  }, [session, dbTables]);
+
   const n = getNomihodaiForTable(session, session.tableLabel);
 
   const countdown = useMemo(() => {
-    if (!n?.active) return { endMin: null, loMin: null, loPhase: false, ended: true };
+    if (!n?.active) {
+      return { endMin: null, extendMin: null, loMin: null, loPhase: false, ended: true };
+    }
     const endLeft = Math.max(0, n.endMs - now);
+    const nextExtendMs =
+      Number.isFinite(n.nextAutoExtendMs) && n.nextAutoExtendMs > n.startMs
+        ? n.nextAutoExtendMs
+        : n.endMs;
+    const extendLeft = Math.max(0, nextExtendMs - now);
     const loLeft = Math.max(0, n.lastOrderMs - now);
     return {
       endMin: Math.ceil(endLeft / 60000),
+      extendMin: Math.ceil(extendLeft / 60000),
       loMin: Math.ceil(loLeft / 60000),
       loPhase: now >= n.lastOrderMs,
       ended: now >= n.endMs,
@@ -788,6 +1015,7 @@ export function NomihodaiSessionProvider({ children }) {
 
   const canOrderMoreNomihodai = useMemo(() => {
     if (!n?.active) return false;
+    if (!NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED) return true;
     return pendingNomihodaiCount < n.people;
   }, [n, pendingNomihodaiCount]);
 
@@ -827,6 +1055,7 @@ export function NomihodaiSessionProvider({ children }) {
       clearNomihodaiGuestIntent,
       setSessionTableLabel,
       setTableMemo,
+      setTableAlcoholCharge,
       requestGuestCheckout,
       addGuestOrders,
       requestTableCheckout,
@@ -864,6 +1093,7 @@ export function NomihodaiSessionProvider({ children }) {
       clearNomihodaiGuestIntent,
       setSessionTableLabel,
       setTableMemo,
+      setTableAlcoholCharge,
       requestGuestCheckout,
       addGuestOrders,
       requestTableCheckout,

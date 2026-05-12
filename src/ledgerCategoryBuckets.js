@@ -1,6 +1,6 @@
 /**
  * 日計伝票行の itemId から、オーナー向けカテゴリを判定する。
- * （カフェタブ: cafe-* / フルーツ・ソフト: fr-* / テイクアウトスイーツ: ts-*）
+ * （カフェタブ: cafe-* / ソフトクリーム: fr-* / テイクアウトスイーツ: ts-*）
  */
 
 /** @typedef {'cafe_drink'|'softcream_fruit'|'takeout_sweets'} LedgerCategoryBucket */
@@ -21,7 +21,7 @@ export function classifyLedgerLineItemId(itemId) {
 const EMPTY = () => ({ revenue: 0, lineCount: 0, lines: [] });
 
 /**
- * 指定日の会計エントリから、カフェ／ソフト・フルーツ／テイクアウトの売上だけを抜き出す。
+ * 指定日の会計エントリから、ソフトクリーム／カフェ／テイクアウトの売上だけを抜き出す。
  * @param {object[]} dayEntries
  */
 export function summarizeLedgerCategoryBuckets(dayEntries) {

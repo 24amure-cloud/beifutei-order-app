@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { downloadDailyLedgerCsvForDate } from './dailyLedgerCsvExport.js';
 import {
   DAILY_LEDGER_STORAGE_KEY,
@@ -7,7 +7,8 @@ import {
   loadDailyLedger,
   summarizeLedgerDay,
 } from './dailyLedger.js';
-import { getNomihodaiForTable } from './nomihodaiSession.js';
+import { buildGuestOrderPageUrl } from './guestOrderUrl.js';
+import { collectKnownTableLabels, getNomihodaiForTable } from './nomihodaiSession.js';
 
 /** 卓セッション・飲み放題の簡易サマリー（localStorage 共有のスナップショット） */
 export default function MasterOpsPanel({
@@ -46,6 +47,48 @@ export default function MasterOpsPanel({
     const key = getLocalDateKey();
     return { todayKey: key, daySum: summarizeLedgerDay(entries, key) };
   }, [ledgerTick]);
+
+  const knownTableLabels = useMemo(() => collectKnownTableLabels(session), [session]);
+  const [customTableLabel, setCustomTableLabel] = useState('');
+  const [rangeFrom, setRangeFrom] = useState(1);
+  const [rangeTo, setRangeTo] = useState(20);
+  const [copyFlash, setCopyFlash] = useState(null);
+
+  const copyText = useCallback(async (text, flashKey) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      if (flashKey != null) {
+        setCopyFlash(flashKey);
+        window.setTimeout(() => setCopyFlash((k) => (k === flashKey ? null : k)), 1600);
+      }
+    } catch {
+      window.prompt('コピーできませんでした。手動でコピーしてください', text);
+    }
+  }, []);
+
+  const copyGuestUrlForTable = useCallback(
+    async (label) => {
+      await copyText(buildGuestOrderPageUrl(label), `t:${label}`);
+    },
+    [copyText],
+  );
+
+  const copyGuestUrlRange = useCallback(async () => {
+    const a = Math.max(1, Math.min(99, Number(rangeFrom) || 1));
+    const b = Math.max(1, Math.min(99, Number(rangeTo) || 1));
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    if (hi - lo > 60) {
+      window.alert('一度にコピーできるのは最大60卓までです。');
+      return;
+    }
+    const lines = [];
+    for (let i = lo; i <= hi; i += 1) {
+      const lbl = String(i);
+      lines.push(`${lbl}\t${buildGuestOrderPageUrl(lbl)}`);
+    }
+    await copyText(lines.join('\n'), 'range');
+  }, [copyText, rangeFrom, rangeTo]);
 
   return (
     <section className="master-card master-card--ops">
@@ -89,6 +132,88 @@ export default function MasterOpsPanel({
           <strong className="master-ops-kpi__value">
             未提供 {pendingNomihodaiCount}／提供済 {served}
           </strong>
+        </div>
+      </div>
+
+      <div className="master-ops-guest-url">
+        <h3 className="master-ops-guest-url__title">客席オーダー用URL（卓ごと）</h3>
+        <p className="master-ops-guest-url__lead">
+          客席トップは左ナビ「3つの画面」のお客様用URL。ここでは <code className="master-ops-guest-url__code">?table=卓番</code>{' '}
+          付きをコピーしてQRにしてください（この画面と同じドメインで組み立てます）。
+        </p>
+        {knownTableLabels.length > 0 ? (
+          <div className="master-ops-guest-url__known">
+            <span className="master-ops-guest-url__sub">データに現れている卓</span>
+            <ul className="master-ops-guest-url__list">
+              {knownTableLabels.map((lbl) => (
+                <li key={lbl} className="master-ops-guest-url__row">
+                  <span className="master-ops-guest-url__label">卓{lbl}</span>
+                  <code className="master-ops-guest-url__href">{buildGuestOrderPageUrl(lbl)}</code>
+                  <button
+                    type="button"
+                    className="master-btn master-btn--secondary master-btn--small"
+                    onClick={() => copyGuestUrlForTable(lbl)}
+                  >
+                    {copyFlash === `t:${lbl}` ? 'コピー済み' : 'URLをコピー'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="master-ops-guest-url__empty">まだ卓の注文・状態が同期されていません（下の番号指定で URL を作れます）。</p>
+        )}
+        <div className="master-ops-guest-url__manual">
+          <span className="master-ops-guest-url__sub">任意の卓番</span>
+          <div className="master-ops-guest-url__manual-row">
+            <input
+              className="master-ops-guest-url__input"
+              type="text"
+              inputMode="numeric"
+              placeholder="例: 12"
+              value={customTableLabel}
+              onChange={(e) => setCustomTableLabel(e.target.value)}
+              aria-label="卓番"
+            />
+            <button
+              type="button"
+              className="master-btn master-btn--secondary master-btn--small"
+              disabled={!String(customTableLabel).trim()}
+              onClick={() => copyGuestUrlForTable(String(customTableLabel).trim())}
+            >
+              {copyFlash === `t:${String(customTableLabel).trim()}` ? 'コピー済み' : 'URLをコピー'}
+            </button>
+          </div>
+        </div>
+        <div className="master-ops-guest-url__range">
+          <span className="master-ops-guest-url__sub">連番まとめて（タブ区切り：卓番 → URL）</span>
+          <div className="master-ops-guest-url__range-row">
+            <label className="master-ops-guest-url__range-lab">
+              から
+              <input
+                className="master-ops-guest-url__input master-ops-guest-url__input--num"
+                type="number"
+                min={1}
+                max={99}
+                value={rangeFrom}
+                onChange={(e) => setRangeFrom(Number(e.target.value))}
+              />
+            </label>
+            <label className="master-ops-guest-url__range-lab">
+              まで
+              <input
+                className="master-ops-guest-url__input master-ops-guest-url__input--num"
+                type="number"
+                min={1}
+                max={99}
+                value={rangeTo}
+                onChange={(e) => setRangeTo(Number(e.target.value))}
+              />
+            </label>
+            <button type="button" className="master-btn master-btn--secondary master-btn--small" onClick={copyGuestUrlRange}>
+              {copyFlash === 'range' ? 'コピー済み' : '一覧をコピー'}
+            </button>
+          </div>
         </div>
       </div>
 

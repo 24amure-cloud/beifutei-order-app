@@ -214,20 +214,20 @@ export default function OwnerSalesCalendar() {
           </div>
 
           <div className="owner-cal-block">
-            <h4 className="owner-cal-block__h">カフェドリンク・ソフト／フルーツ・テイクアウト内訳</h4>
+            <h4 className="owner-cal-block__h">ソフトクリーム・カフェドリンク・テイクアウト内訳</h4>
             <p className="owner-cal-block__hint">
               会計伝票の品目 ID から集計（cafe-*／fr-*／ts-*）。過去データに itemId が無い行は含まれません。
             </p>
             <div className="owner-cal-buckets">
               <div className="owner-cal-bucket">
+                <span className="owner-cal-bucket__lab">ソフトクリーム</span>
+                <strong className="owner-cal-bucket__val">{fmtYen(buckets.softcream_fruit.revenue)}</strong>
+                <span className="owner-cal-bucket__sub">{buckets.softcream_fruit.lineCount} 行</span>
+              </div>
+              <div className="owner-cal-bucket">
                 <span className="owner-cal-bucket__lab">カフェドリンク</span>
                 <strong className="owner-cal-bucket__val">{fmtYen(buckets.cafe_drink.revenue)}</strong>
                 <span className="owner-cal-bucket__sub">{buckets.cafe_drink.lineCount} 行</span>
-              </div>
-              <div className="owner-cal-bucket">
-                <span className="owner-cal-bucket__lab">ソフト・フルーツ</span>
-                <strong className="owner-cal-bucket__val">{fmtYen(buckets.softcream_fruit.revenue)}</strong>
-                <span className="owner-cal-bucket__sub">{buckets.softcream_fruit.lineCount} 行</span>
               </div>
               <div className="owner-cal-bucket">
                 <span className="owner-cal-bucket__lab">テイクアウトスイーツ</span>
@@ -237,13 +237,13 @@ export default function OwnerSalesCalendar() {
             </div>
             <details className="owner-cal-bucket-lines">
               <summary>カテゴリ別の明細行を表示</summary>
-              {(['cafe_drink', 'softcream_fruit', 'takeout_sweets']).map((key) => {
+              {(['softcream_fruit', 'cafe_drink', 'takeout_sweets']).map((key) => {
                 const b = buckets[key];
                 const title =
-                  key === 'cafe_drink'
-                    ? 'カフェドリンク'
-                    : key === 'softcream_fruit'
-                      ? 'ソフト・フルーツ'
+                  key === 'softcream_fruit'
+                    ? 'ソフトクリーム'
+                    : key === 'cafe_drink'
+                      ? 'カフェドリンク'
                       : 'テイクアウトスイーツ';
                 if (b.lines.length === 0) {
                   return (
@@ -291,9 +291,18 @@ export default function OwnerSalesCalendar() {
                       <ul className="owner-cal-slip__lines">
                         {(e.lines || []).map((ln, i) => (
                           <li key={`${e.id}-ln-${i}`}>
-                            <span className="owner-cal-slip__kind">{ln.kind === 'nh' ? 'NH' : '通常'}</span>
+                            <span className="owner-cal-slip__kind">
+                              {ln.kind === 'nh'
+                                ? 'NH'
+                                : ln.kind === 'nh_extra'
+                                  ? '別料金'
+                                  : ln.kind === 'alcohol_charge'
+                                    ? 'CH'
+                                    : '通常'}
+                            </span>
                             <span className="owner-cal-slip__name">{ln.name}</span>
-                            {ln.kind === 'normal' && ln.price != null ? (
+                            {(ln.kind === 'normal' || ln.kind === 'nh_extra' || ln.kind === 'alcohol_charge') &&
+                            ln.price != null ? (
                               <span className="owner-cal-slip__price">{fmtYen(ln.price)}</span>
                             ) : (
                               <span className="owner-cal-slip__price">—</span>

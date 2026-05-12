@@ -5,6 +5,7 @@ import MasterOpsPanel from './MasterOpsPanel.jsx';
 import { MasterDrinkMenuPanel, MasterNomihodaiMenuPanel } from './MasterMenuPanels.jsx';
 import { useMasterMenuEditor } from './useMasterMenuEditor.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
+import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 
 export default function MasterMenuPage() {
   const editor = useMasterMenuEditor();
@@ -39,7 +40,7 @@ export default function MasterMenuPage() {
         <header className="master-page-header master-page-header--owner">
           <h1 className="master-page-title">オーナー専用コーナー</h1>
           <p className="master-page-lead">
-            メニュー編集は左のカテゴリから該当ブロックへジャンプします。オーダー管理・提供はスタッフ画面（厨房URL）、卓まわりの数字の確認は「売上サマリー」からどうぞ。
+            左ナビ先頭の「3つの画面」で客席・厨房・オーナーのURLを開けます。メニュー編集はカテゴリから該当ブロックへジャンプ。オーダー・提供は厨房、卓まわりの数字は「卓・売上サマリー」からどうぞ。
           </p>
         </header>
 
@@ -49,6 +50,8 @@ export default function MasterMenuPage() {
               <span className="master-owner-aside__badge">店舗用</span>
               <p className="master-owner-aside__brand-text">横長ディスプレイ想定・左ナビ</p>
             </div>
+
+            <StoreEntryUrlsPanel variant="master" />
 
             <div className="master-owner-aside__group">
               <h2 className="master-owner-aside__heading">メニュー編集</h2>

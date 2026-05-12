@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { NOMIHODAI_SESSION_CLOSED_DELAY_MS } from './nomihodaiConstants.js';
+import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 
 function GuestBussingOkButton() {
+  const { t } = useGuestUiLocale();
   const { clearGuestFarewellForReuse, session } = useNomihodaiSession();
   const [busy, setBusy] = useState(false);
   const onClick = async () => {
@@ -11,7 +13,7 @@ function GuestBussingOkButton() {
     try {
       await clearGuestFarewellForReuse(session.tableLabel);
     } catch {
-      window.alert('送信に失敗しました。通信を確認してください。');
+      window.alert(t('nh_checkout_alert_fail'));
     } finally {
       setBusy(false);
     }
@@ -23,38 +25,40 @@ function GuestBussingOkButton() {
         className="nh-checkout__bussing-btn nh-checkout__bussing-btn--fab"
         onClick={onClick}
         disabled={busy}
-        aria-label={busy ? '処理中' : 'バッシングOK。卓タブレットを次のお客様用に戻す'}
+        aria-label={busy ? t('nh_checkout_bussing_aria_busy') : t('nh_checkout_bussing_aria')}
       >
-        {busy ? '…' : 'バッシングOK'}
+        {busy ? t('nh_checkout_bussing_busy') : t('nh_checkout_bussing')}
       </button>
     </div>
   );
 }
 
 function FarewellMainMessage() {
+  const { t } = useGuestUiLocale();
   return (
     <p className="nh-checkout__farewell-sub">
       THANK YOU
       <br />
-      次のお客様ご案内準備のため
+      {t('nh_checkout_farewell_coop')}
       <br />
-      お席のご協力お願いいたします
+      {t('nh_checkout_farewell_seat')}
     </p>
   );
 }
 
 /** ① 会計ボタン直後：FREE FLOW 終了を先に伝える */
 export function NomihodaiGuestCheckoutThankYou() {
+  const { t } = useGuestUiLocale();
   return (
     <main className="main-content nh-active nh-active--ff nh-checkout nh-checkout--thankyou">
       <div className="nh-active__shell">
         <div className="nh-checkout__stage">
           <div className="nh-checkout__shell">
             <p className="nh-checkout__eyebrow">THANK YOU</p>
-            <h1 className="nh-checkout__headline">FREE FLOWは終了しました。</h1>
+            <h1 className="nh-checkout__headline">{t('nh_checkout_ty_headline')}</h1>
             <div className="nh-checkout__body">
-              <p>お会計を承りました。</p>
-              <p>スタッフがお席まで伺います。</p>
+              <p>{t('nh_checkout_ty_p1')}</p>
+              <p>{t('nh_checkout_ty_p2')}</p>
             </div>
           </div>
         </div>

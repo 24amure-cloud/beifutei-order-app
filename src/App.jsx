@@ -5,8 +5,17 @@ import { NomihodaiTabRouter } from './NomihodaiGuestFlow.jsx';
 import DrinkHeroImage from './DrinkHeroImage.jsx';
 import { getDrinkSectionHeroCandidates } from './data/drinkHeroImages.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
+import { getAlcoholTableCharge, formatAlcoholChargeLineForGuest } from './alcoholTableCharge.js';
 import { getNomihodaiForTable } from './nomihodaiSession.js';
 import { useMenuMaster } from './MenuMasterContext.jsx';
+import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
+import {
+  guestCartLineDisplay,
+  guestAburasobaToppingLabel,
+  guestDrinkRowName,
+  guestDrinkSectionHint,
+  guestTakeoutItemDisplayName,
+} from './guestMenuDisplay.js';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 
@@ -117,6 +126,7 @@ function buildAburasobaToppings() {
 function AburasobaMenu({ addToCart }) {
   const prices = ABURASOBA_PRICES;
   const toppings = buildAburasobaToppings();
+  const { t: ut, locale } = useGuestUiLocale();
 
   const [opts, setOpts] = useState({
     normal: { size: '並', price: 1130 },
@@ -178,6 +188,7 @@ function AburasobaMenu({ addToCart }) {
         toppings: toppingObjs.map((t) => ({
           id: t.id,
           name: t.name.replace(/\n/g, ''),
+          text: t.text,
           price: t.price,
         })),
       },
@@ -207,22 +218,35 @@ function AburasobaMenu({ addToCart }) {
   return (
     <main className="main-content" style={{ background: '#F8F5EE' }}>
       <div className="abu-wrapper">
-        <PageHeaderImage pageKey="aburasoba" alt="米風亭 油そば" />
+        <PageHeaderImage pageKey="aburasoba" alt={ut('header_aburasoba')} />
         <div className="abu-main-with-toppings">
           <div className="abu-main-hero-row">
             <p className="abu-flow-hint">
-              「追加」からサイズとトッピングをまとめて選べます。下のトッピング一覧からはトッピングのみ追加できます。
+              {ut('abu_flow_hint')}
             </p>
             {/* Hero Section */}
             <section className="abu-hero">
               <div className="abu-hero-left">
-                <p className="subtitle">昭和の味を受け継ぐ、<br /><span className="red">元祖</span> 油そば。</p>
-                <h2 className="title">米風亭<br />油そば</h2>
-                <p className="desc">— シンプル、だけど奥深い。—</p>
+                <p className="subtitle">
+                  {ut('abu_hero_subtitle')}
+                  <br />
+                  <span className="red">{ut('abu_hero_subtitle_em')}</span>
+                  {ut('abu_hero_subtitle_after')}
+                </p>
+                <h2 className="title">
+                  {ut('abu_hero_title1')}
+                  <br />
+                  {ut('abu_hero_title2')}
+                </h2>
+                <p className="desc">{ut('abu_hero_tag')}</p>
               </div>
 
               <div className="abu-hero-center">
-                <div className="abu-badge-no1">人気<br />No.1</div>
+                <div className="abu-badge-no1">
+                  {ut('abu_badge_pop1')}
+                  <br />
+                  {ut('abu_badge_pop2')}
+                </div>
                 <div className="abu-hero-img-area">
                   <div
                     className="abu-hero-img"
@@ -237,13 +261,24 @@ function AburasobaMenu({ addToCart }) {
               </div>
 
               <div className="abu-hero-right">
-                <div className="r-title">札幌米風亭 油そば</div>
-                <div className="r-desc">特製ダレがもちもちの麺に絡む、<br />飽きのこない一杯。<br />毎日でも食べたくなる一杯</div>
+                <div className="r-title">{ut('abu_right_title')}</div>
+                <div className="r-desc">
+                  {ut('abu_right_desc')
+                    .split('\n')
+                    .map((line, i, arr) => (
+                      <Fragment key={i}>
+                        {line}
+                        {i < arr.length - 1 ? <br /> : null}
+                      </Fragment>
+                    ))}
+                </div>
 
                 <div className="abu-price-list">
                   {['小', '並', '大'].map((s) => (
                     <div className="abu-price-item" key={s} onClick={() => updateOpt('normal', s)} style={{ cursor: 'pointer' }}>
-                      <div className="abu-size-circle" style={{ background: opts.normal.size === s ? '#A91E1E' : '#333' }}>{s}</div>
+                      <div className="abu-size-circle" style={{ background: opts.normal.size === s ? '#A91E1E' : '#333' }}>
+                        {locale === 'en' ? ut(s === '小' ? 'abu_size_s' : s === '大' ? 'abu_size_l' : 'abu_size_m') : s}
+                      </div>
                       <div
                         className="abu-price-val"
                         style={{ color: opts.normal.size === s ? '#A91E1E' : '#333', fontWeight: opts.normal.size === s ? 'bold' : 'normal' }}
@@ -256,7 +291,7 @@ function AburasobaMenu({ addToCart }) {
 
                 <div className="abu-hero-actions">
                   <button type="button" className="abu-btn-red" onClick={() => openFlow('normal')}>
-                    追加
+                    {ut('abu_add')}
                   </button>
                 </div>
               </div>
@@ -266,7 +301,7 @@ function AburasobaMenu({ addToCart }) {
           <div className="abu-main-variant-row">
             {/* Recommended Section */}
             <div className="abu-section-header">
-              <div className="abu-section-title">別仕立て</div>
+              <div className="abu-section-title">{ut('abu_section_other')}</div>
               <div className="abu-section-line"></div>
             </div>
 
@@ -274,8 +309,17 @@ function AburasobaMenu({ addToCart }) {
             {/* Spicy Aburasoba */}
             <div className="abu-rec-card">
               <div className="abu-rec-info">
-                <div className="abu-rec-title">辛々担々 油そば</div>
-                <div className="abu-rec-desc">肉みその旨味広がる<br/>やみつき坦々油そば<br/>花椒はお好みで</div>
+                <div className="abu-rec-title">{ut('abu_rec_spicy_title')}</div>
+                <div className="abu-rec-desc">
+                  {ut('abu_rec_spicy_desc')
+                    .split('\n')
+                    .map((line, i, arr) => (
+                      <Fragment key={i}>
+                        {line}
+                        {i < arr.length - 1 ? <br /> : null}
+                      </Fragment>
+                    ))}
+                </div>
                 <div className="abu-rec-bottom">
                   <div className="abu-rec-img" style={{ backgroundImage: cssBgUrl('名称未設定-1_0000_tantan.png'), backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
                   <div className="abu-rec-price-area">
@@ -294,24 +338,35 @@ function AburasobaMenu({ addToCart }) {
                             }
                           }}
                         >
-                          <div className="abu-size-circle abu-size-circle--rec">{s}</div>
+                          <div className="abu-size-circle abu-size-circle--rec">
+                            {locale === 'en' ? ut(s === '小' ? 'abu_size_s' : s === '大' ? 'abu_size_l' : 'abu_size_m') : s}
+                          </div>
                           <div className="abu-rec-size-price">￥{prices.spicy[s].toLocaleString()}</div>
                         </div>
                       ))}
                     </div>
                     <button type="button" className="abu-btn-full" onClick={() => openFlow('spicy')}>
-                      追加
+                      {ut('abu_add')}
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Negi Aburasoba */}
+            {/* Cheese Aburasoba */}
             <div className="abu-rec-card">
               <div className="abu-rec-info">
-                <div className="abu-rec-title">チーズ 油そば</div>
-                <div className="abu-rec-desc">チーズ好き必見<br/>たっぷりチーズを炙って提供</div>
+                <div className="abu-rec-title">{ut('abu_rec_cheese_title')}</div>
+                <div className="abu-rec-desc">
+                  {ut('abu_rec_cheese_desc')
+                    .split('\n')
+                    .map((line, i, arr) => (
+                      <Fragment key={i}>
+                        {line}
+                        {i < arr.length - 1 ? <br /> : null}
+                      </Fragment>
+                    ))}
+                </div>
                 <div className="abu-rec-bottom">
                   <div className="abu-rec-img" style={{ backgroundImage: cssBgUrl('abu-cheese-aburasoba.png'), backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
                   <div className="abu-rec-price-area">
@@ -330,13 +385,70 @@ function AburasobaMenu({ addToCart }) {
                             }
                           }}
                         >
-                          <div className="abu-size-circle abu-size-circle--rec">{s}</div>
+                          <div className="abu-size-circle abu-size-circle--rec">
+                            {locale === 'en' ? ut(s === '小' ? 'abu_size_s' : s === '大' ? 'abu_size_l' : 'abu_size_m') : s}
+                          </div>
                           <div className="abu-rec-size-price">￥{prices.negi[s].toLocaleString()}</div>
                         </div>
                       ))}
                     </div>
                     <button type="button" className="abu-btn-full" onClick={() => openFlow('negi')}>
-                      追加
+                      {ut('abu_add')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Negi Aburasoba */}
+            <div className="abu-rec-card">
+              <div className="abu-rec-info">
+                <div className="abu-rec-title">{ut('abu_rec_negi_title')}</div>
+                <div className="abu-rec-desc">
+                  {ut('abu_rec_negi_desc')
+                    .split('\n')
+                    .map((line, i, arr) => (
+                      <Fragment key={i}>
+                        {line}
+                        {i < arr.length - 1 ? <br /> : null}
+                      </Fragment>
+                    ))}
+                </div>
+                <div className="abu-rec-bottom">
+                  <div
+                    className="abu-rec-img"
+                    style={{
+                      backgroundImage: cssBgUrl('油そば坦々-メニュー完_0008_レイヤー-1.png'),
+                      backgroundSize: 'contain',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'center',
+                    }}
+                  />
+                  <div className="abu-rec-price-area">
+                    <div className="abu-rec-price-col">
+                      {['小', '並', '大'].map((s) => (
+                        <div
+                          key={s}
+                          className={`abu-rec-size-row${opts.negi.size === s ? ' abu-rec-size-row--active' : ''}`}
+                          onClick={() => updateOpt('negi', s)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              updateOpt('negi', s);
+                            }
+                          }}
+                        >
+                          <div className="abu-size-circle abu-size-circle--rec">
+                            {locale === 'en' ? ut(s === '小' ? 'abu_size_s' : s === '大' ? 'abu_size_l' : 'abu_size_m') : s}
+                          </div>
+                          <div className="abu-rec-size-price">￥{prices.negi[s].toLocaleString()}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" className="abu-btn-full" onClick={() => openFlow('negi')}>
+                      {ut('abu_add')}
                     </button>
                   </div>
                 </div>
@@ -348,8 +460,8 @@ function AburasobaMenu({ addToCart }) {
           {/* 3段目：トッピング（横並びグリッド） */}
           <div className="abu-toppings-wrap">
             <div className="abu-toppings-header">
-              <div className="abu-section-title">トッピングで自分好みに</div>
-              <div className="abu-toppings-note">※価格はすべて税込みです。</div>
+              <div className="abu-section-title">{ut('abu_toppings_header')}</div>
+              <div className="abu-toppings-note">{ut('abu_toppings_tax')}</div>
             </div>
 
             <div className="abu-toppings-list">
@@ -357,13 +469,18 @@ function AburasobaMenu({ addToCart }) {
                 <div
                   className="abu-topping-item"
                   key={t.id}
-                  onClick={() =>
+                  onClick={() => {
+                    const nameJa = t.name.replace('\n', '');
+                    const nameEnRaw = guestAburasobaToppingLabel(t, 'en');
+                    const nameEnNorm = nameEnRaw ? String(nameEnRaw).replace(/\n/g, ' ').trim() : '';
+                    const nameEn = nameEnNorm && nameEnNorm !== nameJa ? nameEnNorm : undefined;
                     addToCart({
                       id: t.id,
-                      name: t.name.replace('\n', ''),
+                      name: nameJa,
+                      ...(nameEn ? { nameEn } : {}),
                       price: t.price,
-                    })
-                  }
+                    });
+                  }}
                 >
                   <div
                     className="abu-topping-img"
@@ -372,9 +489,11 @@ function AburasobaMenu({ addToCart }) {
                     }}
                   />
                   <div className="abu-topping-name">
-                    {t.name.split('\n').map((line, i) => (
-                      <div key={i}>{line}</div>
-                    ))}
+                    {guestAburasobaToppingLabel(t, locale)
+                      .split('\n')
+                      .map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))}
                   </div>
                   <div className="abu-topping-price">￥{t.price}</div>
                 </div>
@@ -392,16 +511,18 @@ function AburasobaMenu({ addToCart }) {
             onClick={closeFlow}
           >
             <div className="abu-flow-modal" onClick={(e) => e.stopPropagation()}>
-              <button type="button" className="abu-flow-close" aria-label="閉じる" onClick={closeFlow}>
+              <button type="button" className="abu-flow-close" aria-label={ut('bill_close')} onClick={closeFlow}>
                 ×
               </button>
 
               {flowStep === 1 && (
                 <>
                   <h2 id="abu-flow-title" className="abu-flow-title">
-                    サイズを選んでください
+                    {ut('abu_flow_pick_size')}
                   </h2>
-                  <p className="abu-flow-bowl-name">{ABURASOBA_BOWL_META[flowBowl].title}</p>
+                  <p className="abu-flow-bowl-name">
+                    {locale === 'en' ? ut(`abu_bowl_${flowBowl}`) : ABURASOBA_BOWL_META[flowBowl].title}
+                  </p>
                   <div className="abu-flow-size-grid">
                     {['小', '並', '大'].map((s) => (
                       <button
@@ -410,13 +531,15 @@ function AburasobaMenu({ addToCart }) {
                         className={`abu-flow-size-btn ${flowSize === s ? 'active' : ''}`}
                         onClick={() => setFlowSize(s)}
                       >
-                        <span className="abu-flow-size-label">{s}</span>
+                        <span className="abu-flow-size-label">
+                          {locale === 'en' ? ut(s === '小' ? 'abu_size_s' : s === '大' ? 'abu_size_l' : 'abu_size_m') : s}
+                        </span>
                         <span className="abu-flow-size-price">￥{prices[flowBowl][s].toLocaleString()}</span>
                       </button>
                     ))}
                   </div>
                   <button type="button" className="abu-flow-primary" onClick={() => setFlowStep(2)}>
-                    次へ（トッピング）
+                    {ut('abu_flow_next_toppings')}
                   </button>
                 </>
               )}
@@ -424,9 +547,9 @@ function AburasobaMenu({ addToCart }) {
               {flowStep === 2 && (
                 <>
                   <h2 id="abu-flow-title" className="abu-flow-title">
-                    トッピングはいかがですか？
+                    {ut('abu_flow_pick_toppings')}
                   </h2>
-                  <p className="abu-flow-note">複数選べます（タップで追加・解除）※税込</p>
+                  <p className="abu-flow-note">{ut('abu_flow_topping_note')}</p>
                   <div className="abu-flow-topping-grid">
                     {toppings.map((t) => (
                       <button
@@ -442,12 +565,14 @@ function AburasobaMenu({ addToCart }) {
                           }}
                         />
                         <div className="abu-flow-topping-name">
-                          {t.name.split('\n').map((line, i, arr) => (
-                            <Fragment key={i}>
-                              {line}
-                              {i < arr.length - 1 ? <br /> : null}
-                            </Fragment>
-                          ))}
+                          {guestAburasobaToppingLabel(t, locale)
+                            .split('\n')
+                            .map((line, i, arr) => (
+                              <Fragment key={i}>
+                                {line}
+                                {i < arr.length - 1 ? <br /> : null}
+                              </Fragment>
+                            ))}
                         </div>
                         <div className="abu-flow-topping-price">￥{t.price}</div>
                       </button>
@@ -455,19 +580,21 @@ function AburasobaMenu({ addToCart }) {
                   </div>
                   <div className="abu-flow-summary">
                     <span>
-                      {ABURASOBA_BOWL_META[flowBowl].title}（{flowSize}） … ￥{flowBasePrice.toLocaleString()}
+                      {locale === 'en'
+                        ? `${ut(`abu_bowl_${flowBowl}`)} (${ut(flowSize === '小' ? 'abu_size_s' : flowSize === '大' ? 'abu_size_l' : 'abu_size_m')}) … ￥${flowBasePrice.toLocaleString()}`
+                        : `${ABURASOBA_BOWL_META[flowBowl].title}（${flowSize}） … ￥${flowBasePrice.toLocaleString()}`}
                     </span>
                     {flowToppingsExtra > 0 && (
-                      <span>＋トッピング … ￥{flowToppingsExtra.toLocaleString()}</span>
+                      <span>{ut('abu_flow_extra_line', { price: flowToppingsExtra.toLocaleString() })}</span>
                     )}
-                    <strong className="abu-flow-summary-total">計 ￥{flowTotal.toLocaleString()}（税込）</strong>
+                    <strong className="abu-flow-summary-total">{ut('abu_flow_total_line', { total: flowTotal.toLocaleString() })}</strong>
                   </div>
                   <div className="abu-flow-actions">
                     <button type="button" className="abu-flow-secondary" onClick={() => setFlowStep(1)}>
-                      戻る
+                      {ut('abu_flow_back')}
                     </button>
                     <button type="button" className="abu-flow-primary" onClick={confirmAddToCart}>
-                      カートに追加
+                      {ut('abu_cart_to_cart')}
                     </button>
                   </div>
                 </>
@@ -487,29 +614,52 @@ const SD_DRINK_LEMON_SOUR = assetUrl('remonsawa-.jpg');
 
 // === SIDE DISH PAGE COMPONENT ===
 function SideDishMenu({ addToCart }) {
+  const { t: ut, locale } = useGuestUiLocale();
+  const yp = (n) => (locale === 'en' ? `${n} ${ut('sd_yen_tax')}` : `${n}円`);
   return (
     <main className="main-content" style={{ background: '#FAF8F5' }}>
       <div className="side-dish-wrapper">
-        <PageHeaderImage pageKey="sidedish" alt="サイドメニュー" />
+        <PageHeaderImage pageKey="sidedish" alt={ut('header_sidedish')} />
         <div className="sd-top-grid">
           <div className="sd-feature-card">
             <div className="sd-feature-body">
               <div className="sd-badge">RECOMMEND</div>
               <div className="sd-title">
-                生BIG
-                <br />
-                フランク3種盛り
+                {locale === 'en' ? (
+                  ut('sd_name_frank')
+                    .split('\n')
+                    .map((line, i, arr) => (
+                      <Fragment key={i}>
+                        {line}
+                        {i < arr.length - 1 ? <br /> : null}
+                      </Fragment>
+                    ))
+                ) : (
+                  <>
+                    生BIG
+                    <br />
+                    フランク3種盛り
+                  </>
+                )}
               </div>
-              <p className="sd-desc">お酒に合う“間違いない”一皿</p>
+              <p className="sd-desc">{ut('sd_feature_desc')}</p>
               <div className="sd-price">
-                980<span>円</span> <small>(税込)</small>
+                {locale === 'en' ? (
+                  <>
+                    980 {ut('sd_yen_tax')} <small>{ut('tax_included_short')}</small>
+                  </>
+                ) : (
+                  <>
+                    980<span>円</span> <small>(税込)</small>
+                  </>
+                )}
               </div>
               <button
                 type="button"
                 className="add-btn sd-add-btn sd-add-btn--hero"
                 onClick={() => addToCart({ id: 'sd-frank', name: '生BIGフランク3種盛り', price: 980 })}
               >
-                カートに追加
+                {ut('sd_cart_add_to')}
               </button>
             </div>
             <div
@@ -523,50 +673,56 @@ function SideDishMenu({ addToCart }) {
             />
           </div>
 
-          <aside className="sd-recommend-drink" aria-label="おすすめのお酒">
+          <aside className="sd-recommend-drink" aria-label={ut('sd_recommend_aria')}>
             <div className="sd-drink-kicker">DRINK</div>
-            <div className="sd-drink-title">おすすめのお酒</div>
+            <div className="sd-drink-title">{ut('sd_recommend_title')}</div>
             <div className="sd-drink-grid">
               <div className="sd-drink-item">
                 <div className="sd-drink-img">
                   <img src={SD_DRINK_GLASS_BEER} alt="" className="sd-drink-photo" decoding="async" />
                 </div>
-                <div className="sd-drink-name">グラス生ビール（一番搾り）</div>
-                <div className="sd-drink-price">600円</div>
+                <div className="sd-drink-name">{ut('sd_name_beer')}</div>
+                <div className="sd-drink-price">
+                  {locale === 'en' ? `600 ${ut('sd_yen_tax')}` : '600円'}
+                </div>
                 <button
                   type="button"
                   className="add-btn sd-add-btn"
                   onClick={() => addToCart({ id: 'sd-drink-beer', name: 'グラス生ビール（一番搾り）', price: 600 })}
                 >
-                  追加
+                  {ut('drink_add')}
                 </button>
               </div>
               <div className="sd-drink-item">
                 <div className="sd-drink-img">
                   <img src={SD_DRINK_HIGHBALL} alt="" className="sd-drink-photo" decoding="async" />
                 </div>
-                <div className="sd-drink-name">ハイボール</div>
-                <div className="sd-drink-price">600円</div>
+                <div className="sd-drink-name">{ut('sd_name_highball')}</div>
+                <div className="sd-drink-price">
+                  {locale === 'en' ? `600 ${ut('sd_yen_tax')}` : '600円'}
+                </div>
                 <button
                   type="button"
                   className="add-btn sd-add-btn"
                   onClick={() => addToCart({ id: 'sd-drink-highball', name: 'ハイボール', price: 600 })}
                 >
-                  追加
+                  {ut('drink_add')}
                 </button>
               </div>
               <div className="sd-drink-item">
                 <div className="sd-drink-img">
                   <img src={SD_DRINK_LEMON_SOUR} alt="" className="sd-drink-photo" decoding="async" />
                 </div>
-                <div className="sd-drink-name">レモンサワー</div>
-                <div className="sd-drink-price">600円</div>
+                <div className="sd-drink-name">{ut('sd_name_lemon_sour')}</div>
+                <div className="sd-drink-price">
+                  {locale === 'en' ? `600 ${ut('sd_yen_tax')}` : '600円'}
+                </div>
                 <button
                   type="button"
                   className="add-btn sd-add-btn"
                   onClick={() => addToCart({ id: 'sd-drink-lemon-sour', name: 'レモンサワー', price: 600 })}
                 >
-                  追加
+                  {ut('drink_add')}
                 </button>
               </div>
             </div>
@@ -574,25 +730,25 @@ function SideDishMenu({ addToCart }) {
         </div>
 
         <div className="sd-row-toriaezu">
-          <div className="sd-col-card sd-col-card--toriaezu" aria-label="とりあえず">
-            <div className="sd-section-title">とりあえず</div>
+          <div className="sd-col-card sd-col-card--toriaezu" aria-label={ut('sd_section_toriaezu')}>
+            <div className="sd-section-title">{ut('sd_section_toriaezu')}</div>
             <div className="sd-toriaezu-inner">
               <div className="sd-toriaezu-lines">
                 <div className="sd-list-row">
                   <div className="sd-list-line">
-                    <span className="sd-list-name">自家製ピクルス盛り</span>
+                    <span className="sd-list-name">{ut('sd_name_pickles')}</span>
                     <span className="sd-list-leader" aria-hidden="true" />
-                    <span className="sd-list-price">560円</span>
+                    <span className="sd-list-price">{yp(560)}</span>
                   </div>
-                  <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-pickles', name: '自家製ピクルス盛り', price: 560 })}>追加</button>
+                  <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-pickles', name: '自家製ピクルス盛り', price: 560 })}>{ut('drink_add')}</button>
                 </div>
                 <div className="sd-list-row">
                   <div className="sd-list-line">
-                    <span className="sd-list-name">塩ゆで枝豆</span>
+                    <span className="sd-list-name">{ut('sd_name_edamame')}</span>
                     <span className="sd-list-leader" aria-hidden="true" />
-                    <span className="sd-list-price">450円</span>
+                    <span className="sd-list-price">{yp(450)}</span>
                   </div>
-                  <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-edamame', name: '塩ゆで枝豆', price: 450 })}>追加</button>
+                  <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-edamame', name: '塩ゆで枝豆', price: 450 })}>{ut('drink_add')}</button>
                 </div>
               </div>
               <div className="sd-images-row sd-images-row--toriaezu">
@@ -605,38 +761,38 @@ function SideDishMenu({ addToCart }) {
 
         <div className="sd-grid-2">
           <div className="sd-col-card">
-            <div className="sd-section-title">みんな大好き</div>
+            <div className="sd-section-title">{ut('sd_section_popular')}</div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">赤ウインナー</span>
+                <span className="sd-list-name">{ut('sd_name_wiener')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">580円</span>
+                <span className="sd-list-price">{yp(580)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-wiener', name: '赤ウインナー', price: 580 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-wiener', name: '赤ウインナー', price: 580 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">ポテト</span>
+                <span className="sd-list-name">{ut('sd_name_potato_label')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">580円</span>
+                <span className="sd-list-price">{yp(580)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-potato', name: 'シューストポテト', price: 580 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-potato', name: 'シューストポテト', price: 580 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">チキンナゲット (5ヶ)</span>
+                <span className="sd-list-name">{ut('sd_name_nugget_label')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">580円</span>
+                <span className="sd-list-price">{yp(580)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-nugget', name: 'チキンナゲット', price: 580 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-nugget', name: 'チキンナゲット', price: 580 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">ひと口ハッシュドポテト (5ヶ)</span>
+                <span className="sd-list-name">{ut('sd_name_hash_label')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">560円</span>
+                <span className="sd-list-price">{yp(560)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-hash', name: 'ひと口ハッシュドポテト', price: 560 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-hash', name: 'ひと口ハッシュドポテト', price: 560 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-images-row sd-images-row--foot">
               <div className="sd-image-round" style={{ backgroundImage: cssBgUrl('名称未設定-2_0001_potato.png'), backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
@@ -646,48 +802,47 @@ function SideDishMenu({ addToCart }) {
           </div>
 
           <div className="sd-col-card">
-            <div className="sd-section-title">呑ませる一皿</div>
+            <div className="sd-section-title">{ut('sd_section_drink_snack')}</div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">自家製牛タンジャーキー</span>
+                <span className="sd-list-name">{ut('sd_name_jerky_label')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">860円</span>
+                <span className="sd-list-price">{yp(860)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-jerky', name: '牛タンジャーキー', price: 860 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-jerky', name: '牛タンジャーキー', price: 860 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">Yum特性から揚げ</span>
+                <span className="sd-list-name">{ut('sd_name_karaage')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">790円</span>
+                <span className="sd-list-price">{yp(790)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-karaage', name: 'Yum特性から揚げ', price: 790 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-karaage', name: 'Yum特性から揚げ', price: 790 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">うずら味玉（5粒）</span>
+                <span className="sd-list-name">{ut('sd_name_uzura_label')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">450円</span>
+                <span className="sd-list-price">{yp(450)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-uzura', name: 'うずら味玉（5粒）', price: 450 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-uzura', name: 'うずら味玉（5粒）', price: 450 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-list-row">
               <div className="sd-list-line">
-                <span className="sd-list-name">おつまみチャーシュー</span>
+                <span className="sd-list-name">{ut('sd_name_chashu_label')}</span>
                 <span className="sd-list-leader" aria-hidden="true" />
-                <span className="sd-list-price">600円</span>
+                <span className="sd-list-price">{yp(600)}</span>
               </div>
-              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-snack-chashu', name: 'おつまみチャーシュー', price: 600 })}>追加</button>
+              <button type="button" className="add-btn sd-add-btn" onClick={() => addToCart({ id: 'sd-snack-chashu', name: 'おつまみチャーシュー', price: 600 })}>{ut('drink_add')}</button>
             </div>
             <div className="sd-images-row sd-images-row--foot">
               <div className="sd-image-medium" style={{ backgroundImage: cssBgUrl('名称未設定-2_0005_jya-ki-.png'), backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
               <div className="sd-image-medium" style={{ backgroundImage: cssBgUrl('名称未設定-1_0004_karaage.png'), backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
               <div className="sd-image-medium" style={{ backgroundImage: cssBgUrl('名称未設定-1_0002_uZURA.png'), backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
-              <div className="sd-image-medium" style={{ backgroundImage: cssBgUrl('名称未設定-1_0000_tya-syu-.png'), backgroundSize: 'contain', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
             </div>
           </div>
         </div>
-        <p className="sd-page-foot">※表示価格はすべて税込です。</p>
+        <p className="sd-page-foot">{ut('sd_page_foot')}</p>
       </div>
     </main>
   );
@@ -696,6 +851,7 @@ function SideDishMenu({ addToCart }) {
 function DrinkMenu({ addToCart }) {
   const { drinkSections } = useMenuMaster();
   const { nomihodaiActive } = useNomihodaiSession();
+  const { t: ut, locale } = useGuestUiLocale();
 
   return (
     <main
@@ -709,43 +865,64 @@ function DrinkMenu({ addToCart }) {
           </h2>
           {nomihodaiActive ? (
             <p className="drink-page__nomihodai-lock" role="status">
-              飲み放題適用中は、ご注文は<strong>「飲み放題」タブ</strong>からお選びください（この一覧は閲覧のみです）。
+              {ut('drink_lock_before')}
+              <strong>{ut('drink_lock_tab')}</strong>
+              {ut('drink_lock_after')}
             </p>
           ) : null}
-          <p className="drink-page__sub">お席料21時前500円21時以降800円頂戴いたします。混雑時は2時間を目途にお席をお譲り頂く場合がございます。</p>
+          <p className="drink-page__sub">{ut('drink_page_sub')}</p>
 
           <div className="drink-page__grid">
             {drinkSections.map((sec) => (
               <div key={sec.id} className="drink-page-cat">
-                <div className="drink-page-cat__head">
-                  <span className="drink-page-cat__en">{sec.titleEn}</span>
-                  <span className="drink-page-cat__ja">{sec.titleJa}</span>
+                <div className="drink-page-cat__head drink-page-cat__head--hero-inline">
+                  <div className="drink-page-cat__head-titles">
+                    {locale === 'en' ? (
+                      <span className="drink-page-cat__en">{sec.titleEn}</span>
+                    ) : (
+                      <>
+                        <span className="drink-page-cat__en">{sec.titleEn}</span>
+                        <span className="drink-page-cat__ja">{sec.titleJa}</span>
+                      </>
+                    )}
+                  </div>
+                  <DrinkHeroImage
+                    candidates={getDrinkSectionHeroCandidates(sec.id)}
+                    className="drink-page-cat__hero"
+                    imgClassName="drink-page-cat__hero-img"
+                  />
                 </div>
-                <DrinkHeroImage
-                  candidates={getDrinkSectionHeroCandidates(sec.id)}
-                  className="drink-page-cat__hero"
-                  imgClassName="drink-page-cat__hero-img"
-                />
-                {sec.hint ? <p className="drink-page-cat__hint">{sec.hint}</p> : null}
+                {guestDrinkSectionHint(sec, locale) ? (
+                  <p className="drink-page-cat__hint">{guestDrinkSectionHint(sec, locale)}</p>
+                ) : null}
                 <ul className={`drink-page-list${sec.twoCols ? ' drink-page-list--2col' : ''}`}>
                   {sec.items.map((it) => (
                     <li key={it.id} className="drink-page-row">
-                      <span className="drink-page-row__name">{it.name}</span>
+                      <span className="drink-page-row__name">{guestDrinkRowName(it, locale)}</span>
                       <span className="drink-page-row__price">
-                        {it.price != null ? `￥${it.price.toLocaleString()}` : 'ASK'}
+                        {it.price != null
+                          ? `￥${it.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}`
+                          : ut('drink_price_ask')}
                       </span>
                       {it.price != null ? (
                         <button
                           type="button"
                           className="drink-page-row__add"
                           disabled={nomihodaiActive}
-                          onClick={() => addToCart({ id: it.id, name: it.name, price: it.price })}
-                          title={nomihodaiActive ? '飲み放題タブからご注文ください' : undefined}
+                          onClick={() =>
+                            addToCart({
+                              id: it.id,
+                              name: it.name,
+                              nameEn: it.nameEn,
+                              price: it.price,
+                            })
+                          }
+                          title={nomihodaiActive ? ut('drink_lock_title') : undefined}
                         >
-                          追加
+                          {ut('drink_add')}
                         </button>
                       ) : (
-                        <span className="drink-page-row__na" title="店頭でご確認ください">
+                        <span className="drink-page-row__na" title={ut('drink_row_na_title')}>
                           —
                         </span>
                       )}
@@ -755,7 +932,7 @@ function DrinkMenu({ addToCart }) {
               </div>
             ))}
           </div>
-          <p className="drink-page__footer">※価格はすべて税込です。</p>
+          <p className="drink-page__footer">{ut('drink_footer')}</p>
         </section>
       </div>
     </main>
@@ -764,12 +941,14 @@ function DrinkMenu({ addToCart }) {
 
 // === PIZZA PAGE COMPONENT ===
 function PizzaMenu({ addToCart }) {
+  const { t: ut, locale } = useGuestUiLocale();
   const pizzaHeroes = [
     {
       id: 'pz-margherita',
       nameJa: 'マルゲリータ',
       nameEn: 'Margherita',
       desc: '【トマトソース・モッツァレラ・バジル】',
+      descEn: '[Tomato sauce · mozzarella · basil]',
       price: 1380,
       image: assetUrl('名称未設定-3_0004_maruge.png'),
       cardBg: 'cafe-card-bg-beige',
@@ -779,6 +958,7 @@ function PizzaMenu({ addToCart }) {
       nameJa: 'ジェノベーゼ',
       nameEn: 'Genovese',
       desc: '【バジルソース・トマト・ベーコン】',
+      descEn: '[Basil sauce · tomato · bacon]',
       price: 1480,
       image: assetUrl('名称未設定-3_0000_jenobeze.png'),
       cardBg: 'cafe-card-bg-blue',
@@ -788,6 +968,7 @@ function PizzaMenu({ addToCart }) {
       nameJa: 'ビスマルク',
       nameEn: 'Bismark',
       desc: '【トマトソース・ベーコン・卵】',
+      descEn: '[Tomato sauce · bacon · egg]',
       price: 1380,
       image: assetUrl('名称未設定-3_0002_bisumaruku.png'),
       cardBg: 'cafe-card-bg-pink',
@@ -797,6 +978,7 @@ function PizzaMenu({ addToCart }) {
       nameJa: 'クワトロフォルマッジ',
       nameEn: 'Quattro formaggi',
       desc: '【4種のチーズ】',
+      descEn: '[Four cheeses]',
       price: 1580,
       image: assetUrl('名称未設定-3_0001_kuwatoro.png'),
       cardBg: 'cafe-card-bg-white',
@@ -810,7 +992,7 @@ function PizzaMenu({ addToCart }) {
           <div className="coming-soon-overlay" aria-hidden="true">
             <div className="coming-soon-message">
               <span className="coming-soon-message__title">COMING SOON</span>
-              <span className="coming-soon-message__note">※6月下旬より週末のみ</span>
+              <span className="coming-soon-message__note">{ut('pizza_coming_note')}</span>
             </div>
           </div>
 
@@ -820,10 +1002,12 @@ function PizzaMenu({ addToCart }) {
             <div key={p.id} className={`cafe-card pizza-hero-corner ${p.cardBg}`}>
               <div className="cafe-card-top pizza-hero-top">
                 <div className="cafe-card-content">
-                  <h3 className="cafe-title">{p.nameJa}</h3>
-                  <p className="cafe-subtitle">{p.nameEn}</p>
-                  <p className="cafe-desc">{p.desc}</p>
-                  <p className="cafe-price-info cafe-price-info-spaced">￥{p.price.toLocaleString()}</p>
+                  <h3 className="cafe-title">{locale === 'en' ? p.nameEn : p.nameJa}</h3>
+                  <p className="cafe-subtitle">{locale === 'en' ? p.nameJa : p.nameEn}</p>
+                  <p className="cafe-desc">{locale === 'en' ? p.descEn : p.desc}</p>
+                  <p className="cafe-price-info cafe-price-info-spaced">
+                    ￥{p.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+                  </p>
                 </div>
                 <div className="pizza-hero-media">
                   <div
@@ -839,8 +1023,12 @@ function PizzaMenu({ addToCart }) {
               </div>
               <div className="cafe-actions-row">
                 <div className="cafe-actions-order pizza-hero-order">
-                  <button type="button" className="cafe-order-btn" onClick={() => addToCart({ id: p.id, name: p.nameJa, price: p.price })}>
-                    ＋ 追加
+                  <button
+                    type="button"
+                    className="cafe-order-btn"
+                    onClick={() => addToCart({ id: p.id, name: p.nameJa, nameEn: p.nameEn, price: p.price })}
+                  >
+                    {ut('item_add_plus')}
                   </button>
                 </div>
               </div>
@@ -849,7 +1037,7 @@ function PizzaMenu({ addToCart }) {
           </div>
 
           <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '12px', color: '#666' }}>
-            ※ 全品テイクアウト可（容器代100円）
+            {ut('pizza_takeout_foot')}
           </div>
         </div>
       </div>
@@ -902,14 +1090,20 @@ function CafeSizes({ cafeId, size, updateOpt }) {
 }
 
 function CafeOrderBar({ price, onOrder }) {
+  const { t: ut, locale } = useGuestUiLocale();
+  const loc = locale === 'en' ? 'en-US' : 'ja-JP';
+  const yen = locale === 'en' ? '¥' : '￥';
   return (
     <div className="cafe-actions-order">
       <div className="cafe-price-display">
-        <span className="cafe-price-display__num">￥{Number(price).toLocaleString()}</span>
+        <span className="cafe-price-display__num">
+          {yen}
+          {Number(price).toLocaleString(loc)}
+        </span>
         <span className="cafe-price-display__suffix">〜</span>
       </div>
       <button type="button" className="cafe-order-btn" onClick={onOrder}>
-        ＋ 追加
+        {ut('item_add_plus')}
       </button>
     </div>
   );
@@ -917,6 +1111,7 @@ function CafeOrderBar({ price, onOrder }) {
 
 // === CAFE PAGE COMPONENT ===
 function CafeMenu({ addToCart }) {
+  const { t: ut } = useGuestUiLocale();
   const [opts, setOpts] = useState({
     americano: { temp: 'hot', size: 'M', price: CAFE_PRICE_BY_SIZE.americano.M },
     latte: { temp: 'hot', size: 'M', price: CAFE_PRICE_BY_SIZE.latte.M },
@@ -935,24 +1130,27 @@ function CafeMenu({ addToCart }) {
   };
 
   return (
-    <main className="main-content" style={{ background: '#FAF6ED' }}>
+    <main className="main-content main-content--cafe-heroes" style={{ background: '#FAF6ED' }}>
       <div className="cafe-wrapper">
         <div className="cafe-grid-2">
           {/* coffee (Americano) */}
           <div className="cafe-card cafe-card-bg-beige">
             <div className="cafe-card-top pizza-hero-top">
               <div className="cafe-card-content">
-                <h3 className="cafe-title">コーヒー</h3>
-                <p className="cafe-subtitle">Coffee</p>
+                <h3 className="cafe-title">{ut('cafe_coffee_title')}</h3>
+                <p className="cafe-subtitle">{ut('cafe_sub_coffee')}</p>
                 <p className="cafe-desc">
-                  グァテマラ産・中深煎りの豆。
-                  <br />
-                  ホット・アイスご用意しています。
+                  {ut('cafe_coffee_desc').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
                 </p>
                 <p className="cafe-price-info cafe-price-info-spaced">
                   <span className="cafe-menu-size-range">M / L</span>
                   <span className="cafe-menu-price-pair">￥420 / ￥540</span>
-                  <span className="cafe-price-tax-note">（税込）</span>
+                  <span className="cafe-price-tax-note">{ut('cafe_tax_note')}</span>
                 </p>
               </div>
               <CafePromoMedia
@@ -990,17 +1188,20 @@ function CafeMenu({ addToCart }) {
           <div className="cafe-card cafe-card-bg-blue">
             <div className="cafe-card-top pizza-hero-top">
               <div className="cafe-card-content">
-                <h3 className="cafe-title">カフェラテ</h3>
-                <p className="cafe-subtitle">Cafe Latte</p>
+                <h3 className="cafe-title">{ut('cafe_latte_title')}</h3>
+                <p className="cafe-subtitle">{ut('cafe_sub_latte')}</p>
                 <p className="cafe-desc">
-                  エスプレッソに、
-                  <br />
-                  北海道産ジャージーミルク。
+                  {ut('cafe_latte_desc').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
                 </p>
                 <p className="cafe-price-info cafe-price-info-spaced">
                   <span className="cafe-menu-size-range">M / L</span>
                   <span className="cafe-menu-price-pair">￥540 / ￥640</span>
-                  <span className="cafe-price-tax-note">（税込）</span>
+                  <span className="cafe-price-tax-note">{ut('cafe_tax_note')}</span>
                 </p>
               </div>
               <CafePromoMedia
@@ -1032,17 +1233,20 @@ function CafeMenu({ addToCart }) {
           <div className="cafe-card cafe-card-bg-pink">
             <div className="cafe-card-top pizza-hero-top">
               <div className="cafe-card-content">
-                <h3 className="cafe-title">生いちごミルク</h3>
-                <p className="cafe-subtitle">Fresh Strawberry Milk</p>
+                <h3 className="cafe-title">{ut('cafe_straw_title')}</h3>
+                <p className="cafe-subtitle">{ut('cafe_sub_straw')}</p>
                 <p className="cafe-desc">
-                  自家製いちごソースと、
-                  <br />
-                  リッチな苺みるく。
+                  {ut('cafe_straw_desc').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
                 </p>
                 <p className="cafe-price-info cafe-price-info-spaced">
                   <span className="cafe-menu-size-range">M / L</span>
                   <span className="cafe-menu-price-pair">￥580 / ￥680</span>
-                  <span className="cafe-price-tax-note">（税込）</span>
+                  <span className="cafe-price-tax-note">{ut('cafe_tax_note')}</span>
                 </p>
               </div>
               <CafePromoMedia
@@ -1073,17 +1277,20 @@ function CafeMenu({ addToCart }) {
           <div className="cafe-card cafe-card-bg-beige">
             <div className="cafe-card-top pizza-hero-top">
               <div className="cafe-card-content">
-                <h3 className="cafe-title">ラテチョコラータ</h3>
-                <p className="cafe-subtitle">Latte Chocolata</p>
+                <h3 className="cafe-title">{ut('cafe_choco_title')}</h3>
+                <p className="cafe-subtitle">{ut('cafe_sub_choco')}</p>
                 <p className="cafe-desc">
-                  濃厚チョコソースと、
-                  <br />
-                  北海道産ジャージーミルク。
+                  {ut('cafe_choco_desc').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
                 </p>
                 <p className="cafe-price-info cafe-price-info-spaced">
                   <span className="cafe-menu-size-range">M / L</span>
                   <span className="cafe-menu-price-pair">￥580 / ￥680</span>
-                  <span className="cafe-price-tax-note">（税込）</span>
+                  <span className="cafe-price-tax-note">{ut('cafe_tax_note')}</span>
                 </p>
               </div>
               <CafePromoMedia
@@ -1122,6 +1329,7 @@ const FRUIT_BEAR_LOGO = assetUrl('fruit-bear-logo.png');
 
 // === FRUIT STUDIO PAGE COMPONENT ===
 function FruitStudioMenu({ addToCart }) {
+  const { t: ut } = useGuestUiLocale();
   const [opts, setOpts] = useState({
     soft: { type: 'コーン', price: 460 },
     fruit: { size: 'レギュラー', price: 880 }
@@ -1132,7 +1340,7 @@ function FruitStudioMenu({ addToCart }) {
   return (
     <main className="main-content fruit-page">
       <div className="fruit-wrapper">
-        <PageHeaderImage pageKey="fruit" alt="フルーツ・ソフト" />
+        <PageHeaderImage pageKey="fruit" alt={ut('header_fruit')} />
 
         {/* 下段カードと同じ列幅（左1カラム＝青線イメージのサイズ） */}
         <div className="fruit-top-row">
@@ -1140,22 +1348,25 @@ function FruitStudioMenu({ addToCart }) {
           <div className="fruit-hero-body">
             <div className="cafe-card-top fruit-hero-top">
               <div className="cafe-card-content fruit-hero-text">
-                <div className="fruit-ribbon-red">新鮮 フルーツを贅沢に！</div>
-                <h2 className="fruit-hero-title">本日のフルーツソフト</h2>
-                <p className="fruit-hero-lead">Fresh Fruit Soft</p>
+                <div className="fruit-ribbon-red">{ut('fruit_ribbon_red')}</div>
+                <h2 className="fruit-hero-title">{ut('fruit_hero_title')}</h2>
+                <p className="fruit-hero-lead">{ut('fruit_hero_lead')}</p>
                 <p className="fruit-hero-desc">
-                  新鮮フルーツの上に
-                  <br />
-                  ジェラ生ソフトを乗せました
+                  {ut('fruit_hero_desc').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
                 </p>
-                <p className="fruit-hero-tagline">ミニ or レギュラー</p>
+                <p className="fruit-hero-tagline">{ut('fruit_hero_tagline')}</p>
                 <p className="fruit-hero-price-band">
                   <span className="fruit-hero-price-num">660</span>
-                  <span className="fruit-hero-price-sep">yen / </span>
+                  <span className="fruit-hero-price-sep">{ut('fruit_hero_price_between')}</span>
                   <span className="fruit-hero-price-num">880</span>
-                  <span className="fruit-hero-price-yen">yen</span>
+                  <span className="fruit-hero-price-yen">{ut('fruit_hero_price_suffix')}</span>
                 </p>
-                <p className="fruit-hero-note">ご提供できるフルーツは日替わりです。</p>
+                <p className="fruit-hero-note">{ut('fruit_hero_note')}</p>
               </div>
               <div className="fruit-card-media fruit-card-media--fruit-hero">
                 <div className="cafe-hokkaido-icon fruit-hokkaido-icon--fruit">HOKKAIDO</div>
@@ -1179,21 +1390,21 @@ function FruitStudioMenu({ addToCart }) {
                     className={`cafe-size-btn ${opts.fruit.size === 'ミニ' ? 'active' : ''}`}
                     onClick={() => setOpts((o) => ({ ...o, fruit: { size: 'ミニ', price: 660 } }))}
                   >
-                    ミニ
+                    {ut('fruit_size_mini')}
                   </button>
                   <button
                     type="button"
                     className={`cafe-size-btn ${opts.fruit.size === 'レギュラー' ? 'active' : ''}`}
                     onClick={() => setOpts((o) => ({ ...o, fruit: { size: 'レギュラー', price: 880 } }))}
                   >
-                    レギュラー
+                    {ut('fruit_size_regular')}
                   </button>
                 </div>
               </div>
               <div className="cafe-actions-order">
                 <div className="cafe-price-display">
                   {opts.fruit.price}
-                  <span>yen〜</span>
+                  <span>{ut('fruit_yen_suffix')}</span>
                 </div>
                 <button
                   type="button"
@@ -1201,12 +1412,12 @@ function FruitStudioMenu({ addToCart }) {
                   onClick={() =>
                     addToCart({
                       id: `fr-fruit-${opts.fruit.size}`,
-                      name: `本日のフルーツソフト (${opts.fruit.size})`,
+                      name: `本日のソフトクリーム (${opts.fruit.size})`,
                       price: opts.fruit.price,
                     })
                   }
                 >
-                  ＋ 追加
+                  {ut('item_add_plus')}
                 </button>
               </div>
             </div>
@@ -1223,14 +1434,28 @@ function FruitStudioMenu({ addToCart }) {
         <div className="fruit-grid-2">
           
           <div className="fruit-card fruit-card--gelato">
-            <div className="fruit-ribbon-orange">北海道十勝ミルク使用</div>
+            <div className="fruit-ribbon-orange">{ut('fruit_ribbon_tokachi')}</div>
             <div className="fruit-badge-round" style={{ left: '225px', top: '30px' }}>TOKACHI<br />MILK</div>
             <div className="cafe-card-top fruit-card-top">
               <div className="cafe-card-content">
-                <h3 className="fruit-card-title">ジェラ生ソフト</h3>
-                <p className="fruit-card-subtitle">Gelato Soft</p>
-                <p className="fruit-card-desc">北海道産十勝ミルクを原料とした<br />ふわもこ自家製ソフトクリーム</p>
-                <p className="cafe-price-info cafe-price-info-spaced">カップ or コーン<br />460yen</p>
+                <h3 className="fruit-card-title">{ut('fruit_gelato_title')}</h3>
+                <p className="fruit-card-subtitle">{ut('fruit_gelato_sub')}</p>
+                <p className="fruit-card-desc">
+                  {ut('fruit_gelato_desc').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
+                </p>
+                <p className="cafe-price-info cafe-price-info-spaced">
+                  {ut('fruit_gelato_price_line').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
+                </p>
               </div>
               <div className="fruit-card-media fruit-card-media--gelato">
                 <div className="fruit-gelato-visual" aria-hidden="true">
@@ -1247,21 +1472,21 @@ function FruitStudioMenu({ addToCart }) {
                     className={`cafe-size-btn ${opts.soft.type === 'コーン' ? 'active' : ''}`}
                     onClick={() => setSoftType('コーン')}
                   >
-                    コーン
+                    {ut('fruit_soft_cone')}
                   </button>
                   <button
                     type="button"
                     className={`cafe-size-btn ${opts.soft.type === 'カップ' ? 'active' : ''}`}
                     onClick={() => setSoftType('カップ')}
                   >
-                    カップ
+                    {ut('fruit_soft_cup')}
                   </button>
                 </div>
               </div>
               <div className="cafe-actions-order">
                 <div className="cafe-price-display">
                   {opts.soft.price}
-                  <span>yen〜</span>
+                  <span>{ut('fruit_yen_suffix')}</span>
                 </div>
                 <button
                   type="button"
@@ -1274,7 +1499,7 @@ function FruitStudioMenu({ addToCart }) {
                     })
                   }
                 >
-                  ＋ 追加
+                  {ut('item_add_plus')}
                 </button>
               </div>
             </div>
@@ -1283,10 +1508,17 @@ function FruitStudioMenu({ addToCart }) {
           <div className="fruit-card fruit-card--affogato">
             <div className="cafe-card-top fruit-card-top">
               <div className="cafe-card-content">
-                <h3 className="fruit-card-title">アフォガード</h3>
-                <p className="fruit-card-subtitle">Affogato</p>
-                <p className="fruit-card-desc">ジェラ生ソフトに<br />ほろ苦いエスプレッソを注ぎます</p>
-                <p className="cafe-price-info cafe-price-info-spaced">680yen</p>
+                <h3 className="fruit-card-title">{ut('fruit_affogato_title')}</h3>
+                <p className="fruit-card-subtitle">{ut('fruit_affogato_sub')}</p>
+                <p className="fruit-card-desc">
+                  {ut('fruit_affogato_desc').split('\n').map((line, i) => (
+                    <Fragment key={i}>
+                      {i > 0 && <br />}
+                      {line}
+                    </Fragment>
+                  ))}
+                </p>
+                <p className="cafe-price-info cafe-price-info-spaced">{ut('fruit_affogato_price_line')}</p>
               </div>
               <div className="fruit-card-media fruit-card-media--affogato">
                 <div className="fruit-card-img fruit-card-img--affogato" style={{ backgroundImage: cssBgUrl('名称未設定-2_0001_afoga-do.png') }} />
@@ -1296,10 +1528,10 @@ function FruitStudioMenu({ addToCart }) {
               <div className="cafe-actions-order">
                 <div className="cafe-price-display">
                   680
-                  <span>yen〜</span>
+                  <span>{ut('fruit_yen_suffix')}</span>
                 </div>
                 <button type="button" className="cafe-order-btn" onClick={() => addToCart({ id: 'fr-affogato', name: 'アフォガード', price: 680 })}>
-                  ＋ 追加
+                  {ut('item_add_plus')}
                 </button>
               </div>
             </div>
@@ -1315,6 +1547,7 @@ function FruitStudioMenu({ addToCart }) {
 
 // === TAKEOUT SWEETS PAGE COMPONENT ===
 function TakeoutSweetsMenu({ addToCart }) {
+  const { t: ut, locale } = useGuestUiLocale();
   /** furusan-*.png（フルーツサンド）— ファイル名末尾が種類 */
   const furusanItems = [
     { id: 'ts-fr-itigo', name: 'いちご', price: 580, rank: 1, color: '#F48FB1', image: assetUrl('furusan-itigo.png') },
@@ -1405,14 +1638,20 @@ function TakeoutSweetsMenu({ addToCart }) {
 
   const renderCard = (item, isRanked = false) => {
     const soldOut = (item.stock ?? 0) <= 0;
+    const displayName = guestTakeoutItemDisplayName(item, locale);
+    const loc = locale === 'en' ? 'en-US' : 'ja-JP';
+    const yen = locale === 'en' ? '¥' : '￥';
     return (
       <div className={`ts-card${soldOut ? ' ts-card--soldout' : ''}`} key={item.id}>
-        {soldOut && <div className="ts-soldout-badge">品切れ</div>}
+        {soldOut && <div className="ts-soldout-badge">{ut('ts_soldout')}</div>}
         {isRanked && item.rank != null && !soldOut && (
           <div className={item.rank === 1 ? 'ts-rank-stack ts-rank-stack--no1' : 'ts-rank-stack'}>
             {item.rank === 1 ? <span className="ts-rank-zabuton" aria-hidden="true" /> : null}
             <div className="ts-rank-badge" style={{ color: item.color }}>
-              人気<br />No.{item.rank}
+              {ut('ts_popular_no')}
+              <br />
+              {ut('ts_rank_suffix')}
+              {item.rank}
             </div>
           </div>
         )}
@@ -1424,17 +1663,20 @@ function TakeoutSweetsMenu({ addToCart }) {
               : { backgroundImage: `url("https://via.placeholder.com/150x150/transparent/333?text=${encodeURIComponent(item.id)}")` }
           }
         />
-        <div className="ts-name">{item.name.split('\n').map((line, i) => <div key={i}>{line}</div>)}</div>
+        <div className="ts-name">{displayName.split('\n').map((line, i) => <div key={i}>{line}</div>)}</div>
         <div className="ts-card-footer">
-          <div className="ts-price">￥{item.price}</div>
+          <div className="ts-price">
+            {yen}
+            {Number(item.price).toLocaleString(loc)}
+          </div>
           <button
             type="button"
             className="ts-add-btn"
             disabled={soldOut}
-            title={soldOut ? '品切れのため注文できません' : undefined}
+            title={soldOut ? ut('ts_soldout_title') : undefined}
             onClick={() => addToCart({ id: item.id, name: item.name.replace(/\n/g, ''), price: item.price })}
           >
-            ＋ カートに追加
+            {ut('takeout_cart_add')}
           </button>
         </div>
       </div>
@@ -1444,39 +1686,49 @@ function TakeoutSweetsMenu({ addToCart }) {
   return (
     <main className="main-content" style={{ background: 'linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 50%, #F0F8FF 100%)' }}>
       <div className="ts-wrapper">
-        <PageHeaderImage pageKey="takeout" alt="takeout北海道スイーツ" />
-        <p className="ts-header-note">※油そば・フードメニュー・お酒のご利用の方は食中後のデザートとしてご利用いただけます</p>
+        <PageHeaderImage pageKey="takeout" alt={ut('header_takeout')} />
+        <p className="ts-header-note">{ut('ts_header_note')}</p>
 
         <div className="ts-section">
-          <div className="ts-section-title"><span>♡</span> フルーツサンド <span>♡</span></div>
+          <div className="ts-section-title">
+            <span>♡</span> {ut('ts_section_furusan')} <span>♡</span>
+          </div>
           <div className="ts-grid">
             {furusanSorted.map(item => renderCard(item, true))}
           </div>
         </div>
 
         <div className="ts-section">
-          <div className="ts-section-title" style={{ background: '#E6E6FA' }}><span>♡</span> クッキーサンド <span>♡</span></div>
+          <div className="ts-section-title" style={{ background: '#E6E6FA' }}>
+            <span>♡</span> {ut('ts_section_kukki')} <span>♡</span>
+          </div>
           <div className="ts-grid">
             {kukkiSorted.map(item => renderCard(item))}
           </div>
         </div>
 
         <div className="ts-section">
-          <div className="ts-section-title" style={{ background: '#FFE4B5' }}><span>♡</span> スコーン <span>♡</span></div>
+          <div className="ts-section-title" style={{ background: '#FFE4B5' }}>
+            <span>♡</span> {ut('ts_section_scone')} <span>♡</span>
+          </div>
           <div className="ts-grid">
             {sconesSorted.map(item => renderCard(item))}
           </div>
         </div>
 
         <div className="ts-section">
-          <div className="ts-section-title" style={{ background: '#E0FFFF' }}><span>♡</span> リッチレアクッキー <span>♡</span></div>
+          <div className="ts-section-title" style={{ background: '#E0FFFF' }}>
+            <span>♡</span> {ut('ts_section_rittire')} <span>♡</span>
+          </div>
           <div className="ts-grid">
             {rittireSorted.map(item => renderCard(item))}
           </div>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <button type="button" className="ts-view-all">すべての商品を見る ∨</button>
+          <button type="button" className="ts-view-all">
+            {ut('ts_view_all')}
+          </button>
         </div>
       </div>
     </main>
@@ -1507,10 +1759,36 @@ function App() {
     setSessionTableLabel,
   } = useNomihodaiSession();
 
+  const { t: ut, locale, toggleLocale } = useGuestUiLocale();
+
   const farewell = session.nomihodaiFarewell;
   /** DB の checkout_requested_at（飲み放題の有無に依存しない）。厨房連携・THANK YOU の単一ソース */
   const guestPostCheckoutFullscreen =
     !!farewell || !!session.checkoutRequestAt;
+
+  /** オーバーレイより上に z-index 固定のカート・上部バナーを隠す（会計フローと重複しない） */
+  const hideGuestOrderingChrome = guestPostCheckoutFullscreen;
+
+  useEffect(() => {
+    if (!guestPostCheckoutFullscreen) return;
+    setCart([]);
+    setCartDrawerOpen(false);
+    setShowBillPanel(false);
+  }, [guestPostCheckoutFullscreen]);
+
+  const prevCheckoutRequestAtRef = useRef(session.checkoutRequestAt);
+  useEffect(() => {
+    const prev = prevCheckoutRequestAtRef.current;
+    prevCheckoutRequestAtRef.current = session.checkoutRequestAt;
+    const had = prev != null && Number(prev) > 0;
+    const gone =
+      session.checkoutRequestAt == null || Number(session.checkoutRequestAt) <= 0;
+    if (had && gone) {
+      setCart([]);
+      setCartDrawerOpen(false);
+      setShowBillPanel(false);
+    }
+  }, [session.checkoutRequestAt]);
 
   useEffect(() => {
     const syncTableFromUrl = () => {
@@ -1608,39 +1886,50 @@ function App() {
   };
 
   const total = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const alcoholChargeExtra = getAlcoholTableCharge(session, session.tableLabel).totalYen;
+  const billGrandTotal = total + alcoholChargeExtra;
   const safeSplitPeople = Math.max(1, Number(splitPeople) || 1);
-  const splitAmount = Math.ceil(total / safeSplitPeople);
+  const splitAmount = Math.ceil(billGrandTotal / safeSplitPeople);
   const orderableItems = cart.filter((item) => !item.nomihodaiLocked && item.qty > 0);
   const cartQtySum = cart.reduce((sum, item) => sum + (item.qty || 0), 0);
+  const nhForGuestBill = getNomihodaiForTable(session, session.tableLabel);
 
   const renderCartItems = () =>
     cart.length === 0 ? (
-      <p className="cart-drawer-empty">カートに商品がありません。</p>
+      <p className="cart-drawer-empty">{ut('cart_empty')}</p>
     ) : (
       cart.map((item) => (
         <div className="cart-item" key={item.id}>
           <div className="cart-item-info">
             <div className="cart-item-name">
               {item.aburasobaDetail ? (
-                <>
+                locale === 'en' ? (
                   <div className="cart-item-name-main">
-                    {item.aburasobaDetail.bowlTitle}（{item.aburasobaDetail.size}）
+                    {guestCartLineDisplay(item, locale, ut, nhForGuestBill)}
                   </div>
-                  {item.aburasobaDetail.toppings?.length > 0 ? (
-                    <div className="cart-item-toppings">
-                      {item.aburasobaDetail.toppings.map((t) => (
-                        <div key={t.id} className="cart-item-topping-line">
-                          ・{t.name}
-                        </div>
-                      ))}
+                ) : (
+                  <>
+                    <div className="cart-item-name-main">
+                      {item.aburasobaDetail.bowlTitle}（{item.aburasobaDetail.size}）
                     </div>
-                  ) : null}
-                </>
+                    {item.aburasobaDetail.toppings?.length > 0 ? (
+                      <div className="cart-item-toppings">
+                        {item.aburasobaDetail.toppings.map((t) => (
+                          <div key={t.id} className="cart-item-topping-line">
+                            ・{t.name}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </>
+                )
               ) : (
-                item.name
+                guestCartLineDisplay(item, locale, ut, nhForGuestBill)
               )}
             </div>
-            <div className="cart-item-price serif">￥{item.price.toLocaleString()}</div>
+            <div className="cart-item-price serif">
+              ￥{item.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+            </div>
             <div className="qty-control">
               <button
                 type="button"
@@ -1688,8 +1977,8 @@ function App() {
 
   useEffect(() => {
     if (!notice) return undefined;
-    const t = setTimeout(() => setNotice(null), 2200);
-    return () => clearTimeout(t);
+    const noticeTimer = setTimeout(() => setNotice(null), 2200);
+    return () => clearTimeout(noticeTimer);
   }, [notice]);
 
   useEffect(() => {
@@ -1703,13 +1992,13 @@ function App() {
 
   const onConfirmOrder = async () => {
     if (orderableItems.length === 0) {
-      showNotice('注文する商品がありません。', 'warn');
+      showNotice(ut('notice_no_items'), 'warn');
       return;
     }
     const stock = assertTakeoutSweetsOrderItems(orderableItems);
     if (!stock.ok) {
       showNotice(
-        `テイクアウトスイーツの在庫が足りません（${stock.id}: 残り ${stock.have}、ご希望 ${stock.need}）。カートを調整してください。`,
+        ut('notice_stock_short', { id: stock.id, have: stock.have, need: stock.need }),
         'warn',
       );
       return;
@@ -1725,7 +2014,7 @@ function App() {
     const sent = await addGuestOrders(rows);
     if (sent && sent.ok === false) {
       showNotice(
-        `注文をサーバーに送れませんでした。Supabase の接続・RLS（beifutei_orders の insert）を確認してください。${sent.errorMessage ? ` (${sent.errorMessage})` : ''}`,
+        `${ut('notice_order_fail_prefix')}${sent.errorMessage ? ` (${sent.errorMessage})` : ''}`,
         'warn'
       );
       return;
@@ -1734,23 +2023,28 @@ function App() {
     setCart((c) => c.filter((i) => i.nomihodaiLocked));
     setCartDrawerOpen(false);
     const qtyTotal = orderableItems.reduce((sum, item) => sum + item.qty, 0);
-    showNotice(`ご注文を受け付けました（${qtyTotal}点）。`, 'ok');
+    showNotice(ut('notice_order_ok', { count: qtyTotal }), 'ok');
   };
 
   const onRequestCheckout = async () => {
-    if (total <= 0) {
-      showNotice('現在のお会計は0円です。', 'warn');
+    const tableOk = String(session.tableLabel ?? '').trim();
+    if (!tableOk) {
+      showNotice(ut('notice_checkout_no_table'), 'warn');
       return;
     }
     const { error } = await requestTableCheckout();
     if (error) {
-      showNotice(
-        `お会計依頼を送信できませんでした。${error.message ? `（${error.message}）` : '通信を確認してください。'}`,
-        'warn'
-      );
+      const msg = typeof error?.message === 'string' ? error.message : String(error?.message ?? '');
+      const detail =
+        msg === 'NO_TABLE'
+          ? ut('notice_checkout_no_table')
+          : msg
+            ? ` (${msg})`
+            : ut('notice_checkout_fail_suffix');
+      showNotice(`${ut('notice_checkout_fail_prefix')}${detail}`, 'warn');
       return;
     }
-    showNotice('お会計のご依頼を受け付けました。スタッフが伺います。', 'ok');
+    showNotice(ut('notice_checkout_ok'), 'ok');
   };
 
   if (!isSupabaseConfigured) {
@@ -1778,52 +2072,62 @@ function App() {
             .filter(Boolean)
             .join(' ')}
         >
-          <nav ref={sidebarNavRef} className="nav-menu" aria-label="メニューカテゴリ">
-            <div className="nav-menu-section" aria-label="フード">
+          <nav ref={sidebarNavRef} className="nav-menu" aria-label={ut('nav_label')}>
+            <div className="nav-menu-section" aria-label={ut('nav_food')}>
               <div className={`nav-item ${activeTab === 'aburasoba' ? 'active' : ''}`} onClick={() => setActiveTab('aburasoba')}>
-                油そば
-              </div>
-              <div className={`nav-item ${activeTab === 'pizza' ? 'active' : ''}`} onClick={() => setActiveTab('pizza')}>
-                ピッツァ
+                {ut('nav_aburasoba')}
               </div>
               <div className={`nav-item ${activeTab === 'sidedish' ? 'active' : ''}`} onClick={() => setActiveTab('sidedish')}>
-                サイドメニュー
+                {ut('nav_sidedish')}
+              </div>
+              <div className={`nav-item ${activeTab === 'pizza' ? 'active' : ''}`} onClick={() => setActiveTab('pizza')}>
+                PIZZA
               </div>
             </div>
             <hr className="nav-menu-rule" role="presentation" />
-            <div className="nav-menu-section" aria-label="お飲み物">
+            <div className="nav-menu-section" aria-label={ut('nav_drinks')}>
               <div
                 className={`nav-item nav-item--plan ${activeTab === 'nomihoudai' ? 'active' : ''}`}
                 onClick={() => setActiveTab('nomihoudai')}
               >
-                飲み放題
+                {ut('nav_nomihodai')}
               </div>
               <div className={`nav-item ${activeTab === 'drink' ? 'active' : ''}`} onClick={() => setActiveTab('drink')}>
-                ドリンク
-              </div>
-              <div className={`nav-item ${activeTab === 'cafe' ? 'active' : ''}`} onClick={() => setActiveTab('cafe')}>
-                カフェドリンク
+                {ut('nav_drink')}
               </div>
             </div>
             <hr className="nav-menu-rule" role="presentation" />
-            <div className="nav-menu-section" aria-label="デザート・お持ち帰り">
+            <div className="nav-menu-section" aria-label={ut('nav_dessert')}>
               <div className={`nav-item ${activeTab === 'fruit' ? 'active' : ''}`} onClick={() => setActiveTab('fruit')}>
-                フルーツ・ソフト
+                {ut('nav_fruit')}
+              </div>
+              <div className={`nav-item ${activeTab === 'cafe' ? 'active' : ''}`} onClick={() => setActiveTab('cafe')}>
+                {ut('nav_cafe')}
               </div>
               <div className={`nav-item nav-item--takeout ${activeTab === 'takeout' ? 'active' : ''}`} onClick={() => setActiveTab('takeout')}>
-                テイクアウト
-                <br />
-                スイーツ
+                {ut('nav_takeout').split('\n').map((line, i, arr) => (
+                  <Fragment key={i}>
+                    {line}
+                    {i < arr.length - 1 ? <br /> : null}
+                  </Fragment>
+                ))}
               </div>
             </div>
           </nav>
         </div>
         <div className="sidebar-bottom">
           <button type="button" className="action-btn action-btn--checkout" onClick={onRequestCheckout}>
-            お会計する
+            {ut('btn_checkout')}
           </button>
-          <button type="button" className="action-btn" onClick={() => setShowBillPanel(true)}>現在のお会計</button>
-          <button type="button" className="action-btn action-btn--utility">🌐 日本語 ⌄</button>
+          <button type="button" className="action-btn" onClick={() => setShowBillPanel(true)}>{ut('btn_current_bill')}</button>
+          <button
+            type="button"
+            className="action-btn action-btn--utility"
+            onClick={toggleLocale}
+            title={locale === 'ja' ? ut('lang_action_en') : ut('lang_action_ja')}
+          >
+            🌐 {locale === 'ja' ? ut('lang_action_en') : ut('lang_action_ja')}
+          </button>
         </div>
       </aside>
 
@@ -1846,14 +2150,14 @@ function App() {
                   : '#FDF9F1',
         }}
       >
-        <NomihodaiGuestBanner />
+        {!hideGuestOrderingChrome ? <NomihodaiGuestBanner /> : null}
         <div className="main-wrapper__guest-phase">
           {guestPostCheckoutFullscreen ? (
             <div
               className="guest-main-fullscreen"
               role="dialog"
               aria-modal="true"
-              aria-label={farewell ? '会計完了のご案内' : 'お会計を承りました'}
+              aria-label={farewell ? ut('guest_aria_checkout_farewell') : ut('guest_aria_checkout_thanks')}
             >
               {farewell ? (
                 <NomihodaiGuestFarewellFlow farewell={farewell} now={now} />
@@ -1872,14 +2176,15 @@ function App() {
             <DrinkMenu addToCart={addToCart} />
           )}
           {activeTab === 'nomihoudai' && (
-              <NomihodaiTabRouter addToCart={addToCart} onOpenNomihodaiBill={() => setShowBillPanel(true)} />
+              <NomihodaiTabRouter onOpenNomihodaiBill={() => setShowBillPanel(true)} />
             )}
           {activeTab === 'cafe' && <CafeMenu addToCart={addToCart} />}
           {activeTab === 'fruit' && <FruitStudioMenu addToCart={addToCart} />}
           {activeTab === 'takeout' && <TakeoutSweetsMenu addToCart={addToCart} />}
 
-          {/* 飲み放題適用中はカート UI を隠す。カートは右スライド（メイン商品エリアの幅は据え置き） */}
-          {!nomihodaiActive && (
+          {/* 飲み放題タブでは画面内「注文カート」を使うため、共通カートタブは出さない */}
+          {/* 会計オーバーレイ中はカート UI を出さない（fixed の z-index がオーバーレイより上になるため） */}
+          {activeTab !== 'nomihoudai' && !hideGuestOrderingChrome && (
             <>
               <div
                 className={`cart-drawer-backdrop${cartDrawerOpen ? ' cart-drawer-backdrop--open' : ''}`}
@@ -1891,22 +2196,22 @@ function App() {
                 className={`cart-drawer-panel${cartDrawerOpen ? ' cart-drawer-panel--open' : ''}`}
                 aria-hidden={!cartDrawerOpen}
                 id="cart-drawer"
-                aria-label="ご注文内容"
+                aria-label={ut('cart_title')}
               >
                 <div className="cart-header cart-drawer-panel__head">
-                  <span className="cart-title">ご注文内容</span>
+                  <span className="cart-title">{ut('cart_title')}</span>
                   <div className="cart-drawer-panel__actions">
                     <button
                       type="button"
                       className="clear-btn"
                       onClick={() => setCart((c) => c.filter((i) => i.nomihodaiLocked))}
                     >
-                      🗑️ すべて削除
+                      {ut('cart_clear')}
                     </button>
                     <button
                       type="button"
                       className="cart-drawer-panel__close"
-                      aria-label="カートを閉じる"
+                      aria-label={ut('cart_close')}
                       onClick={() => setCartDrawerOpen(false)}
                     >
                       ✕
@@ -1916,10 +2221,10 @@ function App() {
                 <div className="cart-items">{renderCartItems()}</div>
                 <div className="cart-footer">
                   <div className="total-area">
-                    <span className="total-label">合計</span>
+                    <span className="total-label">{ut('cart_total')}</span>
                     <div className="cart-total-col">
                       <span className="total-price serif">￥{total.toLocaleString()}</span>
-                      <span className="total-tax">（税込）</span>
+                      <span className="total-tax">{ut('cart_tax')}</span>
                     </div>
                   </div>
                   <button
@@ -1928,7 +2233,7 @@ function App() {
                     disabled={orderableItems.length === 0}
                     onClick={onConfirmOrder}
                   >
-                    注文を確定する ＞
+                    {ut('cart_confirm')}
                   </button>
                 </div>
               </aside>
@@ -1943,7 +2248,7 @@ function App() {
                 <span className="cart-drawer-edge__icon" aria-hidden="true">
                   🛒
                 </span>
-                <span className="cart-drawer-edge__label">カート</span>
+                <span className="cart-drawer-edge__label">{ut('cart_edge')}</span>
                 {cartQtySum > 0 ? (
                   <span className="cart-drawer-edge__badge">{cartQtySum > 99 ? '99+' : cartQtySum}</span>
                 ) : null}
@@ -1957,15 +2262,25 @@ function App() {
           <div className="bill-overlay" onClick={() => setShowBillPanel(false)}>
             <div className="bill-panel" onClick={(e) => e.stopPropagation()}>
               <button type="button" className="checkout-btn bill-checkout-btn" onClick={onRequestCheckout}>
-                お会計する
+                {ut('bill_checkout')}
               </button>
-              <div className="bill-panel-title">現在のお会計</div>
-              <div className="bill-total">￥{total.toLocaleString()} <span>(税込)</span></div>
-              <button className="split-btn" onClick={() => setShowSplitCalc(prev => !prev)}>人数割り勘</button>
+              <div className="bill-panel-title">{ut('bill_title')}</div>
+              {alcoholChargeExtra > 0 ? (
+                <p className="bill-panel-alcohol" role="note">
+                  {locale === 'en'
+                    ? formatAlcoholChargeLineForGuest(session, session.tableLabel, locale)
+                    : getAlcoholTableCharge(session, session.tableLabel).lineName}
+                  <span className="bill-panel-alcohol-yen"> ＋￥{alcoholChargeExtra.toLocaleString()}</span>
+                </p>
+              ) : null}
+              <div className="bill-total">
+                ￥{billGrandTotal.toLocaleString()} <span>{ut('tax_included_short')}</span>
+              </div>
+              <button className="split-btn" onClick={() => setShowSplitCalc(prev => !prev)}>{ut('bill_split')}</button>
               {showSplitCalc && (
                 <div className="bill-split-area">
                   <div className="split-input-row">
-                    <span>人数</span>
+                    <span>{ut('bill_split_people')}</span>
                     <button className="split-step-btn" onClick={() => setSplitPeople(prev => Math.max(1, (Number(prev) || 1) - 1))}>−</button>
                     <input
                       className="split-people-input"
@@ -1974,22 +2289,21 @@ function App() {
                       value={splitPeople}
                       onChange={(e) => setSplitPeople(Math.max(1, Number(e.target.value) || 1))}
                     />
-                    <span>人</span>
+                    <span>{ut('bill_people_unit')}</span>
                     <button className="split-step-btn" onClick={() => setSplitPeople(prev => (Number(prev) || 1) + 1)}>＋</button>
                   </div>
-                  <div className="split-result">1人あたり ￥{splitAmount.toLocaleString()}</div>
+                  <div className="split-result">{ut('bill_split_per')} ￥{splitAmount.toLocaleString()}</div>
                 </div>
               )}
-              <button className="bill-close-btn" onClick={() => setShowBillPanel(false)}>閉じる</button>
+              <button className="bill-close-btn" onClick={() => setShowBillPanel(false)}>{ut('bill_close')}</button>
             </div>
           </div>
         )}
 
         {/* BOTTOM BAR */}
         <footer className="bottom-bar">
-          <div>しあわせ研究所yum</div>
-          <div>🛎️ ご不明な点はスタッフまでお声がけください</div>
-          <div>お酒ご注文のお客様はお席料17時～21時500円・21時以降800円頂戴しております。</div>
+          <span className="bottom-bar__brand">しあわせ研究所yum</span>
+          <span className="bottom-bar__note">{ut('bottom_alcohol')}</span>
         </footer>
       </div>
       {notice ? (

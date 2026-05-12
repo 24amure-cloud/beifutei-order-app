@@ -13,6 +13,7 @@ export const LEDGER_SETTINGS_KEY = 'beifutei-ledger-settings-v1';
  *   total: number,
  *   normalSubtotal: number,
  *   nomihodaiPlanYen: number,
+ *   alcoholChargeYen?: number,
  *   normalCount: number,
  *   nomihodaiCount: number,
  *   lines: Array<{ kind?: string, name?: string, price?: number, itemId?: string }>,
@@ -113,6 +114,7 @@ export function appendDailyLedgerEntry(partial) {
       : Date.now();
   const dateKey = getLocalDateKey(recordedAt);
   const nhPlan = Math.max(0, Number(partial.nomihodaiPlanYen) || 0);
+  const alcoholYen = Math.max(0, Number(partial.alcoholChargeYen) || 0);
   const entry = {
     id: `dl-${recordedAt}-${Math.random().toString(36).slice(2, 9)}`,
     dateKey,
@@ -128,6 +130,7 @@ export function appendDailyLedgerEntry(partial) {
     total: Math.max(0, Number(partial.total) || 0),
     normalSubtotal: Math.max(0, Number(partial.normalSubtotal) || 0),
     nomihodaiPlanYen: nhPlan,
+    alcoholChargeYen: alcoholYen,
     normalCount: Math.max(0, Number(partial.normalCount) || 0),
     nomihodaiCount: Math.max(0, Number(partial.nomihodaiCount) || 0),
     lines: Array.isArray(partial.lines) ? partial.lines.slice(0, 200) : [],

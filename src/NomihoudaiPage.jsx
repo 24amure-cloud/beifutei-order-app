@@ -3,11 +3,48 @@ import { useNomihodaiCatalog } from './NomihodaiCatalogContext.jsx';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 
 export const NOMIHODAI_EXTRA_SHOTS = [
-  { id: 'nm-shot-tequila', label: 'テキーラ', name: 'テキーラ（別料金ショット）', price: 600 },
-  { id: 'nm-shot-jaeger', label: 'イエガーマイスター', name: 'イエガーマイスター（別料金ショット）', price: 700 },
-  { id: 'nm-shot-cocabomb', label: 'コカボム', name: 'コカボム（別料金ショット）', price: 800 },
-  { id: 'nm-shot-chamisul', label: 'チャミスル', name: 'チャミスル（別料金ショット）', price: 1300 },
-  { id: 'nm-shot-kleiner', label: 'クライナー', name: 'クライナー（別料金ショット）', price: 800 },
+  {
+    id: 'nm-shot-tequila',
+    label: 'テキーラ',
+    labelEn: 'Tequila',
+    name: 'テキーラ（別料金ショット）',
+    price: 600,
+  },
+  {
+    id: 'nm-shot-jaeger',
+    label: 'イエガーマイスター',
+    labelEn: 'Jägermeister',
+    name: 'イエガーマイスター（別料金ショット）',
+    price: 700,
+  },
+  {
+    id: 'nm-shot-cocabomb',
+    label: 'コカボム',
+    labelEn: 'Coca bomb',
+    name: 'コカボム（別料金ショット）',
+    price: 800,
+  },
+  {
+    id: 'nm-shot-chamisul',
+    label: 'チャミスル',
+    labelEn: 'Chamisul',
+    name: 'チャミスル（別料金ショット）',
+    price: 1300,
+  },
+  {
+    id: 'nm-shot-kleiner',
+    label: 'クライナー',
+    labelEn: 'Kleiner Feigling',
+    name: 'クライナー（別料金ショット）',
+    price: 800,
+  },
+  {
+    id: 'nm-shot-staff-drink',
+    label: 'スタッフドリンク',
+    labelEn: 'Staff drink',
+    name: 'スタッフドリンク（別料金）',
+    price: 700,
+  },
 ];
 
 /** 見た目のバリエーション（旧デザインのソフト／サワー帯を維持） */

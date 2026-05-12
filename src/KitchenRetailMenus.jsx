@@ -1,5 +1,5 @@
 /**
- * 厨房スタッフ用：客席 App.jsx のカフェ／フルーツ・ソフト／テイクアウト画面の複製。
+ * 厨房スタッフ用：客席 App.jsx のソフトクリーム／カフェドリンク／テイクアウト画面の複製。
  * 客席コードは変更せず、ここだけメンテで客席と揃える運用を想定。
  */
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
@@ -358,15 +358,15 @@ export function KitchenStaffFruitStudioMenu() {
   return (
     <main className="main-content fruit-page kitchen-staff-retail-menu">
       <div className="fruit-wrapper">
-        <PageHeaderImage pageKey="fruit" alt="フルーツ・ソフト" />
+        <PageHeaderImage pageKey="fruit" alt="ソフトクリーム" />
 
-        <div className="kitchen-staff-fruit-carousel" role="region" aria-label="フルーツ・ソフト（横スクロール）">
+        <div className="kitchen-staff-fruit-carousel" role="region" aria-label="ソフトクリーム（横スクロール）">
           <div className="fruit-top-row">
           <div className="fruit-hero fruit-hero--cafe">
             <div className="fruit-hero-body">
               <div className="cafe-card-top fruit-hero-top">
                 <div className="cafe-card-content fruit-hero-text">
-                  <h2 className="fruit-hero-title">フルーツソフト</h2>
+                  <h2 className="fruit-hero-title">本日のソフトクリーム</h2>
                   <p className="fruit-hero-lead">Fresh Fruit Soft</p>
                   <p className="fruit-hero-desc">
                     新鮮フルーツの上に
@@ -426,7 +426,7 @@ export function KitchenStaffFruitStudioMenu() {
                     onClick={() =>
                       addToCart({
                         id: `fr-fruit-${opts.fruit.size}`,
-                        name: `本日のフルーツソフト (${opts.fruit.size})`,
+                        name: `本日のソフトクリーム (${opts.fruit.size})`,
                         price: opts.fruit.price,
                       })
                     }
@@ -728,7 +728,7 @@ const LEDGER_TAKEOUT_GUEST_LABEL = 'テイクアウト客';
  * @param {() => void} [props.onRetailCheckoutComplete] 会計記録後に呼ぶ（例：お会計済みタブへ）
  */
 export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
-  const [sub, setSub] = useState('cafe');
+  const [sub, setSub] = useState('fruit');
   /** @type {Array<{ key: string, id: string, name: string, price: number, qty: number }>} */
   const [cart, setCart] = useState([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -831,7 +831,16 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
               </div>
             </div>
 
-            <div className="kitchen-retail-hub__tabs" role="tablist" aria-label="テイクアウト・カフェメニュー">
+            <div className="kitchen-retail-hub__tabs" role="tablist" aria-label="ソフトクリーム・カフェドリンク・テイクアウトスイーツ">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sub === 'fruit'}
+                className={`kitchen-retail-hub__tab kitchen-retail-hub__tab--fruit${sub === 'fruit' ? ' is-active' : ''}`}
+                onClick={() => setSub('fruit')}
+              >
+                ソフトクリーム
+              </button>
               <button
                 type="button"
                 role="tab"
@@ -840,15 +849,6 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
                 onClick={() => setSub('cafe')}
               >
                 カフェドリンク
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sub === 'fruit'}
-                className={`kitchen-retail-hub__tab kitchen-retail-hub__tab--fruit${sub === 'fruit' ? ' is-active' : ''}`}
-                onClick={() => setSub('fruit')}
-              >
-                ソフト・フルーツ
               </button>
               <button
                 type="button"
@@ -864,8 +864,8 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
 
           <div className="kitchen-retail-hub__body">
             <div className="kitchen-retail-hub__scroll">
-              {sub === 'cafe' ? <KitchenStaffCafeMenu /> : null}
               {sub === 'fruit' ? <KitchenStaffFruitStudioMenu /> : null}
+              {sub === 'cafe' ? <KitchenStaffCafeMenu /> : null}
               {sub === 'takeout' ? <KitchenStaffTakeoutSweetsMenu /> : null}
             </div>
 

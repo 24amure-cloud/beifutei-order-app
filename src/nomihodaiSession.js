@@ -12,6 +12,24 @@ export const NOMIHODAI_CHANNEL_NAME = 'beifutei-nomihodai-sync';
 /** 厨房卓メモ（氏名など）の最大文字数 */
 export const TABLE_MEMO_MAX_LEN = 40;
 
+/**
+ * true のとき、未提供の飲み放題ドリンクが人数分に達すると追加注文をブロックする。
+ * 運用で問題が出たら true に戻す。
+ */
+export const NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED = false;
+
+/** DB / PostgREST の boolean がたまに文字列で返る環境でも「飲み放題オン」を誤判定しない */
+export function isDbNomihodaiActiveFlag(raw) {
+  if (raw === true || raw === 1) return true;
+  if (raw === false || raw === 0 || raw == null) return false;
+  if (typeof raw === 'string') {
+    const s = raw.trim().toLowerCase();
+    if (s === 'true' || s === 't' || s === '1') return true;
+    if (s === '' || s === 'false' || s === 'f' || s === '0') return false;
+  }
+  return Boolean(raw);
+}
+
 const DEFAULT_SESSION = () => ({
   tableId: 'default',
   tableLabel: '3',
@@ -111,10 +129,41 @@ export function loadSession() {
   }
 }
 
+/**
+ * 卓番キーを端末間で揃える（全角数字→半角、前後空白、連続空白、先頭ゼロの数字卓など）。
+ * 数字以外の卓名は NFKC＋trim のみ。
+ */
+export function normalizeTableLabelKey(raw) {
+  let s = String(raw ?? '')
+    .trim()
+    .replace(/\s+/g, '');
+  if (!s) return '';
+  try {
+    if (typeof s.normalize === 'function') s = s.normalize('NFKC');
+  } catch {
+    /* ignore */
+  }
+  if (/^\d+$/.test(s)) {
+    const n = parseInt(s, 10);
+    if (Number.isFinite(n)) return String(n);
+  }
+  return s;
+}
+
+/** 卓番の表記ゆれでもマップ参照できるようにする */
+function sessionMapByTrimmedKey(map, tableLabel, defaultKey = '3') {
+  const tl = normalizeTableLabelKey(tableLabel) || normalizeTableLabelKey(defaultKey) || defaultKey;
+  if (!map || typeof map !== 'object') return undefined;
+  if (map[tl] != null) return map[tl];
+  for (const [k, v] of Object.entries(map)) {
+    if (normalizeTableLabelKey(k) === tl) return v;
+  }
+  return undefined;
+}
+
 /** 指定卓の飲み放題（正規化済み・無ければ null） */
 export function getNomihodaiForTable(session, tableLabel) {
-  const lbl = String(tableLabel ?? '3');
-  const raw = session.nomihodaiByLabel?.[lbl];
+  const raw = sessionMapByTrimmedKey(session?.nomihodaiByLabel, tableLabel);
   return normalizeNomihodai(raw);
 }
 
@@ -130,8 +179,7 @@ export function countActiveNomihodaiTables(session) {
 }
 
 export function getGuestIntentForTable(session, tableLabel) {
-  const lbl = String(tableLabel ?? '3');
-  return session.nomihodaiGuestIntentByLabel?.[lbl] ?? null;
+  return sessionMapByTrimmedKey(session?.nomihodaiGuestIntentByLabel, tableLabel) ?? null;
 }
 
 export function hasAnyGuestIntent(session) {
@@ -143,6 +191,48 @@ export function listGuestIntentTableLabels(session) {
   const by = session.nomihodaiGuestIntentByLabel;
   if (!by || typeof by !== 'object') return [];
   return Object.keys(by).sort((a, b) => Number(a) - Number(b));
+}
+
+function sortTableLabelStrings(labels) {
+  return [...labels].sort((a, b) => {
+    const na = Number(a);
+    const nb = Number(b);
+    const aNum = Number.isFinite(na) && String(na) === a;
+    const bNum = Number.isFinite(nb) && String(nb) === b;
+    if (aNum && bNum) return na - nb;
+    if (aNum && !bNum) return -1;
+    if (!aNum && bNum) return 1;
+    return String(a).localeCompare(String(b), 'ja');
+  });
+}
+
+/** 注文・卓状態・メモ等から、いまデータに現れている卓番の一覧（重複なし・ソート済み） */
+export function collectKnownTableLabels(session) {
+  const s = new Set();
+  const add = (k) => {
+    if (k == null) return;
+    const t = String(k).trim();
+    if (t) s.add(t);
+  };
+  if (session.nomihodaiByLabel && typeof session.nomihodaiByLabel === 'object') {
+    Object.keys(session.nomihodaiByLabel).forEach(add);
+  }
+  if (session.checkoutRequestByLabel && typeof session.checkoutRequestByLabel === 'object') {
+    Object.keys(session.checkoutRequestByLabel).forEach(add);
+  }
+  if (session.nomihodaiGuestIntentByLabel && typeof session.nomihodaiGuestIntentByLabel === 'object') {
+    Object.keys(session.nomihodaiGuestIntentByLabel).forEach(add);
+  }
+  if (session.tableMemoByLabel && typeof session.tableMemoByLabel === 'object') {
+    Object.keys(session.tableMemoByLabel).forEach(add);
+  }
+  if (session.guestFarewellActiveByLabel && typeof session.guestFarewellActiveByLabel === 'object') {
+    Object.keys(session.guestFarewellActiveByLabel).forEach(add);
+  }
+  for (const o of session.orders || []) {
+    add(o.tableLabel);
+  }
+  return sortTableLabelStrings([...s]);
 }
 
 function normalizeCheckoutRequestAt(raw) {

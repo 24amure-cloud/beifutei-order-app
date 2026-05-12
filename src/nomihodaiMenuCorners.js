@@ -15,14 +15,14 @@ const SLOT_TO_SECTION = {
   soft: 'soft',
 };
 
-export const NOMIHODAI_SECTION_EMPTY_HINTS = {
-  beer: 'マスターで「ビール」「BEER」を含むカテゴリを追加すると表示されます。',
-  highball: 'マスターで「ハイボール」「HIGHBALL」を含むカテゴリを追加すると表示されます。',
-  shochu: 'マスターで「焼酎」「SHOCHU」を含むカテゴリを追加すると表示されます。',
-  cocktail:
-    'マスターで「カクテル」「チューハイ」「サワー」「ジントニック」等を含むカテゴリを追加すると表示されます。',
-  wine: 'マスターで「ワイン」「WINE」を含むカテゴリを追加すると表示されます。',
-  soft: 'マスターで「ソフト」「ジュース」「ウーロン」等を含むカテゴリを追加すると表示されます。',
+/** guestUiStrings のキー（卓タブレットの言語に追従） */
+export const NOMIHODAI_SECTION_EMPTY_HINT_KEYS = {
+  beer: 'nh_empty_beer',
+  highball: 'nh_empty_highball',
+  shochu: 'nh_empty_shochu',
+  cocktail: 'nh_empty_cocktail',
+  wine: 'nh_empty_wine',
+  soft: 'nh_empty_soft',
 };
 
 function emptyBuckets() {

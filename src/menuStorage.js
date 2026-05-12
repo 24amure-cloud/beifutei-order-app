@@ -8,6 +8,7 @@ function isValidItem(it) {
     typeof it.id === 'string' &&
     it.id.length > 0 &&
     typeof it.name === 'string' &&
+    (it.nameEn == null || typeof it.nameEn === 'string') &&
     (it.price === null || (typeof it.price === 'number' && Number.isFinite(it.price)))
   );
 }
@@ -15,6 +16,8 @@ function isValidItem(it) {
 function isValidSection(s) {
   if (!s || typeof s.id !== 'string' || !s.id) return false;
   if (typeof s.titleJa !== 'string' || typeof s.titleEn !== 'string') return false;
+  if (s.hint != null && typeof s.hint !== 'string') return false;
+  if (s.hintEn != null && typeof s.hintEn !== 'string') return false;
   if (!Array.isArray(s.items)) return false;
   return s.items.every(isValidItem);
 }

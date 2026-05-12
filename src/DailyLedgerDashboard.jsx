@@ -280,7 +280,15 @@ export default function DailyLedgerDashboard() {
                 <tbody>
                   {report.products.slice(0, 40).map((p) => (
                     <tr key={p.key}>
-                      <td>{p.kind === 'nh' ? 'NH' : '通常'}</td>
+                      <td>
+                        {p.kind === 'nh'
+                          ? 'NH'
+                          : p.kind === 'nh_extra'
+                            ? '別料金'
+                            : p.kind === 'alcohol_charge'
+                              ? '卓CH'
+                              : '通常'}
+                      </td>
                       <td>{p.label}</td>
                       <td className="master-ledger-num">{p.count}</td>
                       <td className="master-ledger-num">

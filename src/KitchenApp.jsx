@@ -1,4 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ALCOHOL_CHARGE_AFTER_21_YEN,
+  ALCOHOL_CHARGE_BEFORE_21_YEN,
+  alcoholChargeYenPerPersonFromNow,
+  getAlcoholTableCharge,
+} from './alcoholTableCharge.js';
 import { formatLedgerPaymentJa, getLocalDateKey, loadDailyLedger } from './dailyLedger.js';
 import { NOMIHODAI_EXTENSION_PRICE_YEN } from './nomihodaiConstants.js';
 import { getNomihodaiForTable, TABLE_MEMO_MAX_LEN } from './nomihodaiSession.js';
@@ -8,6 +14,7 @@ import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
 import { KitchenDiagnosticsFooter, KitchenRealtimeBadge } from './KitchenStaffDiagnostics.jsx';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
+import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 
 function fmtTime(ms) {
   const d = new Date(ms);
@@ -59,6 +66,32 @@ function orderKindMeta(o) {
 
 function orderKitchenEmoji(o) {
   return orderKindMeta(o).emoji;
+}
+
+/** 税込表示：NH内の無料ドリンク vs ショット等の別料金 */
+function orderLineTaxInLabel(o) {
+  const yen = Math.max(0, Number(o.itemPrice) || 0);
+  if (yen > 0) return `￥${yen.toLocaleString()}（税込）`;
+  if (o.isNomihodai) return '飲み放題（税込）';
+  return `￥0（税込）`;
+}
+
+/** 伝票一覧の短い金額欄（別料金ショットは金額を出す） */
+function orderLineSlipMetaPrice(o) {
+  const yen = Math.max(0, Number(o.itemPrice) || 0);
+  if (yen > 0) return `￥${yen.toLocaleString()}`;
+  if (o.isNomihodai) return '飲み放題内';
+  return `￥${yen.toLocaleString()}`;
+}
+
+/** NH行だが別料金（ショット等）— 会計UIは「通常」と同じ強調にする */
+function isNomihodaiChargedExtra(o) {
+  return !!o?.isNomihodai && Math.max(0, Number(o.itemPrice) || 0) > 0;
+}
+
+/** 飲み放題トグルで「飲み放題」側がアクティブになるのはプラン内（無料）NHのみ */
+function nhToggleShowsNomihodaiActive(o) {
+  return !!o?.isNomihodai && Math.max(0, Number(o.itemPrice) || 0) === 0;
 }
 
 /**
@@ -150,7 +183,7 @@ const STAFF_TABS = {
   tableStatus: 'table-status',
   /** 本日・会計確定済み伝票のログ（スタッフ用） */
   checkoutDone: 'checkout-done',
-  /** カフェ／フルーツ・ソフト／テイクアウト（客席UI複製・手元注文） */
+  /** カフェ／ソフトクリーム／テイクアウト（客席UI複製・手元注文） */
   retailTakeout: 'retail-takeout',
 };
 
@@ -179,6 +212,130 @@ function OrderBillingToggle({ orderId, isNomihodai, onSetNomihodai, compact }) {
     </div>
   );
 }
+
+/** 卓チャージ（スタッフが人数・1名あたり円を入力。時刻に応じた 500/800 は目安表示のみ） */
+function KitchenTableAlcoholChargePanel({ tableLabel, session, setTableAlcoholCharge, now }) {
+  const cur = getAlcoholTableCharge(session, tableLabel);
+  const [peopleStr, setPeopleStr] = useState('1');
+  const [yenStr, setYenStr] = useState(String(ALCOHOL_CHARGE_BEFORE_21_YEN));
+
+  const clockBand = useMemo(() => alcoholChargeYenPerPersonFromNow(now), [now]);
+
+  const bumpPeople = (delta) => {
+    setPeopleStr((s) => {
+      const n = Math.max(1, Math.min(99, (parseInt(String(s), 10) || 1) + delta));
+      return String(n);
+    });
+  };
+
+  useEffect(() => {
+    if (cur.totalYen > 0) {
+      setPeopleStr(String(Math.max(1, cur.people)));
+      setYenStr(String(Math.max(0, cur.yenPerPerson)));
+    } else {
+      setPeopleStr('1');
+      setYenStr(String(clockBand));
+    }
+  }, [tableLabel, cur.totalYen, cur.people, cur.yenPerPerson, clockBand]);
+
+  const onApply = () => {
+    const pe = Math.max(1, Math.min(99, Number(peopleStr) || 1));
+    const yp = Math.max(0, Math.min(999999, Math.floor(Number(String(yenStr).replace(/[^\d]/g, '')) || 0)));
+    if (yp <= 0) {
+      void setTableAlcoholCharge(tableLabel, { people: 0, yenPerPerson: 0 });
+      return;
+    }
+    void setTableAlcoholCharge(tableLabel, { people: pe, yenPerPerson: yp });
+  };
+
+  const onClear = () => {
+    void setTableAlcoholCharge(tableLabel, { people: 0, yenPerPerson: 0 });
+  };
+
+  return (
+    <div className="kitchen-table-status__alcohol">
+      <div className="kitchen-table-status__alcohol-head">
+        <span className="kitchen-table-status__alcohol-title">卓チャージ（税込）</span>
+        <span className="kitchen-table-status__alcohol-hint">
+          人数と1名あたりを決めて「反映」→客席のお会計に加算。下の 500/800 は時刻の目安です。
+        </span>
+      </div>
+      <div className="kitchen-table-status__alcohol-clock" role="status" aria-live="polite">
+        {clockBand === ALCOHOL_CHARGE_BEFORE_21_YEN ? (
+          <p className="kitchen-table-status__alcohol-clock-body">
+            <span className="kitchen-table-status__alcohol-clock-tag">目安・21時前</span>
+            <strong className="kitchen-table-status__alcohol-clock-yen">500円／名</strong>
+            <span className="kitchen-table-status__alcohol-clock-tax">（税込）</span>
+          </p>
+        ) : (
+          <p className="kitchen-table-status__alcohol-clock-body">
+            <span className="kitchen-table-status__alcohol-clock-tag">目安・21時以降</span>
+            <strong className="kitchen-table-status__alcohol-clock-yen">800円／名</strong>
+            <span className="kitchen-table-status__alcohol-clock-tax">（税込）</span>
+          </p>
+        )}
+      </div>
+      <div className="kitchen-table-status__alcohol-row">
+        <label className="kitchen-table-status__alcohol-people kitchen-table-status__alcohol-people--count">
+          <span className="kitchen-table-status__alcohol-people-label">人数（1〜99名）</span>
+          <span className="kitchen-table-status__alcohol-stepper">
+            <button
+              type="button"
+              className="kitchen-table-status__alcohol-stepbtn"
+              onClick={() => bumpPeople(-1)}
+              aria-label="人数を1減らす"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={1}
+              max={99}
+              value={peopleStr}
+              onChange={(e) => setPeopleStr(e.target.value)}
+              aria-label="チャージ対象人数"
+            />
+            <button
+              type="button"
+              className="kitchen-table-status__alcohol-stepbtn"
+              onClick={() => bumpPeople(1)}
+              aria-label="人数を1増やす"
+            >
+              ＋
+            </button>
+          </span>
+        </label>
+        <label className="kitchen-table-status__alcohol-people">
+          1名あたり（円）
+          <input
+            type="number"
+            min={0}
+            max={999999}
+            className="kitchen-table-status__alcohol-input--yen"
+            value={yenStr}
+            onChange={(e) => setYenStr(e.target.value)}
+            aria-label="卓チャージ1名あたり金額"
+          />
+        </label>
+        <button type="button" className="kitchen-table-status__alcohol-apply" onClick={onApply}>
+          反映
+        </button>
+        <button type="button" className="kitchen-table-status__alcohol-clear" onClick={onClear}>
+          クリア
+        </button>
+      </div>
+      {cur.totalYen > 0 ? (
+        <p className="kitchen-table-status__alcohol-live" role="status">
+          <strong>伝票に加算：</strong>
+          {cur.lineName} ＝ <strong>￥{cur.totalYen.toLocaleString()}</strong>
+        </p>
+      ) : (
+        <p className="kitchen-table-status__alcohol-live kitchen-table-status__alcohol-live--muted">未設定（税込）</p>
+      )}
+    </div>
+  );
+}
+
 const TABLE_HERO_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
 function buildInitialNhForm() {
@@ -191,12 +348,14 @@ function resolveSlipBundleForTableLabel(servedByTable, session, tableLabel) {
   const found = servedByTable.find((t) => String(t.tableLabel) === tl);
   const nh = getNomihodaiForTable(session, tl);
   const nomihodaiPlanYen = nh?.active ? Math.max(0, Number(nh.billTotal) || 0) : 0;
+  const alcoholYen = getAlcoholTableCharge(session, tl).totalYen;
   if (found) {
     const plan = nh?.active ? nomihodaiPlanYen : Math.max(0, Number(found.nomihodaiPlanYen) || 0);
     return {
       ...found,
       nomihodaiPlanYen: plan,
-      slipGrandTotal: found.normalSubtotal + plan,
+      alcoholChargeYen: alcoholYen,
+      slipGrandTotal: found.normalSubtotal + plan + alcoholYen,
     };
   }
   return {
@@ -208,7 +367,8 @@ function resolveSlipBundleForTableLabel(servedByTable, session, tableLabel) {
     normalCount: 0,
     nomihodaiCount: 0,
     nomihodaiPlanYen,
-    slipGrandTotal: nomihodaiPlanYen,
+    alcoholChargeYen: alcoholYen,
+    slipGrandTotal: nomihodaiPlanYen + alcoholYen,
   };
 }
 
@@ -218,14 +378,18 @@ function computeTableHistoryTotals(session, tableLabel, orders) {
   const list = Array.isArray(orders) ? orders : [];
   let normalSubtotal = 0;
   for (const o of list) {
-    if (!o.isNomihodai) normalSubtotal += Math.max(0, Number(o.itemPrice) || 0);
+    const yen = Math.max(0, Number(o.itemPrice) || 0);
+    if (!o.isNomihodai) normalSubtotal += yen;
+    else if (yen > 0) normalSubtotal += yen;
   }
   const nh = getNomihodaiForTable(session, tl);
   const nomihodaiPlanYen = nh?.active ? Math.max(0, Number(nh.billTotal) || 0) : 0;
+  const ac = getAlcoholTableCharge(session, tl);
   return {
     normalSubtotal,
     nomihodaiPlanYen,
-    grandTaxIn: normalSubtotal + nomihodaiPlanYen,
+    alcoholChargeYen: ac.totalYen,
+    grandTaxIn: normalSubtotal + nomihodaiPlanYen + ac.totalYen,
   };
 }
 
@@ -246,6 +410,7 @@ export default function KitchenApp() {
     finalizeSlipCheckout,
     clearGuestFarewellForReuse,
     setTableMemo,
+    setTableAlcoholCharge,
   } = useNomihodaiSession();
 
   const [nhForm, setNhForm] = useState(buildInitialNhForm);
@@ -425,10 +590,13 @@ export default function KitchenApp() {
         nomihodaiCount: 0,
       };
       current.orders.push(o);
-      if (o.isNomihodai) current.nomihodaiCount += 1;
-      else {
+      const yen = Math.max(0, Number(o.itemPrice) || 0);
+      if (o.isNomihodai) {
+        current.nomihodaiCount += 1;
+        if (yen > 0) current.normalSubtotal += yen;
+      } else {
         current.normalCount += 1;
-        current.normalSubtotal += Math.max(0, Number(o.itemPrice) || 0);
+        current.normalSubtotal += yen;
       }
       map.set(key, current);
     });
@@ -436,14 +604,16 @@ export default function KitchenApp() {
       .map((table) => {
         const nhRow = getNomihodaiForTable(session, table.tableLabel);
         const nomihodaiPlanYen = nhRow?.active ? Math.max(0, Number(nhRow.billTotal) || 0) : 0;
+        const alcoholChargeYen = getAlcoholTableCharge(session, table.tableLabel).totalYen;
         return {
           ...table,
           nomihodaiPlanYen,
-          slipGrandTotal: table.normalSubtotal + nomihodaiPlanYen,
+          alcoholChargeYen,
+          slipGrandTotal: table.normalSubtotal + nomihodaiPlanYen + alcoholChargeYen,
         };
       })
       .sort((a, b) => Number(a.tableLabel) - Number(b.tableLabel));
-  }, [servedOrders, session.tableId, session.tableLabel, session.nomihodaiByLabel]);
+  }, [servedOrders, session.tableId, session.tableLabel, session.nomihodaiByLabel, session.alcoholChargeByLabel]);
   const checkoutRequestLabels = useMemo(() => {
     const m = session.checkoutRequestByLabel || {};
     return Object.keys(m).sort((a, b) => Number(a) - Number(b));
@@ -613,6 +783,8 @@ export default function KitchenApp() {
         </nav>
         <KitchenRealtimeBadge />
       </header>
+
+      <StoreEntryUrlsPanel variant="kitchen" />
 
       <div className="kitchen-live-strip" role="region" aria-label="未提供サマリー">
         <button
@@ -922,7 +1094,15 @@ export default function KitchenApp() {
                                       <span className="kitchen-pending-batch__line-emoji" aria-hidden>
                                         {orderKitchenEmoji(o)}
                                       </span>
-                                      <span className="kitchen-pending-batch__line-name">{o.itemName}</span>
+                                      <span className="kitchen-pending-batch__line-name">
+                                        {o.itemName}
+                                        {(Number(o.itemPrice) || 0) > 0 ? (
+                                          <span className="kitchen-pending-batch__line-extra-yen">
+                                            {' '}
+                                            ￥{(Number(o.itemPrice) || 0).toLocaleString()}
+                                          </span>
+                                        ) : null}
+                                      </span>
                                       <button
                                         type="button"
                                         className="kitchen-pending-batch__line-serve"
@@ -1028,6 +1208,13 @@ export default function KitchenApp() {
                                 />
                               </label>
                             </div>
+
+                            <KitchenTableAlcoholChargePanel
+                              tableLabel={label}
+                              session={session}
+                              setTableAlcoholCharge={setTableAlcoholCharge}
+                              now={now}
+                            />
 
                             {intentHereWithQueue ? (
                               <div className="kitchen-table-status__notify kitchen-table-status__notify--intent" role="status">
@@ -1224,16 +1411,23 @@ export default function KitchenApp() {
                                   {hist.map((o) => {
                                     const meta = orderKindMeta(o);
                                     return (
-                                      <li key={o.id} className="kitchen-table-status__hist-row">
+                                      <li
+                                        key={o.id}
+                                        className={`kitchen-table-status__hist-row${
+                                          isNomihodaiChargedExtra(o) ? ' kitchen-table-status__hist-row--nh-extra' : ''
+                                        }`}
+                                      >
                                         <span aria-hidden>{meta.emoji}</span>
                                         <span className="kitchen-table-status__hist-name">{meta.firstLine}</span>
                                         <span
                                           className={`kitchen-table-status__hist-bill${
-                                            o.isNomihodai ? ' kitchen-table-status__hist-bill--nh' : ''
+                                            o.isNomihodai && !isNomihodaiChargedExtra(o)
+                                              ? ' kitchen-table-status__hist-bill--nh'
+                                              : ''
                                           }`}
                                           title="会計区分（詳細確認で切替）"
                                         >
-                                          {o.isNomihodai ? 'NH' : '通常'}
+                                          {o.isNomihodai && !isNomihodaiChargedExtra(o) ? 'NH' : '通常'}
                                         </span>
                                         <span
                                           className={
@@ -1305,17 +1499,24 @@ export default function KitchenApp() {
                           </header>
                           <ul className="kitchen-table-order-card__list">
                             {table.orders.map((o) => (
-                              <li key={o.id} className="kitchen-table-order-card__row kitchen-table-order-card__row--slip">
+                              <li
+                                key={o.id}
+                                className={`kitchen-table-order-card__row kitchen-table-order-card__row--slip${
+                                  isNomihodaiChargedExtra(o)
+                                    ? ' kitchen-table-order-card__row--nh-extra-bill'
+                                    : ''
+                                }`}
+                              >
                                 <div className="kitchen-table-order-card__text">
                                   <span className="kitchen-table-order-card__item">{o.itemName}</span>
                                   <span className="kitchen-table-order-card__meta">
-                                    {o.isNomihodai ? '飲み放題内' : `￥${(Number(o.itemPrice) || 0).toLocaleString()}`} /{' '}
+                                    {orderLineSlipMetaPrice(o)} /{' '}
                                     {o.createdAt ? fmtTime(o.createdAt) : '--:--'}
                                   </span>
                                 </div>
                                 <OrderBillingToggle
                                   orderId={o.id}
-                                  isNomihodai={!!o.isNomihodai}
+                                  isNomihodai={nhToggleShowsNomihodaiActive(o)}
                                   onSetNomihodai={setOrderIsNomihodai}
                                   compact
                                 />
@@ -1329,6 +1530,12 @@ export default function KitchenApp() {
                             {table.nomihodaiPlanYen > 0 ? (
                               <div>飲み放題プラン（税込）￥{table.nomihodaiPlanYen.toLocaleString()}</div>
                             ) : null}
+                            {(table.alcoholChargeYen ?? 0) > 0 ? (
+                              <div className="kitchen-slip-total__alcohol">
+                                {getAlcoholTableCharge(session, table.tableLabel).lineName}{' '}
+                                ￥{(table.alcoholChargeYen ?? 0).toLocaleString()}
+                              </div>
+                            ) : null}
                             <strong>合計（税込）￥{table.slipGrandTotal.toLocaleString()}</strong>
                             <div className="kitchen-slip-actions">
                               <button
@@ -1336,7 +1543,8 @@ export default function KitchenApp() {
                                 className="kitchen-btn kitchen-btn--checkout"
                                 disabled={
                                   table.normalCount + table.nomihodaiCount === 0 &&
-                                  table.nomihodaiPlanYen <= 0
+                                  table.nomihodaiPlanYen <= 0 &&
+                                  (table.alcoholChargeYen ?? 0) <= 0
                                 }
                                 onClick={() =>
                                   setCheckoutPage({ tableId: table.tableId, tableLabel: table.tableLabel })
@@ -1420,18 +1628,22 @@ export default function KitchenApp() {
                         ) : null}
                         <ul className="kitchen-checkout-log__lines" aria-label="会計時点の伝票行">
                           {(Array.isArray(e.lines) ? e.lines : []).map((line, li) => {
-                            const isNh = line && line.kind === 'nh';
+                            const kind = line?.kind;
+                            const isPlanNh = kind === 'nh';
+                            const isNhExtra = kind === 'nh_extra';
+                            const isAlcoholCharge = kind === 'alcohol_charge';
                             const name = String(line?.name || '').trim() || '（品目）';
-                            const price = !isNh && line && Number.isFinite(Number(line.price)) ? Number(line.price) : null;
+                            const price =
+                              line && Number.isFinite(Number(line.price)) ? Math.max(0, Number(line.price)) : null;
                             return (
                               <li key={`${e.id}-L${li}`} className="kitchen-checkout-log__line">
                                 <span className="kitchen-checkout-log__line-ico" aria-hidden>
-                                  {isNh ? '🍺' : '🍽️'}
+                                  {isAlcoholCharge ? '🍷' : isPlanNh || isNhExtra ? '🍺' : '🍽️'}
                                 </span>
                                 <span className="kitchen-checkout-log__line-name">{name}</span>
                                 {price != null && price > 0 ? (
                                   <span className="kitchen-checkout-log__line-price">￥{price.toLocaleString()}</span>
-                                ) : isNh ? (
+                                ) : isPlanNh ? (
                                   <span className="kitchen-checkout-log__line-price kitchen-checkout-log__line-price--nh">
                                     プラン内
                                   </span>
@@ -1538,20 +1750,27 @@ export default function KitchenApp() {
               </h3>
               {checkoutSlip.orders.length === 0 ? (
                 <p className="kitchen-checkout-page__empty-slip">
-                  提供済みの注文明細はありません（飲み放題プランのみの会計の場合があります）。
+                  {(checkoutSlip.alcoholChargeYen ?? 0) > 0
+                    ? '提供済の単品行はありません（チャージのみ加算の会計の場合があります）。'
+                    : '提供済みの注文明細はありません（飲み放題プランのみの会計の場合があります）。'}
                 </p>
               ) : (
                 <ul className="kitchen-checkout-page__lines">
                   {checkoutSlip.orders.map((o) => {
                     const meta = orderKindMeta(o);
                     return (
-                      <li key={o.id} className="kitchen-checkout-page__line">
+                      <li
+                        key={o.id}
+                        className={`kitchen-checkout-page__line${
+                          isNomihodaiChargedExtra(o) ? ' kitchen-checkout-page__line--nh-extra-bill' : ''
+                        }`}
+                      >
                         <span className="kitchen-checkout-page__line-ico" aria-hidden>
                           {meta.emoji}
                         </span>
                         <span className="kitchen-checkout-page__line-name">{meta.firstLine}</span>
                         <span className="kitchen-checkout-page__line-bill">
-                          {o.isNomihodai ? '飲み放題（税込）' : `￥${(Number(o.itemPrice) || 0).toLocaleString()}（税込）`}
+                          {orderLineTaxInLabel(o)}
                         </span>
                       </li>
                     );
@@ -1564,6 +1783,12 @@ export default function KitchenApp() {
                 <div>通常小計（税込）￥{checkoutSlip.normalSubtotal.toLocaleString()}</div>
                 {checkoutSlip.nomihodaiPlanYen > 0 ? (
                   <div>飲み放題プラン（税込）￥{checkoutSlip.nomihodaiPlanYen.toLocaleString()}</div>
+                ) : null}
+                {(checkoutSlip.alcoholChargeYen ?? 0) > 0 ? (
+                  <div className="kitchen-checkout-page__alcohol-line">
+                    {getAlcoholTableCharge(session, checkoutSlip.tableLabel).lineName}{' '}
+                    ￥{(checkoutSlip.alcoholChargeYen ?? 0).toLocaleString()}
+                  </div>
                 ) : null}
                 <strong className="kitchen-checkout-page__grand">
                   会計小計（税込）￥{checkoutSlip.slipGrandTotal.toLocaleString()}
@@ -1634,7 +1859,12 @@ export default function KitchenApp() {
               {(ordersByTableLabel.get(tableDetailLabel) || []).map((o) => {
                 const meta = orderKindMeta(o);
                 return (
-                  <li key={o.id} className="kitchen-detail-modal__row">
+                  <li
+                    key={o.id}
+                    className={`kitchen-detail-modal__row${
+                      isNomihodaiChargedExtra(o) ? ' kitchen-detail-modal__row--nh-extra' : ''
+                    }`}
+                  >
                     <div className="kitchen-detail-modal__main">
                       <span className="kitchen-detail-modal__emoji" aria-hidden>
                         {meta.emoji}
@@ -1643,14 +1873,14 @@ export default function KitchenApp() {
                         <span className="kitchen-detail-modal__name">{o.itemName}</span>
                         <span className="kitchen-detail-modal__meta">
                           {fmtTime(o.createdAt)} ・{' '}
-                          {o.isNomihodai ? '飲み放題（税込）' : `￥${(Number(o.itemPrice) || 0).toLocaleString()}（税込）`}
+                          {orderLineTaxInLabel(o)}
                         </span>
                       </div>
                     </div>
                     <div className="kitchen-detail-modal__actions">
                       <OrderBillingToggle
                         orderId={o.id}
-                        isNomihodai={!!o.isNomihodai}
+                        isNomihodai={nhToggleShowsNomihodaiActive(o)}
                         onSetNomihodai={setOrderIsNomihodai}
                         compact
                       />
@@ -1684,6 +1914,12 @@ export default function KitchenApp() {
                   <div className="kitchen-detail-modal__totals-row">
                     飲み放題プラン（税込）{' '}
                     <span>￥{tableDetailTotals.nomihodaiPlanYen.toLocaleString()}</span>
+                  </div>
+                ) : null}
+                {(tableDetailTotals.alcoholChargeYen ?? 0) > 0 ? (
+                  <div className="kitchen-detail-modal__totals-row kitchen-detail-modal__totals-row--alcohol">
+                    {getAlcoholTableCharge(session, tableDetailLabel).lineName}{' '}
+                    <span>￥{(tableDetailTotals.alcoholChargeYen ?? 0).toLocaleString()}</span>
                   </div>
                 ) : null}
                 <strong className="kitchen-detail-modal__totals-grand">

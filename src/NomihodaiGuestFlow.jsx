@@ -1,14 +1,20 @@
 import React from 'react';
-import { NOMIHODAI_EXTENSION_PRICE_YEN } from './nomihodaiConstants.js';
+import {
+  NOMIHODAI_BASE_MINUTES,
+  NOMIHODAI_EXTENSION_MINUTES,
+  NOMIHODAI_EXTENSION_PRICE_YEN,
+} from './nomihodaiConstants.js';
 import DrinkHeroImage from './DrinkHeroImage.jsx';
 import { getNomihodaiHeroCandidatesForCategory } from './data/drinkHeroImages.js';
+import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import { useNomihodaiCatalog } from './NomihodaiCatalogContext.jsx';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getGuestIntentForTable, getNomihodaiForTable } from './nomihodaiSession.js';
+import { nomihodaiGuestItemLabelFromItem } from './nomihodaiGuestItemLabels.js';
 import NomihodaiGuestDrinkMenu from './NomihodaiGuestDrinkMenu.jsx';
-function fmtRequested(ms) {
+function fmtRequested(ms, locale) {
   try {
-    return new Date(ms).toLocaleString('ja-JP', {
+    return new Date(ms).toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP', {
       month: 'numeric',
       day: 'numeric',
       hour: '2-digit',
@@ -21,48 +27,71 @@ function fmtRequested(ms) {
 
 /** 検討ページ（開始後 FF と同系のダーク×ゴールド） */
 export function NomihodaiConsiderPage() {
+  const { t, locale } = useGuestUiLocale();
   const { requestNomihodaiGuestIntent, prices } = useNomihodaiSession();
   const { nomihodaiCatalog } = useNomihodaiCatalog();
 
   return (
     <main className="main-content nh-prospect nh-prospect--ff nh-active nh-active--ff">
       <div className="nh-active__shell">
-        <header className="nh-prospect__header">
-          <div className="nh-prospect-hero nh-prospect-hero--compact">
-            <p className="nh-prospect-hero__eyebrow">FREE FLOW</p>
-            <h1 className="nh-prospect-hero__title">飲み放題メニュー</h1>
-            <p className="nh-prospect-hero__subtitle">90分プラン · カテゴリ別に一覧 · 希望はボタンからスタッフへ</p>
-          </div>
-          <div className="nh-ff-prebar" aria-label="飲み放題プラン概要">
-            <div className="nh-ff-prebar__segment">
-              <span className="nh-ff-prebar__en">FREE FLOW</span>
-              <span className="nh-ff-prebar__ja">飲み放題</span>
-            </div>
-            <div className="nh-ff-prebar__rule" aria-hidden="true" />
-            <div className="nh-ff-prebar__segment nh-ff-prebar__segment--hero">
-              <span className="nh-ff-prebar__en">PLAN TIME</span>
-              <p className="nh-ff-prebar__hero">
-                <strong>90</strong>
-                <span className="nh-ff-prebar__min">MIN</span>
+        <header className="nh-prospect__header nh-prospect__header--ref">
+          <div className="nh-prospect-hero nh-prospect-hero--ref">
+            <div className="nh-prospect-hero__text">
+              <p className="nh-prospect-hero__eyebrow">FREE FLOW</p>
+              <h1 className="nh-prospect-hero__title">{t('nh_prospect_title')}</h1>
+              <p className="nh-prospect-hero__subtitle">
+                {t('nh_prospect_lead')}
               </p>
-              <span className="nh-ff-prebar__ja">プラン時間</span>
             </div>
-            <div className="nh-ff-prebar__rule" aria-hidden="true" />
-            <div className="nh-ff-prebar__segment">
-              <span className="nh-ff-prebar__en">LINEUP</span>
-              <span className="nh-ff-prebar__ja">下記から内容をご確認</span>
+            <div className="nh-prospect__plan-badge" aria-hidden="true">
+              <span className="nh-prospect__plan-badge__line1">{t('nh_auto_extend_line1', { base: NOMIHODAI_BASE_MINUTES })}</span>
+              <span className="nh-prospect__plan-badge__line2">{t('nh_auto_extend_line2')}</span>
+              <span className="nh-prospect__plan-badge__line3">{t('nh_auto_extend_line3')}</span>
             </div>
           </div>
         </header>
 
-        <section className="nh-prospect__cta-block nh-prospect__cta-block--early" aria-labelledby="nh-cta-h">
+        <section className="nh-prospect__ref-pricing" aria-labelledby="nh-sum-h">
+          <h2 id="nh-sum-h" className="sr-only">
+            {t('nh_prospect_plan')}
+          </h2>
+          <div className="nh-prospect__gender-cards">
+            <div className="nh-prospect__gender-card nh-prospect__gender-card--women">
+              <span className="nh-prospect__gender-card__ico" aria-hidden="true">
+                🚺
+              </span>
+              <span className="nh-prospect__gender-card__lab">{t('nh_prospect_female')}</span>
+              <strong className="nh-prospect__gender-card__price">
+                ￥{prices.women.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+              </strong>
+            </div>
+            <div className="nh-prospect__gender-card nh-prospect__gender-card--men">
+              <span className="nh-prospect__gender-card__ico" aria-hidden="true">
+                🚹
+              </span>
+              <span className="nh-prospect__gender-card__lab">{t('nh_prospect_male')}</span>
+              <strong className="nh-prospect__gender-card__price">
+                ￥{prices.men.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <div className="nh-prospect__auto-strip" role="region" aria-label={t('nh_prospect_auto_title')}>
+          <p className="nh-prospect__auto-strip__title">{t('nh_prospect_auto_title')}</p>
+          <p className="nh-prospect__auto-strip__body">
+            {t('nh_prospect_auto_body', {
+              extMin: NOMIHODAI_EXTENSION_MINUTES,
+              extYen: NOMIHODAI_EXTENSION_PRICE_YEN.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP'),
+            })}
+          </p>
+        </div>
+
+        <section
+          className="nh-prospect__cta-block nh-prospect__cta-block--early"
+          aria-label={t('nh_prospect_cta_aria')}
+        >
           <div className="nh-prospect__cta-inner">
-            <h2 id="nh-cta-h" className="nh-prospect__cta-pretitle">
-              飲み放題をご希望ですか？
-            </h2>
-            <p className="nh-prospect__cta-desc">
-              タップで卓番つきの希望をスタッフへお届けします（開始は確認後に行います）。
-            </p>
             <button
               type="button"
               className="nh-prospect__cta-btn"
@@ -71,7 +100,7 @@ export function NomihodaiConsiderPage() {
               <span className="nh-prospect__cta-btn-ico" aria-hidden="true">
                 🍺
               </span>
-              <span className="nh-prospect__cta-btn-label">飲み放題を希望する</span>
+              <span className="nh-prospect__cta-btn-label">{t('nh_prospect_cta')}</span>
               <span className="nh-prospect__cta-btn-arrow" aria-hidden="true">
                 →
               </span>
@@ -79,14 +108,33 @@ export function NomihodaiConsiderPage() {
           </div>
         </section>
 
-        <p className="nh-prospect__tagline nh-prospect__tagline--after-cta" role="presentation">
-          カテゴリ・料金の詳細は下へ（縦スクロール）
-        </p>
+        <section
+          className="nh-prospect__terms nh-prospect__terms--after-summary nh-prospect__terms--ref"
+          aria-labelledby="nh-terms-h"
+        >
+          <h2 id="nh-terms-h" className="nh-prospect__terms-title">
+            <span className="nh-prospect__terms-title-ico" aria-hidden="true">
+              📋
+            </span>
+            {t('nh_prospect_terms_title')}
+          </h2>
+          <ul className="nh-prospect__terms-list nh-prospect__terms-list--checks">
+            <li>{t('nh_prospect_terms_1')}</li>
+            <li>{t('nh_prospect_terms_2')}</li>
+            <li>{t('nh_prospect_terms_3')}</li>
+          </ul>
+        </section>
 
+        <div className="nh-prospect__staff-foot" role="note">
+          <span className="nh-prospect__staff-foot__ico" aria-hidden="true">
+            🍷
+          </span>
+          <p className="nh-prospect__staff-foot__text">{t('nh_prospect_menu_link')}</p>
+        </div>
         <div className="nh-prospect__main-grid nh-prospect__main-grid--stack">
           <div className="nh-prospect__menu-area">
             {nomihodaiCatalog.length === 0 ? (
-              <p className="nh-prospect__menu-empty">マスターで飲み放題カテゴリを設定すると、ここに表示されます。</p>
+              <p className="nh-prospect__menu-empty">{t('nh_prospect_menu_empty')}</p>
             ) : (
               <div className="nh-prospect__menu-grid nh-prospect__menu-grid--compact">
                 {nomihodaiCatalog.map((cat, idx) => (
@@ -95,19 +143,27 @@ export function NomihodaiConsiderPage() {
                     className="nh-prospect__menu-card"
                     style={{ '--nh-card-i': idx }}
                   >
-                    <div className="nh-prospect__menu-card-head">
-                      <span className="nh-prospect__menu-ja">{cat.titleJa}</span>
-                      <span className="nh-prospect__menu-en">{cat.titleEn}</span>
-                    </div>
-                    <div className="nh-prospect__menu-card-body">
+                    <div className="nh-prospect__menu-card-head nh-prospect__menu-card-head--hero-inline">
+                      <div className="nh-prospect__menu-card-head-titles">
+                        {locale === 'en' ? (
+                          <span className="nh-prospect__menu-en">{cat.titleEn}</span>
+                        ) : (
+                          <>
+                            <span className="nh-prospect__menu-ja">{cat.titleJa}</span>
+                            <span className="nh-prospect__menu-en">{cat.titleEn}</span>
+                          </>
+                        )}
+                      </div>
                       <DrinkHeroImage
                         candidates={getNomihodaiHeroCandidatesForCategory(cat)}
                         className="nh-prospect__menu-card-hero"
                         imgClassName="nh-prospect__menu-card-hero-img"
                       />
+                    </div>
+                    <div className="nh-prospect__menu-card-body">
                       <ul className="nh-prospect__menu-items">
                         {(cat.items || []).map((it) => (
-                          <li key={it.id}>{it.name}</li>
+                          <li key={it.id}>{nomihodaiGuestItemLabelFromItem(it, locale)}</li>
                         ))}
                       </ul>
                       <div
@@ -120,70 +176,7 @@ export function NomihodaiConsiderPage() {
               </div>
             )}
           </div>
-
-          <aside className="nh-prospect__plan" aria-label="プラン概要">
-            <div className="nh-prospect__plan-inner">
-              <div className="nh-prospect__plan-head">
-                <span className="nh-prospect__plan-clock" aria-hidden="true">
-                  🕐
-                </span>
-                <span className="nh-prospect__plan-90">90分</span>
-              </div>
-              <p className="nh-prospect__plan-lo">※ラストオーダーコールは致しません。</p>
-
-              <div className="nh-prospect__plan-prices">
-                <div className="nh-prospect__plan-row nh-prospect__plan-row--men">
-                  <span className="nh-prospect__plan-gender" aria-hidden="true">
-                    🚹
-                  </span>
-                  <span>男性（税込）</span>
-                  <strong>￥{prices.men.toLocaleString()}</strong>
-                </div>
-                <div className="nh-prospect__plan-row nh-prospect__plan-row--women">
-                  <span className="nh-prospect__plan-gender" aria-hidden="true">
-                    🚺
-                  </span>
-                  <span>女性（税込）</span>
-                  <strong>￥{prices.women.toLocaleString()}</strong>
-                </div>
-              </div>
-
-              <p className="nh-prospect__plan-extend">
-                延長 <strong>＋20分 ￥{NOMIHODAI_EXTENSION_PRICE_YEN.toLocaleString()}</strong>（税込 · 男女共通）
-              </p>
-
-              <table className="nh-prospect__seat-table">
-                <caption className="nh-prospect__seat-cap">お席料（チャーム）</caption>
-                <tbody>
-                  <tr>
-                    <th scope="row">17:00〜21:00</th>
-                    <td>￥500</td>
-                  </tr>
-                  <tr>
-                    <th scope="row">21:00以降</th>
-                    <td>￥800</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <p className="nh-prospect__plan-taxi">🚕 タクシー・運転代行のご手配はお早めに。</p>
-            </div>
-          </aside>
         </div>
-
-        <footer className="nh-prospect__bottom">
-          <section className="nh-prospect__terms" aria-labelledby="nh-terms-h">
-            <h2 id="nh-terms-h" className="nh-prospect__terms-title">
-              ご利用条件
-            </h2>
-            <ul className="nh-prospect__terms-list">
-              <li>ご注文はグループ単位でお願いいたします。</li>
-              <li>初回90分後の延長は20分単位（￥{NOMIHODAI_EXTENSION_PRICE_YEN.toLocaleString()}／男女共通）です。</li>
-              <li>他割引との併用はできません。</li>
-              <li>ドリンクはお一人様1杯ずつ。過度な残杯には別途料金が発生する場合があります。</li>
-            </ul>
-          </section>
-        </footer>
       </div>
     </main>
   );
@@ -191,6 +184,7 @@ export function NomihodaiConsiderPage() {
 
 /** ステップ2：厨房開始待ち（FF 同系） */
 export function NomihodaiIntentWaitingPage() {
+  const { t, locale } = useGuestUiLocale();
   const { session, clearNomihodaiGuestIntent } = useNomihodaiSession();
   const at = getGuestIntentForTable(session, session.tableLabel)?.requestedAt;
 
@@ -198,30 +192,26 @@ export function NomihodaiIntentWaitingPage() {
     <main className="main-content nh-wait nh-wait--ff nh-active nh-active--ff">
       <div className="nh-active__shell nh-wait__outer">
         <div className="nh-wait__shell">
-          <p className="nh-wait__eyebrow">WAITING</p>
-          <p className="nh-wait__subeyebrow">スタッフ確認中</p>
-          <div className="nh-wait__icon" aria-hidden="true">
-            🍺
-          </div>
-          <h1 className="nh-wait__title">プラン開始までしばらくお待ちください</h1>
+          <p className="nh-wait__eyebrow">{t('nh_wait_eyebrow')}</p>
+          <p className="nh-wait__subeyebrow">{t('nh_wait_sub')}</p>
           <p className="nh-wait__text">
-            {session.tableLabel}番卓から、飲み放題のご利用希望をお届けしています。
+            {t('nh_wait_sending', { table: session.tableLabel })}
             {at != null && (
               <>
                 <br />
-                <span className="nh-wait__time">送信：{fmtRequested(at)}</span>
+                <span className="nh-wait__time">{t('nh_wait_sent', { time: fmtRequested(at, locale) })}</span>
               </>
             )}
           </p>
           <p className="nh-wait__hint">
-            開始後は画面上部にセッション表示が現れ、このタブからフリーフローをご注文いただけます。
+            {t('nh_wait_hint')}
           </p>
           <button
             type="button"
             className="nh-wait__cancel"
             onClick={() => clearNomihodaiGuestIntent(session.tableLabel)}
           >
-            希望を取り消す
+            {t('nh_wait_cancel')}
           </button>
         </div>
       </div>
@@ -230,7 +220,7 @@ export function NomihodaiIntentWaitingPage() {
 }
 
 /** 飲み放題タブ：検討 → 待機 → 開始後はメニュー＋右カラム状況 */
-export function NomihodaiTabRouter({ addToCart, onOpenNomihodaiBill }) {
+export function NomihodaiTabRouter({ onOpenNomihodaiBill }) {
   const { nomihodaiActive, session } = useNomihodaiSession();
   const nh = getNomihodaiForTable(session, session.tableLabel);
   /** 会計後フローは App 全体オーバーレイで表示。ここでは重複描画しない */
@@ -241,7 +231,7 @@ export function NomihodaiTabRouter({ addToCart, onOpenNomihodaiBill }) {
   const guestIntent = getGuestIntentForTable(session, session.tableLabel);
 
   if (nomihodaiActive) {
-    return <NomihodaiGuestDrinkMenu onOpenBill={onOpenNomihodaiBill} addToCart={addToCart} />;
+    return <NomihodaiGuestDrinkMenu onOpenBill={onOpenNomihodaiBill} />;
   }
   if (guestIntent) {
     return <NomihodaiIntentWaitingPage />;

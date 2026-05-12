@@ -59,6 +59,16 @@ export function MasterDrinkMenuPanel({
                     onChange={(e) => updateSection(sec.id, { hint: e.target.value || undefined })}
                   />
                 </label>
+                <label className="master-field master-field--grow">
+                  <span className="master-field-label">注記・英語（任意）</span>
+                  <input
+                    type="text"
+                    className="master-input"
+                    placeholder="e.g. On the rocks / with water"
+                    value={sec.hintEn ?? ''}
+                    onChange={(e) => updateSection(sec.id, { hintEn: e.target.value || undefined })}
+                  />
+                </label>
                 <label className="master-check">
                   <input
                     type="checkbox"
@@ -77,7 +87,8 @@ export function MasterDrinkMenuPanel({
                   <thead>
                     <tr>
                       <th className="master-th-id">ID（集計用）</th>
-                      <th>品名</th>
+                      <th>品名（厨房・伝票）</th>
+                      <th>客席英語名（任意）</th>
                       <th className="master-th-price">価格（税込）</th>
                       <th className="master-th-act" />
                     </tr>
@@ -100,6 +111,15 @@ export function MasterDrinkMenuPanel({
                             className="master-input"
                             value={it.name}
                             onChange={(e) => updateItem(sec.id, it.id, { name: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input"
+                            value={it.nameEn ?? ''}
+                            onChange={(e) => updateItem(sec.id, it.id, { nameEn: e.target.value })}
+                            placeholder="Guest EN label"
                           />
                         </td>
                         <td>
@@ -173,7 +193,7 @@ export function MasterNomihodaiMenuPanel({
         </div>
         <p className="master-page-lead master-page-lead--compact">
           飲み放題セッション中の客席「ドリンク」タブに表示される一覧です。単価はプランに含まれるため編集しません。ID
-          は厨房・注文行の識別用です（変更すると進行中の注文とずれる場合があります）。
+          は厨房・注文行の識別用です（変更すると進行中の注文とずれる場合があります）。「客席英語名」に入力すると卓タブレットが英語表示のときにその表記が使われます（厨房・伝票は「品名」の日本語のまま）。
         </p>
 
         <div className="master-sections">
@@ -208,7 +228,8 @@ export function MasterNomihodaiMenuPanel({
                   <thead>
                     <tr>
                       <th className="master-th-id">ID（注文・厨房用）</th>
-                      <th>品名</th>
+                      <th>品名（厨房・伝票）</th>
+                      <th>客席英語名（任意）</th>
                       <th className="master-th-act" />
                     </tr>
                   </thead>
@@ -230,6 +251,15 @@ export function MasterNomihodaiMenuPanel({
                             className="master-input"
                             value={it.name}
                             onChange={(e) => updateNhItem(sec.id, it.id, { name: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input"
+                            value={it.nameEn ?? ''}
+                            onChange={(e) => updateNhItem(sec.id, it.id, { nameEn: e.target.value })}
+                            placeholder="English guest label"
                           />
                         </td>
                         <td>

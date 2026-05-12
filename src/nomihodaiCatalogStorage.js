@@ -3,7 +3,9 @@ import { DEFAULT_NOMIHODAI_CATALOG } from './data/defaultNomihodaiCatalog.js';
 export const NOMIHODAI_CATALOG_STORAGE_KEY = 'beifutei-nomihodai-catalog-v1';
 
 function isValidItem(it) {
-  return it && typeof it.id === 'string' && it.id.length > 0 && typeof it.name === 'string';
+  if (!it || typeof it.id !== 'string' || it.id.length === 0 || typeof it.name !== 'string') return false;
+  if (it.nameEn != null && typeof it.nameEn !== 'string') return false;
+  return true;
 }
 
 function isValidSection(s) {
