@@ -27,8 +27,9 @@ export default function SupabaseConfigMissingScreen() {
           <strong>Vercel</strong> → このプロジェクト → <strong>Settings → Environment Variables</strong>
         </li>
         <li style={{ marginBottom: 8 }}>
-          <strong>Key</strong> は <code>VITE_SUPABASE_URL</code> と <code>VITE_SUPABASE_ANON_KEY</code> のみ（先頭に{' '}
-          <code>https://</code> を付けない）
+          <strong>Key（変数名）</strong>はそのまま <code>VITE_SUPABASE_URL</code> と <code>VITE_SUPABASE_ANON_KEY</code>。
+          <strong>Value</strong> には Supabase の Project URL（<code>https://…supabase.co</code>）と anon public
+          キーを貼る（Key 欄に <code>https://</code> を付けない＝変数名を間違えないという意味です）。
         </li>
         <li style={{ marginBottom: 8 }}>
           各変数の <strong>Environment</strong> に <strong>Production</strong> にチェック

@@ -1,9 +1,40 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/**
+ * Vite は通常 VITE_* だけをクライアントに埋め込む。
+ * Vercel の Supabase 連携が付ける SUPABASE_URL / SUPABASE_ANON_KEY 等をビルド時に読み、
+ * import.meta.env.VITE_* として同じ supabaseClient.js のまま使えるようにする（SERVICE_ROLE は含めない）。
+ */
+function resolveSupabaseForClient(env) {
+  const url = (
+    env.VITE_SUPABASE_URL ||
+    env.SUPABASE_URL ||
+    env.NEXT_PUBLIC_SUPABASE_URL ||
+    ''
+  ).trim()
+  const key = (
+    env.VITE_SUPABASE_ANON_KEY ||
+    env.SUPABASE_ANON_KEY ||
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    env.SUPABASE_PUBLISHABLE_KEY ||
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    ''
+  ).trim()
+  return { url, key }
+}
+
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const merged = { ...loadEnv(mode, process.cwd(), ''), ...process.env }
+  const { url: sbUrl, key: sbKey } = resolveSupabaseForClient(merged)
+
+  return {
+  define: {
+    'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(sbUrl),
+    'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(sbKey),
+  },
   plugins: [
     react(),
     VitePWA({
@@ -71,4 +102,5 @@ export default defineConfig({
       },
     },
   },
+  }
 })
