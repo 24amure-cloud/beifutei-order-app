@@ -28,6 +28,7 @@ import {
   pushKitchenDiag,
   pushKitchenDiagFromSupabase,
   reportRealtimeChannelStatus,
+  isKitchenRealtimeLive,
 } from './kitchenDiagnostics.js';
 import {
   ALCOHOL_CHARGE_AFTER_21_YEN,
@@ -222,8 +223,29 @@ export function NomihodaiSessionProvider({ children }) {
 
   /** Realtime 購読の明示的 teardown（再同期で WS を張り直す） */
   const stopRealtimeRef = useRef(() => {});
+  /** CHANNEL_ERROR / TIMED_OUT 後の自動再接続（デバウンス） */
+  const realtimeReconnectTimerRef = useRef(0);
+  const startRealtimeRef = useRef(() => {});
+
+  const scheduleRealtimeReconnectOnFailure = useCallback((status) => {
+    if (status === 'SUBSCRIBED') return;
+    if (status !== 'CHANNEL_ERROR' && status !== 'TIMED_OUT') return;
+    if (realtimeReconnectTimerRef.current) return;
+    realtimeReconnectTimerRef.current = window.setTimeout(() => {
+      realtimeReconnectTimerRef.current = 0;
+      try {
+        startRealtimeRef.current();
+      } catch {
+        /* ignore */
+      }
+    }, 5000);
+  }, []);
 
   const startRealtimeChannels = useCallback(() => {
+    if (realtimeReconnectTimerRef.current) {
+      window.clearTimeout(realtimeReconnectTimerRef.current);
+      realtimeReconnectTimerRef.current = 0;
+    }
     stopRealtimeRef.current();
     const ordersSub = supabase
       .channel('public:beifutei_orders')
@@ -249,6 +271,7 @@ export function NomihodaiSessionProvider({ children }) {
       })
       .subscribe((status, err) => {
         reportRealtimeChannelStatus('orders', status, err);
+        scheduleRealtimeReconnectOnFailure(status);
       });
 
     const tablesSub = supabase
@@ -274,13 +297,18 @@ export function NomihodaiSessionProvider({ children }) {
       })
       .subscribe((status, err) => {
         reportRealtimeChannelStatus('tables', status, err);
+        scheduleRealtimeReconnectOnFailure(status);
       });
 
     stopRealtimeRef.current = () => {
       supabase.removeChannel(ordersSub);
       supabase.removeChannel(tablesSub);
     };
-  }, []);
+  }, [scheduleRealtimeReconnectOnFailure]);
+
+  useEffect(() => {
+    startRealtimeRef.current = startRealtimeChannels;
+  }, [startRealtimeChannels]);
 
   // Supabase 初回取得 + Realtime（再同期ボタンで購読だけ張り直せる）
   useEffect(() => {
@@ -298,6 +326,10 @@ export function NomihodaiSessionProvider({ children }) {
     void fetchInitial();
     startRealtimeChannels();
     return () => {
+      if (realtimeReconnectTimerRef.current) {
+        window.clearTimeout(realtimeReconnectTimerRef.current);
+        realtimeReconnectTimerRef.current = 0;
+      }
       stopRealtimeRef.current();
     };
   }, [startRealtimeChannels]);
@@ -391,13 +423,19 @@ export function NomihodaiSessionProvider({ children }) {
       void refetchTablesFromDb();
     };
     const onVis = () => {
-      if (document.visibilityState === 'visible') pull();
+      if (document.visibilityState === 'visible') {
+        pull();
+        /* LIVE のときに毎回張り直すと WS が切れて赤バッジ・注文取りこぼしの原因になる */
+        if (!isKitchenRealtimeLive()) startRealtimeChannels();
+      }
     };
     const onFocus = () => {
       pull();
+      if (!isKitchenRealtimeLive()) startRealtimeChannels();
     };
     const onOnline = () => {
       pull();
+      startRealtimeChannels();
     };
     document.addEventListener('visibilitychange', onVis);
     window.addEventListener('focus', onFocus);
@@ -407,7 +445,7 @@ export function NomihodaiSessionProvider({ children }) {
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('online', onOnline);
     };
-  }, [refetchOrdersFromDb, refetchTablesFromDb]);
+  }, [refetchOrdersFromDb, refetchTablesFromDb, startRealtimeChannels]);
 
   /** PWA / bfcache 復帰: Realtime が死んだままのときに備え SELECT ＋購読張り直し */
   useEffect(() => {

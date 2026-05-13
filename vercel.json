@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/kitchen", "destination": "/kitchen.html" },
+    { "source": "/staff", "destination": "/kitchen.html" },
+    { "source": "/master", "destination": "/master.html" }
+  ],
   "headers": [
     {
       "source": "/sw.js",

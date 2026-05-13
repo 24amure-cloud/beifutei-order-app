@@ -18,6 +18,7 @@ import {
 } from './guestMenuDisplay.js';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
+import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 
 const NOMIHODAI_PLAN_CART_ID = 'nomihodai-plan-charge';
 import {
@@ -2311,6 +2312,15 @@ function App() {
           {notice.message}
         </div>
       ) : null}
+
+      <GuestPromoScreensaver
+        paused={
+          guestPostCheckoutFullscreen ||
+          showBillPanel ||
+          cartDrawerOpen ||
+          orderableItems.length > 0
+        }
+      />
     </div>
   );
 }

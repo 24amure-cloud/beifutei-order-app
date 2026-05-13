@@ -20,16 +20,35 @@ export default function SupabaseConfigMissingScreen() {
     <div style={box}>
       <h1 style={{ fontSize: '1.2rem', marginBottom: 14 }}>Supabase の接続設定がありません</h1>
       <p style={{ marginBottom: 12 }}>
-        このアプリはビルド時に <code>VITE_SUPABASE_URL</code> と <code>VITE_SUPABASE_ANON_KEY</code> が必要です。
+        このアプリはビルド時に Supabase の <strong>URL</strong> と <strong>公開キー</strong>（anon または publishable）が必要です。
+        変数名は次の<strong>どれか一組</strong>なら Vercel 側でそのまま使えます（ビルドで <code>import.meta.env.VITE_*</code> に流れます）。
+      </p>
+      <ul style={{ margin: '0 0 12px', paddingLeft: 22, fontSize: 14 }}>
+        <li>
+          <code>VITE_SUPABASE_URL</code> + <code>VITE_SUPABASE_ANON_KEY</code>（おすすめ）
+        </li>
+        <li>
+          <code>SUPABASE_URL</code> + <code>SUPABASE_ANON_KEY</code> または <code>SUPABASE_PUBLISHABLE_KEY</code>
+        </li>
+        <li>
+          <code>SUPABASE_URL</code> + <code>SUPABASE_KEY</code>（ドキュメントの旧例向け。値は公開キーのみ）
+        </li>
+      </ul>
+      <p style={{ marginBottom: 12, fontSize: 14, opacity: 0.92 }}>
+        <strong>Vercel</strong> の Environment Variables は、開いている URLが <strong>Preview</strong> なら
+        <strong>Preview</strong> にも、<strong>Production</strong> なら <strong>Production</strong> にも同じ変数を付けてください（片方だけだと
+        Preview のスタッフページが真っ白になります）。
+      </p>
+      <p style={{ marginBottom: 12, fontSize: 14, opacity: 0.92 }}>
+        スタッフ（厨房）は <code>/kitchen.html</code>（または <code>/kitchen</code>）です。<code>/</code> だけは客席用です。
       </p>
       <ol style={{ paddingLeft: 22, margin: '0 0 16px' }}>
         <li style={{ marginBottom: 8 }}>
           <strong>Vercel</strong> → このプロジェクト → <strong>Settings → Environment Variables</strong>
         </li>
         <li style={{ marginBottom: 8 }}>
-          <strong>Key（変数名）</strong>はそのまま <code>VITE_SUPABASE_URL</code> と <code>VITE_SUPABASE_ANON_KEY</code>。
-          <strong>Value</strong> には Supabase の Project URL（<code>https://…supabase.co</code>）と anon public
-          キーを貼る（Key 欄に <code>https://</code> を付けない＝変数名を間違えないという意味です）。
+          <strong>Key（変数名）</strong>は英字・数字・<code>_</code> だけ（ハイフン不可）。上のどれかと<strong>完全一致</strong>で2行追加。
+          <strong>Value</strong> だけに URL／キーを貼る（名前欄に <code>=</code> や URL を書かない）。
         </li>
         <li style={{ marginBottom: 8 }}>
           各変数の <strong>Environment</strong> に <strong>Production</strong> にチェック

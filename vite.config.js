@@ -6,6 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa'
  * Vite は通常 VITE_* だけをクライアントに埋め込む。
  * Vercel の Supabase 連携が付ける SUPABASE_URL / SUPABASE_ANON_KEY 等をビルド時に読み、
  * import.meta.env.VITE_* として同じ supabaseClient.js のまま使えるようにする（SERVICE_ROLE は含めない）。
+ *
+ * SUPABASE_KEY は公式ドキュメントや他フレームの旧例で使われる誤名の救済（値は anon / publishable のみ。secret は絶対に入れない）。
  */
 function resolveSupabaseForClient(env) {
   const url = (
@@ -20,6 +22,8 @@ function resolveSupabaseForClient(env) {
     env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     env.SUPABASE_PUBLISHABLE_KEY ||
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    env.SUPABASE_KEY ||
+    env.NEXT_PUBLIC_SUPABASE_KEY ||
     ''
   ).trim()
   return { url, key }
