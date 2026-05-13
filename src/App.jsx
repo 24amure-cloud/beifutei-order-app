@@ -101,13 +101,13 @@ function PageHeaderImage({ pageKey, alt, lift }) {
 const ABURASOBA_PRICES = {
   normal: { 小: 980, 並: 1130, 大: 1330 },
   spicy: { 小: 980, 並: 1180, 大: 1380 },
-  negi: { 小: 1030, 並: 1230, 大: 1430 },
+  cheese: { 小: 980, 並: 1180, 大: 1380 },
 };
 
 const ABURASOBA_BOWL_META = {
   normal: { key: 'normal', title: '米風亭 油そば' },
   spicy: { key: 'spicy', title: '辛々担々 油そば' },
-  negi: { key: 'negi', title: 'ネギ盛り 油そば' },
+  cheese: { key: 'cheese', title: 'チーズ 油そば' },
 };
 
 function buildAburasobaToppings() {
@@ -132,10 +132,10 @@ function AburasobaMenu({ addToCart }) {
   const [opts, setOpts] = useState({
     normal: { size: '並', price: 1130 },
     spicy: { size: '並', price: 1180 },
-    negi: { size: '並', price: 1230 },
+    cheese: { size: '並', price: 1180 },
   });
 
-  /** 'normal' | 'spicy' | 'negi' | null */
+  /** 'normal' | 'spicy' | 'cheese' | null */
   const [flowBowl, setFlowBowl] = useState(null);
   /** 1: サイズ 2: トッピング */
   const [flowStep, setFlowStep] = useState(1);
@@ -252,7 +252,8 @@ function AburasobaMenu({ addToCart }) {
                   <div
                     className="abu-hero-img"
                     style={{
-                      backgroundImage: cssBgUrl('油そば坦々-メニュー完_0008_レイヤー-1.png'),
+                      /* メニュー合成 PNG には別商品の文字が入るため、ページヘッダーと同じ米風亭ヒーローのみ使用 */
+                      backgroundImage: cssBgUrl('aburasobahedda-.png'),
                       backgroundSize: 'contain',
                       backgroundRepeat: 'no-repeat',
                       backgroundPosition: 'center',
@@ -375,80 +376,25 @@ function AburasobaMenu({ addToCart }) {
                       {['小', '並', '大'].map((s) => (
                         <div
                           key={s}
-                          className={`abu-rec-size-row${opts.negi.size === s ? ' abu-rec-size-row--active' : ''}`}
-                          onClick={() => updateOpt('negi', s)}
+                          className={`abu-rec-size-row${opts.cheese.size === s ? ' abu-rec-size-row--active' : ''}`}
+                          onClick={() => updateOpt('cheese', s)}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                               e.preventDefault();
-                              updateOpt('negi', s);
+                              updateOpt('cheese', s);
                             }
                           }}
                         >
                           <div className="abu-size-circle abu-size-circle--rec">
                             {locale === 'en' ? ut(s === '小' ? 'abu_size_s' : s === '大' ? 'abu_size_l' : 'abu_size_m') : s}
                           </div>
-                          <div className="abu-rec-size-price">￥{prices.negi[s].toLocaleString()}</div>
+                          <div className="abu-rec-size-price">￥{prices.cheese[s].toLocaleString()}</div>
                         </div>
                       ))}
                     </div>
-                    <button type="button" className="abu-btn-full" onClick={() => openFlow('negi')}>
-                      {ut('abu_add')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Negi Aburasoba */}
-            <div className="abu-rec-card">
-              <div className="abu-rec-info">
-                <div className="abu-rec-title">{ut('abu_rec_negi_title')}</div>
-                <div className="abu-rec-desc">
-                  {ut('abu_rec_negi_desc')
-                    .split('\n')
-                    .map((line, i, arr) => (
-                      <Fragment key={i}>
-                        {line}
-                        {i < arr.length - 1 ? <br /> : null}
-                      </Fragment>
-                    ))}
-                </div>
-                <div className="abu-rec-bottom">
-                  <div
-                    className="abu-rec-img"
-                    style={{
-                      backgroundImage: cssBgUrl('油そば坦々-メニュー完_0008_レイヤー-1.png'),
-                      backgroundSize: 'contain',
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'center',
-                    }}
-                  />
-                  <div className="abu-rec-price-area">
-                    <div className="abu-rec-price-col">
-                      {['小', '並', '大'].map((s) => (
-                        <div
-                          key={s}
-                          className={`abu-rec-size-row${opts.negi.size === s ? ' abu-rec-size-row--active' : ''}`}
-                          onClick={() => updateOpt('negi', s)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              updateOpt('negi', s);
-                            }
-                          }}
-                        >
-                          <div className="abu-size-circle abu-size-circle--rec">
-                            {locale === 'en' ? ut(s === '小' ? 'abu_size_s' : s === '大' ? 'abu_size_l' : 'abu_size_m') : s}
-                          </div>
-                          <div className="abu-rec-size-price">￥{prices.negi[s].toLocaleString()}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <button type="button" className="abu-btn-full" onClick={() => openFlow('negi')}>
+                    <button type="button" className="abu-btn-full" onClick={() => openFlow('cheese')}>
                       {ut('abu_add')}
                     </button>
                   </div>

@@ -80,8 +80,9 @@ function abuSizeKey(sizeJa) {
 }
 
 function abuBowlKey(bowlKey) {
-  const k = bowlKey === 'spicy' || bowlKey === 'negi' ? bowlKey : 'normal';
-  return `abu_bowl_${k}`;
+  if (bowlKey === 'spicy' || bowlKey === 'cheese') return `abu_bowl_${bowlKey}`;
+  if (bowlKey === 'negi') return 'abu_bowl_negi';
+  return 'abu_bowl_normal';
 }
 
 /**

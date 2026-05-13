@@ -60,7 +60,12 @@ export default defineConfig(({ mode }) => {
       workbox: {
         /** MPA（index / master / kitchen）で document を index に吸わせない */
         navigateFallback: null,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        /**
+         * HTML をプリキャッシュに含めない（含めると SW 更新後も古い shell が残り、
+         * ビルド時に埋め込んだ Supabase URL 等が古いままになりやすい）。
+         * JS/CSS はハッシュ付きファイル名のため長期キャッシュでよい。
+         */
+        globPatterns: ['**/*.{js,css,ico,svg,webp,woff2}'],
         /**
          * public 配下のメニュー画像をプリキャッシュに含めると SW 初回が数十 MB になり、
          * 店舗 Wi‑Fi / 古いタブレットで install が落ちる・途中で壊れると main の import が届かず
