@@ -18,7 +18,7 @@ function parsePromoUrls(raw) {
  *
  * .env 例:
  *   VITE_GUEST_IDLE_SCREENSAVER_MS=120000
- *   VITE_GUEST_PROMO_MEDIA=/promo/poster.jpg,/videos/short.mp4
+ *   VITE_GUEST_PROMO_MEDIA=/screensaver3.mp4
  *   VITE_GUEST_PROMO_POSTER=/promo/video-thumb.jpg
  *   VITE_GUEST_PROMO_SLIDE_MS=8000
  *
@@ -39,6 +39,18 @@ export default function GuestPromoScreensaver({ paused }) {
   const idleTimerRef = useRef(null);
   const slideTimerRef = useRef(null);
   const videoRef = useRef(null);
+
+  const setVideoEl = useCallback((el) => {
+    videoRef.current = el;
+    if (el) {
+      try {
+        el.setAttribute('playsinline', '');
+        el.setAttribute('webkit-playsinline', 'true');
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
 
   const bumpActivity = useCallback(() => {
     if (idleTimerRef.current) window.clearTimeout(idleTimerRef.current);
@@ -93,9 +105,18 @@ export default function GuestPromoScreensaver({ paused }) {
     const v = videoRef.current;
     const u = urls[slide];
     if (!u || !VIDEO_RE.test(u)) return;
+    v.defaultMuted = true;
     v.muted = true;
-    const p = v.play();
-    if (p && typeof p.catch === 'function') p.catch(() => {});
+    const tryPlay = () => {
+      const p = v.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    };
+    tryPlay();
+    const onVis = () => {
+      if (document.visibilityState === 'visible') tryPlay();
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, [visible, slide, urls]);
 
   if (!enabled) return null;
@@ -120,16 +141,18 @@ export default function GuestPromoScreensaver({ paused }) {
             {isVideo ? (
               <video
                 key={currentUrl}
-                ref={videoRef}
+                ref={setVideoEl}
                 className="guest-promo-screensaver__video"
                 src={currentUrl}
                 poster={posterUrl || undefined}
                 preload="metadata"
                 muted
+                defaultMuted
                 playsInline
                 autoPlay
                 loop
                 controls={false}
+                disablePictureInPicture
               />
             ) : (
               <img className="guest-promo-screensaver__img" src={currentUrl} alt="" decoding="async" loading="eager" />
