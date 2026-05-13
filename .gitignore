@@ -32,4 +32,5 @@ public/screensaver1.mp4
 *.njsproj
 *.sln
 *.sw?
-public/screensaver1.mp4
+
+.vercel
