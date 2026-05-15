@@ -962,20 +962,23 @@ export function NomihodaiSessionProvider({ children }) {
     });
     void refetchTablesFromDb();
 
-    if (nomihodaiPlanYen > 0 && n?.active) {
-      await patchGuestFarewellColumns(supabase, tl, {
-        requestedAt: n.guestCheckoutRequestedAt || checkoutNow,
-        completedAt: checkoutNow,
-      });
-    } else {
-      await patchGuestFarewellColumns(supabase, tl, null);
-    }
+    const cqRaw = session.checkoutRequestByLabel?.[tl];
+    const cqNum = Number(cqRaw);
+    const fromCheckoutReq = Number.isFinite(cqNum) && cqNum > 0 ? cqNum : null;
+    const gcRaw = n?.guestCheckoutRequestedAt != null ? Number(n.guestCheckoutRequestedAt) : null;
+    const fromNhGuest = Number.isFinite(gcRaw) && gcRaw > 0 ? gcRaw : null;
+    const farewellRequestedAt = fromCheckoutReq ?? fromNhGuest ?? checkoutNow;
 
-    if (nomihodaiPlanYen > 0 && n?.active && String(tl).trim() === String(session.tableLabel ?? '').trim()) {
+    await patchGuestFarewellColumns(supabase, tl, {
+      requestedAt: farewellRequestedAt,
+      completedAt: checkoutNow,
+    });
+
+    if (String(tl).trim() === String(session.tableLabel ?? '').trim()) {
       saveLocalDeviceState((s) => ({
         ...s,
         nomihodaiFarewell: {
-          checkoutRequestedAt: n.guestCheckoutRequestedAt || checkoutNow,
+          checkoutRequestedAt: farewellRequestedAt,
           checkoutCompletedAt: checkoutNow,
         },
       }));
@@ -986,6 +989,7 @@ export function NomihodaiSessionProvider({ children }) {
     session.tableLabel,
     session.orders,
     session.nomihodaiByLabel,
+    session.checkoutRequestByLabel,
     session.tableMemoByLabel,
     session.alcoholChargeByLabel,
     saveLocalDeviceState,

@@ -1,8 +1,33 @@
 import React from 'react';
 
+function MasterApplyBar({ dirty, applyNotice, onApply, onDiscard }) {
+  return (
+    <div className="master-apply-bar" role="status" aria-live="polite">
+      <p className="master-apply-bar__hint">
+        {dirty
+          ? '編集内容はまだ客席タブレットに出ていません。「客席に反映」を押してください。'
+          : '客席タブレットと同じ内容です。'}
+      </p>
+      <div className="master-apply-bar__actions">
+        <button type="button" className="master-btn master-btn--apply" disabled={!dirty} onClick={onApply}>
+          客席に反映
+        </button>
+        <button type="button" className="master-btn master-btn--ghost" disabled={!dirty} onClick={onDiscard}>
+          変更を破棄
+        </button>
+        {applyNotice === 'ok' ? <span className="master-apply-bar__ok">反映しました</span> : null}
+      </div>
+    </div>
+  );
+}
+
 /** ドリンクメニューマスター本体（カード＋全セクション） */
 export function MasterDrinkMenuPanel({
   drinkSections,
+  drinkDirty,
+  drinkApplyNotice,
+  applyDrinkMenu,
+  discardDrinkDraft,
   addSection,
   onResetDrinkDefaults,
   updateSection,
@@ -26,6 +51,13 @@ export function MasterDrinkMenuPanel({
             </button>
           </div>
         </div>
+
+        <MasterApplyBar
+          dirty={drinkDirty}
+          applyNotice={drinkApplyNotice}
+          onApply={applyDrinkMenu}
+          onDiscard={discardDrinkDraft}
+        />
 
         <div className="master-sections">
           {drinkSections.map((sec) => (
@@ -168,6 +200,10 @@ export function MasterDrinkMenuPanel({
 /** 飲み放題（プラン内）メニューマスター本体 */
 export function MasterNomihodaiMenuPanel({
   nomihodaiCatalog,
+  nhDirty,
+  nhApplyNotice,
+  applyNomihodaiMenu,
+  discardNomihodaiDraft,
   addNhSection,
   onResetNhDefaults,
   updateNhSection,
@@ -191,6 +227,14 @@ export function MasterNomihodaiMenuPanel({
             </button>
           </div>
         </div>
+
+        <MasterApplyBar
+          dirty={nhDirty}
+          applyNotice={nhApplyNotice}
+          onApply={applyNomihodaiMenu}
+          onDiscard={discardNomihodaiDraft}
+        />
+
         <p className="master-page-lead master-page-lead--compact">
           飲み放題セッション中の客席「ドリンク」タブに表示される一覧です。単価はプランに含まれるため編集しません。ID
           は厨房・注文行の識別用です（変更すると進行中の注文とずれる場合があります）。「客席英語名」に入力すると卓タブレットが英語表示のときにその表記が使われます（厨房・伝票は「品名」の日本語のまま）。

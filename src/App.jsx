@@ -50,6 +50,9 @@ function cssBgUrl(path) {
   return `url("${assetUrl(path)}")`;
 }
 
+/** 油そばヒーロー中央の丼写真（帯ヘッダー用 PNG とは別。欠落時はヘッダー画像にフォールバック） */
+const ABURASOBA_HERO_PHOTO_FILES = ['油そば坦々-メニュー完_0008_レイヤー-1.png', 'aburasobahedda-.png'];
+
 /** ページ先頭ヘッダー PNG（書き出し実名を先頭 → 旧短名はフォールバック） */
 const PAGE_HEADER_FILES = {
   aburasoba: ['aburasobahedda-.png'],
@@ -95,6 +98,38 @@ function PageHeaderImage({ pageKey, alt, lift }) {
         onError={() => setAttempt((n) => n + 1)}
       />
     </header>
+  );
+}
+
+function AburasobaHeroPhoto() {
+  const [attempt, setAttempt] = useState(0);
+  const exhausted = attempt >= ABURASOBA_HERO_PHOTO_FILES.length;
+  const src = !exhausted ? assetUrl(ABURASOBA_HERO_PHOTO_FILES[attempt]) : '';
+
+  return (
+    <div className="abu-hero-img-area">
+      {!exhausted ? (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          className="abu-hero-img abu-hero-img--photo"
+          decoding="async"
+          onError={() => setAttempt((n) => n + 1)}
+        />
+      ) : (
+        <div
+          className="abu-hero-img abu-hero-img--photo-fallback"
+          style={{
+            backgroundImage: cssBgUrl('aburasobahedda-.png'),
+            backgroundSize: 'contain',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+          }}
+          aria-hidden
+        />
+      )}
+    </div>
   );
 }
 
@@ -248,18 +283,7 @@ function AburasobaMenu({ addToCart }) {
                   <br />
                   {ut('abu_badge_pop2')}
                 </div>
-                <div className="abu-hero-img-area">
-                  <div
-                    className="abu-hero-img"
-                    style={{
-                      /* メニュー合成 PNG には別商品の文字が入るため、ページヘッダーと同じ米風亭ヒーローのみ使用 */
-                      backgroundImage: cssBgUrl('aburasobahedda-.png'),
-                      backgroundSize: 'contain',
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'center',
-                    }}
-                  />
-                </div>
+                <AburasobaHeroPhoto />
               </div>
 
               <div className="abu-hero-right">
@@ -2109,7 +2133,7 @@ function App() {
               {farewell ? (
                 <NomihodaiGuestFarewellFlow farewell={farewell} now={now} />
               ) : (
-                <NomihodaiGuestCheckoutThankYou />
+                <NomihodaiGuestCheckoutThankYou freeFlowActive={!!nomihodaiActive} />
               )}
             </div>
           ) : null}

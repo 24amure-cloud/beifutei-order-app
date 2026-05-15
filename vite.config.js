@@ -89,6 +89,17 @@ export default defineConfig(({ mode }) => {
               expiration: { maxEntries: 260, maxAgeSeconds: 60 * 60 * 24 * 14 },
             },
           },
+          {
+            urlPattern: ({ url, request }) =>
+              url.origin === self.location.origin &&
+              (request.destination === 'video' || /\.(?:mp4|webm|ogg|mov)$/i.test(url.pathname)),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'beifutei-video',
+              expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       devOptions: {

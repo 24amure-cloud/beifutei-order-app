@@ -19,6 +19,17 @@ export default function MasterMenuPage() {
 
   const [activeMode, setActiveMode] = useState('drink');
 
+  const requestActiveMode = (mode) => {
+    if (mode === activeMode) return;
+    if (activeMode === 'drink' && editor.drinkDirty && mode !== 'drink') {
+      if (!window.confirm('ドリンクメニューに未反映の変更があります。このまま切り替えますか？')) return;
+    }
+    if (activeMode === 'nomihodai' && editor.nhDirty && mode !== 'nomihodai') {
+      if (!window.confirm('飲み放題メニューに未反映の変更があります。このまま切り替えますか？')) return;
+    }
+    setActiveMode(mode);
+  };
+
   const kitchenHref = `${String(import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')}kitchen.html`;
 
   const catPrefix = activeMode === 'drink' ? 'master-cat-drink' : 'master-cat-nh';
@@ -59,14 +70,14 @@ export default function MasterMenuPage() {
                 <button
                   type="button"
                   className={`master-owner-mode${activeMode === 'drink' ? ' master-owner-mode--active' : ''}`}
-                  onClick={() => setActiveMode('drink')}
+                  onClick={() => requestActiveMode('drink')}
                 >
                   ドリンクメニュー
                 </button>
                 <button
                   type="button"
                   className={`master-owner-mode${activeMode === 'nomihodai' ? ' master-owner-mode--active' : ''}`}
-                  onClick={() => setActiveMode('nomihodai')}
+                  onClick={() => requestActiveMode('nomihodai')}
                 >
                   飲み放題（プラン内）
                 </button>
@@ -108,21 +119,21 @@ export default function MasterMenuPage() {
               <button
                 type="button"
                 className={`master-owner-mode master-owner-mode--sub${activeMode === 'ops' ? ' master-owner-mode--active' : ''}`}
-                onClick={() => setActiveMode('ops')}
+                onClick={() => requestActiveMode('ops')}
               >
                 卓・売上サマリー
               </button>
               <button
                 type="button"
                 className={`master-owner-mode master-owner-mode--sub${activeMode === 'ledger' ? ' master-owner-mode--active' : ''}`}
-                onClick={() => setActiveMode('ledger')}
+                onClick={() => requestActiveMode('ledger')}
               >
                 日計管理
               </button>
               <button
                 type="button"
                 className={`master-owner-mode master-owner-mode--sub${activeMode === 'salesCalendar' ? ' master-owner-mode--active' : ''}`}
-                onClick={() => setActiveMode('salesCalendar')}
+                onClick={() => requestActiveMode('salesCalendar')}
               >
                 売上カレンダー
               </button>

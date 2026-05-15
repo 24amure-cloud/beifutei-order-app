@@ -46,16 +46,20 @@ function FarewellMainMessage() {
   );
 }
 
-/** ① 会計ボタン直後：FREE FLOW 終了を先に伝える */
-export function NomihodaiGuestCheckoutThankYou() {
+/**
+ * ① 会計ボタン直後（厨房が会計を確定するまで）。
+ * 飲み放題稼働中のみ「FREE FLOWは終了」見出し。通常会計は一般用の見出し。
+ */
+export function NomihodaiGuestCheckoutThankYou({ freeFlowActive = false }) {
   const { t } = useGuestUiLocale();
+  const headlineKey = freeFlowActive ? 'nh_checkout_ty_headline' : 'nh_checkout_ty_headline_standard';
   return (
     <main className="main-content nh-active nh-active--ff nh-checkout nh-checkout--thankyou">
       <div className="nh-active__shell">
         <div className="nh-checkout__stage">
           <div className="nh-checkout__shell">
             <p className="nh-checkout__eyebrow">THANK YOU</p>
-            <h1 className="nh-checkout__headline">{t('nh_checkout_ty_headline')}</h1>
+            <h1 className="nh-checkout__headline">{t(headlineKey)}</h1>
             <div className="nh-checkout__body">
               <p>{t('nh_checkout_ty_p1')}</p>
               <p>{t('nh_checkout_ty_p2')}</p>

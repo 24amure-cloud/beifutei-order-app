@@ -436,6 +436,13 @@ export default function KitchenApp() {
     setStaffTab(STAFF_TABS.tableStatus);
   }, []);
 
+  /** 飲み放題希望サイン等から「各卓・伝票」へ。label があれば該当卓の NH 操作パネルを開く */
+  const openSlipTabWithNhOps = useCallback((label) => {
+    const L = String(label ?? '').trim();
+    setStaffTab(STAFF_TABS.tableStatus);
+    setTableNhOpsOpen(L || null);
+  }, []);
+
   useEffect(() => {
     const nh = getNomihodaiForTable(session, session.tableLabel);
     if (!nh?.active) return;
@@ -874,22 +881,34 @@ export default function KitchenApp() {
           {staffTab === STAFF_TABS.orders ? (
             <>
               {nhIntentOutsideQueueLabels.length > 0 ? (
-                <div className="kitchen-guest-intent kitchen-guest-intent--muted" role="status">
+                <button
+                  type="button"
+                  className="kitchen-guest-intent kitchen-guest-intent--muted kitchen-guest-intent--nav"
+                  aria-label="各卓・伝票タブへ移動し、飲み放題の詳細操作を開く"
+                  onClick={() => openSlipTabWithNhOps(nhIntentOutsideQueueLabels[0])}
+                >
                   <strong>卓{nhIntentOutsideQueueLabels.join('・')}</strong>
                   から飲み放題の希望がありますが、<strong>未提供キューに並んでいない卓</strong>
                   のため、人数確認・開始・停止・希望の閉じるは
                   <strong>「各卓・伝票」</strong>タブで行ってください。
-                </div>
+                  <span className="kitchen-guest-intent__tap-hint">タップで各卓・伝票へ</span>
+                </button>
               ) : null}
             </>
           ) : (
             guestNomihodaiIntentLabels.length > 0 && (
-              <div className="kitchen-guest-intent" role="status">
+              <button
+                type="button"
+                className="kitchen-guest-intent kitchen-guest-intent--nav"
+                aria-label="各卓・伝票タブへ移動し、飲み放題の詳細操作を開く"
+                onClick={() => openSlipTabWithNhOps(guestNomihodaiIntentLabels[0])}
+              >
                 <strong>
                   卓{guestNomihodaiIntentLabels.join('・')}：客席から飲み放題の希望があります。
                 </strong>
                 「各卓・伝票」タブで該当卓が強調表示されます。人数を確認して「飲み放題開始」を押してください。
-              </div>
+                <span className="kitchen-guest-intent__tap-hint">タップで各卓・伝票へ</span>
+              </button>
             )
           )}
           {hasCheckoutRequests ? (
@@ -1218,16 +1237,27 @@ export default function KitchenApp() {
 
                             {intentHereWithQueue ? (
                               <div className="kitchen-table-status__notify kitchen-table-status__notify--intent" role="status">
-                                <strong>通知：</strong>
-                                この卓の客席から飲み放題希望です（未提供あり）。下の「伝票ページの飲み放題詳細操作」から開くか、
-                                <strong>「注文一覧」</strong>タブからも開始できます。人数を確認して「飲み放題開始」を押すと応答します。
-                                <button
-                                  type="button"
-                                  className="kitchen-table-status__notify-dismiss"
-                                  onClick={() => clearNomihodaiGuestIntent(label)}
-                                >
-                                  希望を閉じる
-                                </button>
+                                <div>
+                                  <strong>通知：</strong>
+                                  この卓の客席から飲み放題希望です（未提供あり）。下の「伝票ページの飲み放題詳細操作」から開くか、
+                                  <strong>「注文一覧」</strong>タブからも開始できます。人数を確認して「飲み放題開始」を押すと応答します。
+                                </div>
+                                <div className="kitchen-table-status__notify-actions">
+                                  <button
+                                    type="button"
+                                    className="kitchen-table-status__notify-goto-slip"
+                                    onClick={() => openSlipTabWithNhOps(label)}
+                                  >
+                                    伝票ページで開く
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="kitchen-table-status__notify-dismiss"
+                                    onClick={() => clearNomihodaiGuestIntent(label)}
+                                  >
+                                    希望を閉じる
+                                  </button>
+                                </div>
                               </div>
                             ) : null}
 
@@ -1390,7 +1420,7 @@ export default function KitchenApp() {
                               <button
                                 type="button"
                                 className={`kitchen-table-status__ops-trigger${intentGuest ? ' kitchen-table-status__ops-trigger--intent' : ''}`}
-                                onClick={() => setTableNhOpsOpen(label)}
+                                onClick={() => openSlipTabWithNhOps(label)}
                               >
                                 <span className="kitchen-table-status__ops-trigger-title">
                                   伝票ページの飲み放題詳細操作
