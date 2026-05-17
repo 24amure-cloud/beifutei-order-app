@@ -148,7 +148,6 @@ export default function GuestPromoScreensaver({ paused }) {
     const v = videoRef.current;
     const u = urls[slide];
     if (!u || !VIDEO_RE.test(u)) return;
-    v.defaultMuted = true;
     v.muted = true;
     if (v.getAttribute('src') !== u) v.src = u;
     const tryPlay = () => {
@@ -225,7 +224,6 @@ export default function GuestPromoScreensaver({ paused }) {
                   poster={posterUrl || undefined}
                   preload="auto"
                   muted
-                  defaultMuted
                   playsInline
                   autoPlay
                   loop
