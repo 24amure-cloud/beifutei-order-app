@@ -112,6 +112,9 @@ export default defineConfig(({ mode }) => {
     port: 5173,
     strictPort: false,
     host: true,
+    watch: {
+      ignored: ['**/public/screensaver*.mp4', '**/*.mp4'],
+    },
   },
   build: {
     rollupOptions: {

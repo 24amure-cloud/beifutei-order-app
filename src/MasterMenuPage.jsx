@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import DailyLedgerDashboard from './DailyLedgerDashboard.jsx';
 import OwnerSalesCalendar from './OwnerSalesCalendar.jsx';
 import MasterOpsPanel from './MasterOpsPanel.jsx';
-import { MasterDrinkMenuPanel, MasterNomihodaiMenuPanel } from './MasterMenuPanels.jsx';
+import {
+  MasterDrinkMenuPanel,
+  MasterNomihodaiMenuPanel,
+  MasterTakeoutMenuPanel,
+  MasterSideDishMenuPanel,
+} from './MasterMenuPanels.jsx';
 import { useMasterMenuEditor } from './useMasterMenuEditor.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
+import { sideDishSectionNavLabel } from './sideDishMenuLabels.js';
 
 export default function MasterMenuPage() {
   const editor = useMasterMenuEditor();
@@ -27,13 +33,37 @@ export default function MasterMenuPage() {
     if (activeMode === 'nomihodai' && editor.nhDirty && mode !== 'nomihodai') {
       if (!window.confirm('飲み放題メニューに未反映の変更があります。このまま切り替えますか？')) return;
     }
+    if (activeMode === 'takeout' && editor.takeoutDirty && mode !== 'takeout') {
+      if (!window.confirm('テイクアウトスイーツに未反映の変更があります。このまま切り替えますか？')) return;
+    }
+    if (activeMode === 'sidedish' && editor.sideDishDirty && mode !== 'sidedish') {
+      if (!window.confirm('サイドメニューに未反映の変更があります。このまま切り替えますか？')) return;
+    }
     setActiveMode(mode);
   };
 
   const kitchenHref = `${String(import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')}kitchen.html`;
 
-  const catPrefix = activeMode === 'drink' ? 'master-cat-drink' : 'master-cat-nh';
-  const catList = activeMode === 'drink' ? editor.drinkSections : activeMode === 'nomihodai' ? editor.nomihodaiCatalog : [];
+  const catPrefix =
+    activeMode === 'drink'
+      ? 'master-cat-drink'
+      : activeMode === 'nomihodai'
+        ? 'master-cat-nh'
+        : activeMode === 'takeout'
+          ? 'master-cat-takeout'
+          : activeMode === 'sidedish'
+            ? 'master-cat-sidedish'
+            : '';
+  const catList =
+    activeMode === 'drink'
+      ? editor.drinkSections
+      : activeMode === 'nomihodai'
+        ? editor.nomihodaiCatalog
+        : activeMode === 'takeout'
+          ? editor.takeoutSections
+          : activeMode === 'sidedish'
+            ? editor.sideDishSections
+            : [];
 
   return (
     <main className="main-content master-page">
@@ -81,10 +111,27 @@ export default function MasterMenuPage() {
                 >
                   飲み放題（プラン内）
                 </button>
+                <button
+                  type="button"
+                  className={`master-owner-mode${activeMode === 'takeout' ? ' master-owner-mode--active' : ''}`}
+                  onClick={() => requestActiveMode('takeout')}
+                >
+                  テイクアウトスイーツ
+                </button>
+                <button
+                  type="button"
+                  className={`master-owner-mode${activeMode === 'sidedish' ? ' master-owner-mode--active' : ''}`}
+                  onClick={() => requestActiveMode('sidedish')}
+                >
+                  サイドメニュー
+                </button>
               </div>
             </div>
 
-            {(activeMode === 'drink' || activeMode === 'nomihodai') && (
+            {(activeMode === 'drink' ||
+              activeMode === 'nomihodai' ||
+              activeMode === 'takeout' ||
+              activeMode === 'sidedish') && (
               <nav className="master-owner-catnav" aria-label="カテゴリ一覧">
                 <h3 className="master-owner-catnav__title">カテゴリ</h3>
                 {catList.length === 0 ? (
@@ -94,7 +141,11 @@ export default function MasterMenuPage() {
                     {catList.map((sec) => (
                       <li key={sec.id}>
                         <a className="master-owner-catlink" href={`#${catPrefix}-${sec.id}`}>
-                          <span className="master-owner-catlink__ja">{sec.titleJa || '（無題）'}</span>
+                          <span className="master-owner-catlink__ja">
+                            {activeMode === 'sidedish'
+                              ? sideDishSectionNavLabel(sec)
+                              : sec.titleJa || '（無題）'}
+                          </span>
                           {sec.titleEn ? (
                             <span className="master-owner-catlink__en">{sec.titleEn}</span>
                           ) : null}
@@ -143,6 +194,8 @@ export default function MasterMenuPage() {
           <div className="master-owner-main">
             {activeMode === 'drink' && <MasterDrinkMenuPanel {...editor} />}
             {activeMode === 'nomihodai' && <MasterNomihodaiMenuPanel {...editor} />}
+            {activeMode === 'takeout' && <MasterTakeoutMenuPanel {...editor} />}
+            {activeMode === 'sidedish' && <MasterSideDishMenuPanel {...editor} />}
             {activeMode === 'ops' && (
               <MasterOpsPanel
                 session={session}

@@ -15,6 +15,21 @@ import { KitchenDiagnosticsFooter, KitchenRealtimeBadge } from './KitchenStaffDi
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
+import KitchenVerbalOrderSheet from './KitchenVerbalOrderSheet.jsx';
+import KitchenCheckoutModal from './KitchenCheckoutModal.jsx';
+import {
+  buildLedgerReceiptPayload,
+  buildSlipReceiptPayload,
+  canUsePassPrnt,
+  printReceiptWithFeedback,
+} from './receiptPrint.js';
+import {
+  isNomihodaiChargedExtra,
+  nhToggleShowsNomihodaiActive,
+  orderKindMeta,
+  orderLineSlipMetaPrice,
+  orderLineTaxInLabel,
+} from './kitchenOrderDisplay.js';
 
 function fmtTime(ms) {
   const d = new Date(ms);
@@ -55,43 +70,8 @@ function playKitchenNewOrderAlert() {
   }
 }
 
-/** 表示用：1行目を品名短縮、絵文字は飲み放題／油そば／その他 */
-function orderKindMeta(o) {
-  const firstLine = String(o.itemName || '')
-    .split('\n')[0]
-    .trim();
-  const emoji = o.isNomihodai ? '🍺' : /油そば|米風亭/.test(firstLine) ? '🍜' : '🍽️';
-  return { firstLine, emoji };
-}
-
 function orderKitchenEmoji(o) {
   return orderKindMeta(o).emoji;
-}
-
-/** 税込表示：NH内の無料ドリンク vs ショット等の別料金 */
-function orderLineTaxInLabel(o) {
-  const yen = Math.max(0, Number(o.itemPrice) || 0);
-  if (yen > 0) return `￥${yen.toLocaleString()}（税込）`;
-  if (o.isNomihodai) return '飲み放題（税込）';
-  return `￥0（税込）`;
-}
-
-/** 伝票一覧の短い金額欄（別料金ショットは金額を出す） */
-function orderLineSlipMetaPrice(o) {
-  const yen = Math.max(0, Number(o.itemPrice) || 0);
-  if (yen > 0) return `￥${yen.toLocaleString()}`;
-  if (o.isNomihodai) return '飲み放題内';
-  return `￥${yen.toLocaleString()}`;
-}
-
-/** NH行だが別料金（ショット等）— 会計UIは「通常」と同じ強調にする */
-function isNomihodaiChargedExtra(o) {
-  return !!o?.isNomihodai && Math.max(0, Number(o.itemPrice) || 0) > 0;
-}
-
-/** 飲み放題トグルで「飲み放題」側がアクティブになるのはプラン内（無料）NHのみ */
-function nhToggleShowsNomihodaiActive(o) {
-  return !!o?.isNomihodai && Math.max(0, Number(o.itemPrice) || 0) === 0;
 }
 
 /**
@@ -253,9 +233,21 @@ function KitchenTableAlcoholChargePanel({ tableLabel, session, setTableAlcoholCh
   };
 
   return (
-    <div className="kitchen-table-status__alcohol">
+    <details className="kitchen-table-status__alcohol-block">
+      <summary className="kitchen-table-status__alcohol-summary">
+        <span className="kitchen-table-status__alcohol-summary-title">卓チャージ（税込）</span>
+        {cur.totalYen > 0 ? (
+          <span className="kitchen-table-status__alcohol-summary-value">
+            ￥{cur.totalYen.toLocaleString()}
+          </span>
+        ) : (
+          <span className="kitchen-table-status__alcohol-summary-value kitchen-table-status__alcohol-summary-value--muted">
+            未設定
+          </span>
+        )}
+      </summary>
+      <div className="kitchen-table-status__alcohol">
       <div className="kitchen-table-status__alcohol-head">
-        <span className="kitchen-table-status__alcohol-title">卓チャージ（税込）</span>
         <span className="kitchen-table-status__alcohol-hint">
           人数と1名あたりを決めて「反映」→客席のお会計に加算。下の 500/800 は時刻の目安です。
         </span>
@@ -332,7 +324,8 @@ function KitchenTableAlcoholChargePanel({ tableLabel, session, setTableAlcoholCh
       ) : (
         <p className="kitchen-table-status__alcohol-live kitchen-table-status__alcohol-live--muted">未設定（税込）</p>
       )}
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -422,6 +415,8 @@ export default function KitchenApp() {
   const [ledgerRevision, setLedgerRevision] = useState(0);
   /** 各卓カードで「伝票ページの飲み放題詳細操作」パネルを開いている卓（1枚だけ） */
   const [tableNhOpsOpen, setTableNhOpsOpen] = useState(null);
+  /** 口頭注文シート（卓番 or null=閉） */
+  const [verbalOrderTable, setVerbalOrderTable] = useState(null);
   const ordersHubRef = useRef(null);
   const pendingIdsForSoundRef = useRef(null);
 
@@ -442,6 +437,16 @@ export default function KitchenApp() {
     setStaffTab(STAFF_TABS.tableStatus);
     setTableNhOpsOpen(L || null);
   }, []);
+
+  const handleVerbalOrderSubmitted = useCallback(
+    ({ flow }) => {
+      if (flow === 'kitchen') {
+        setStaffTab(STAFF_TABS.orders);
+        goToOrdersTab();
+      }
+    },
+    [goToOrdersTab],
+  );
 
   useEffect(() => {
     const nh = getNomihodaiForTable(session, session.tableLabel);
@@ -659,9 +664,9 @@ export default function KitchenApp() {
     return typeof raw === 'string' ? raw.replace(/\s+/g, ' ').trim() : '';
   }, [checkoutPage, session.tableMemoByLabel]);
 
-  const handleCheckoutPagePay = useCallback(
+  const finalizeCheckoutPayment = useCallback(
     async (payment) => {
-      if (!checkoutPage) return;
+      if (!checkoutPage) return { ok: false };
       const res = await finalizeSlipCheckout({
         tableId: checkoutPage.tableId,
         tableLabel: checkoutPage.tableLabel,
@@ -669,13 +674,16 @@ export default function KitchenApp() {
       });
       if (!res?.ok) {
         window.alert('伝票が空のため会計できません。提供済みの明細・飲み放題プランを確認してください。');
-        return;
       }
-      setCheckoutPage(null);
-      setStaffTab(STAFF_TABS.checkoutDone);
+      return res;
     },
     [checkoutPage, finalizeSlipCheckout]
   );
+
+  const completeCheckoutFlow = useCallback(() => {
+    setCheckoutPage(null);
+    setStaffTab(STAFF_TABS.checkoutDone);
+  }, []);
 
   const hasQueue = pendingOrders.length > 0;
   const activeTabLabel =
@@ -765,6 +773,11 @@ export default function KitchenApp() {
             onClick={() => setStaffTab(STAFF_TABS.orders)}
           >
             注文一覧
+            {pendingOrders.length > 0 ? (
+              <span className="kitchen-v2-tab__badge kitchen-v2-tab__badge--pending" aria-hidden>
+                {pendingOrders.length > 99 ? '99+' : pendingOrders.length}
+              </span>
+            ) : null}
           </button>
           <button
             type="button"
@@ -772,6 +785,11 @@ export default function KitchenApp() {
             onClick={() => setStaffTab(STAFF_TABS.tableStatus)}
           >
             各卓・伝票
+            {hasCheckoutRequests ? (
+              <span className="kitchen-v2-tab__badge kitchen-v2-tab__badge--checkout" aria-hidden>
+                会計{checkoutRequestLabels.length}
+              </span>
+            ) : null}
           </button>
           <button
             type="button"
@@ -822,6 +840,7 @@ export default function KitchenApp() {
         </button>
         <div
           className={`kitchen-live-cell kitchen-live-cell--drink${liveFlash.drink ? ' kitchen-live-cell--flash' : ''}`}
+          role="status"
         >
           <span className="kitchen-live-cell__label">飲み物オーダー数</span>
           <strong className="kitchen-live-cell__value">{pendingDrinkCount}件</strong>
@@ -829,6 +848,7 @@ export default function KitchenApp() {
         </div>
         <div
           className={`kitchen-live-cell kitchen-live-cell--food${liveFlash.food ? ' kitchen-live-cell--flash' : ''}`}
+          role="status"
         >
           <span className="kitchen-live-cell__label">フードオーダー数</span>
           <strong className="kitchen-live-cell__value">{pendingFoodCount}件</strong>
@@ -856,6 +876,16 @@ export default function KitchenApp() {
           <span className="kitchen-live-cell__sub">
             {hasCheckoutRequests ? `卓${checkoutRequestLabels.join('・')}・タップで会計` : 'タップで伝票タブ'}
           </span>
+        </button>
+        <button
+          type="button"
+          className="kitchen-live-cell kitchen-live-cell--verbal kitchen-live-cell--tappable"
+          onClick={() => setVerbalOrderTable(String(session.tableLabel || '1'))}
+          aria-label="口頭で受けた注文を伝票に追加"
+        >
+          <span className="kitchen-live-cell__label">口頭注文</span>
+          <strong className="kitchen-live-cell__value">＋追加</strong>
+          <span className="kitchen-live-cell__sub">卓を選んで品目を登録</span>
         </button>
       </div>
 
@@ -1166,22 +1196,29 @@ export default function KitchenApp() {
 
             {staffTab === STAFF_TABS.tableStatus && (
               <>
-                <section className="kitchen-orders kitchen-orders--in-hub kitchen-table-status-section" aria-labelledby="kitchen-tables-heading">
+                <section className="kitchen-orders kitchen-orders--in-hub kitchen-table-hub" aria-labelledby="kitchen-tables-heading">
                     <div className="kitchen-orders__head">
                       <h2 id="kitchen-tables-heading" className="kitchen-orders__title">
-                        各テーブル状況
+                        各卓・伝票
                       </h2>
+                      <span className="kitchen-orders__badge">{servedOrders.length}件 提供済</span>
                     </div>
-                    <p className="kitchen-orders__lead">
-                      卓ごとの状況・メモ・通知です。飲み放題の開始や卓番の切替は、各卓カードの<strong>「伝票ページの飲み放題詳細操作」</strong>（※タップで開く）から行ってください。延長は時間到達で自動（
-                      {NOMIHODAI_EXTENSION_PRICE_YEN.toLocaleString()}
-                      円／回・税込・終了時刻とプラン料金を更新）。手動延長はありません。
-                    </p>
+                    <details className="kitchen-orders__help">
+                      <summary>使い方</summary>
+                      <p className="kitchen-orders__lead">
+                        卓ごとに<strong>メモ・卓チャージ・飲み放題・注文・伝票・会計</strong>までこの画面で完結します。未提供は「提供済」にし、提供済行の切替で
+                        <strong>飲み放題／通常</strong>を訂正できます。口頭分は<strong>口頭注文</strong>、会計は各卓の<strong>会計</strong>ボタンから。飲み放題の延長は時間到達で自動（
+                        {NOMIHODAI_EXTENSION_PRICE_YEN.toLocaleString()}
+                        円／回・税込）。
+                      </p>
+                    </details>
                     <div className="kitchen-table-status-grid">
                       {TABLE_HERO_LABELS.map((label) => {
                         const list = ordersByTableLabel.get(label) || [];
-                        const pendingN = list.filter((o) => o.status === 'pending').length;
-                        const hist = list.slice(0, 4);
+                        const pendingList = list.filter((o) => o.status === 'pending');
+                        const servedList = list.filter((o) => o.status === 'served');
+                        const pendingN = pendingList.length;
+                        const slip = resolveSlipBundleForTableLabel(servedByTable, session, label);
                         const nhLabel = getNomihodaiForTable(session, label);
                         const isNh = !!nhLabel?.active;
                         const isSessionTable = String(session.tableLabel) === label;
@@ -1195,10 +1232,20 @@ export default function KitchenApp() {
                           guestNomihodaiIntentLabels.includes(String(label)) && !isNh;
                         const intentHereWithQueue =
                           intentGuest && list.some((o) => o.status === 'pending');
+                        const hasCheckoutReq = !!session.checkoutRequestByLabel?.[label];
                         return (
                           <article
                             key={label}
-                            className={`kitchen-table-status${isNh ? ' kitchen-table-status--nh' : ''}${isSessionTable ? ' kitchen-table-status--session' : ''}${intentHereWithQueue ? ' kitchen-table-status--nh-intent' : ''}`}
+                            className={[
+                              'kitchen-table-status',
+                              isNh ? 'kitchen-table-status--nh' : '',
+                              isSessionTable ? 'kitchen-table-status--session' : '',
+                              intentHereWithQueue ? 'kitchen-table-status--nh-intent' : '',
+                              pendingN > 0 ? 'kitchen-table-status--has-pending' : '',
+                              hasCheckoutReq ? 'kitchen-table-status--checkout-req' : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
                           >
                             <div className="kitchen-table-status__top">
                               <div className="kitchen-table-status__headline">
@@ -1213,6 +1260,30 @@ export default function KitchenApp() {
                                   </span>
                                 )}
                               </div>
+                              {pendingN > 0 || hasCheckoutReq || intentGuest || isSessionTable ? (
+                                <div className="kitchen-table-status__quick" aria-label="卓の状態">
+                                  {isSessionTable ? (
+                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--session">
+                                      表示卓
+                                    </span>
+                                  ) : null}
+                                  {pendingN > 0 ? (
+                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--pending">
+                                      未提供 {pendingN}
+                                    </span>
+                                  ) : null}
+                                  {hasCheckoutReq ? (
+                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--checkout">
+                                      会計依頼
+                                    </span>
+                                  ) : null}
+                                  {intentGuest ? (
+                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--intent">
+                                      NH希望
+                                    </span>
+                                  ) : null}
+                                </div>
+                              ) : null}
                               <label className="kitchen-table-status__memo-wrap">
                                 <span className="kitchen-table-status__memo-label">メモ</span>
                                 <input
@@ -1239,7 +1310,7 @@ export default function KitchenApp() {
                               <div className="kitchen-table-status__notify kitchen-table-status__notify--intent" role="status">
                                 <div>
                                   <strong>通知：</strong>
-                                  この卓の客席から飲み放題希望です（未提供あり）。下の「伝票ページの飲み放題詳細操作」から開くか、
+                                  この卓の客席から飲み放題希望です（未提供あり）。下の「飲み放題・卓操作」から開くか、
                                   <strong>「注文一覧」</strong>タブからも開始できます。人数を確認して「飲み放題開始」を押すと応答します。
                                 </div>
                                 <div className="kitchen-table-status__notify-actions">
@@ -1248,7 +1319,7 @@ export default function KitchenApp() {
                                     className="kitchen-table-status__notify-goto-slip"
                                     onClick={() => openSlipTabWithNhOps(label)}
                                   >
-                                    伝票ページで開く
+                                    この卓の操作を開く
                                   </button>
                                   <button
                                     type="button"
@@ -1264,7 +1335,7 @@ export default function KitchenApp() {
                             {session.checkoutRequestByLabel?.[label] ? (
                               <div className="kitchen-table-status__notify kitchen-table-status__notify--checkout" role="alert">
                                 <strong>お会計依頼</strong>
-                                客席から「お会計する」が届いています。上部の<strong>お会計依頼</strong>またはバナーの<strong>会計ページへ</strong>で確認のうえ会計すると飲み放題も停止されます。
+                                客席から「お会計する」が届いています。この卓の<strong>会計</strong>ボタン、上部の<strong>お会計依頼</strong>、またはバナーの<strong>会計ページへ</strong>から確定できます。
                                 <button
                                   type="button"
                                   className="kitchen-table-status__notify-dismiss"
@@ -1422,53 +1493,28 @@ export default function KitchenApp() {
                                 className={`kitchen-table-status__ops-trigger${intentGuest ? ' kitchen-table-status__ops-trigger--intent' : ''}`}
                                 onClick={() => openSlipTabWithNhOps(label)}
                               >
-                                <span className="kitchen-table-status__ops-trigger-title">
-                                  伝票ページの飲み放題詳細操作
-                                </span>
-                                <span className="kitchen-table-status__ops-trigger-hint">※タップで開く</span>
+                                <span className="kitchen-table-status__ops-trigger-title">飲み放題・卓操作</span>
+                                <span className="kitchen-table-status__ops-trigger-hint">タップで開く</span>
                                 {intentGuest ? (
                                   <span className="kitchen-table-status__ops-trigger-badge">客席から希望あり</span>
                                 ) : null}
                               </button>
                             )}
 
-                            <div className="kitchen-table-status__history">
-                              <span className="kitchen-table-status__history-label">注文履歴</span>
-                              {hist.length === 0 ? (
-                                <p className="kitchen-table-status__hist-empty">なし</p>
-                              ) : (
-                                <ul className="kitchen-table-status__hist-list">
-                                  {hist.map((o) => {
-                                    const meta = orderKindMeta(o);
-                                    return (
-                                      <li
-                                        key={o.id}
-                                        className={`kitchen-table-status__hist-row${
-                                          isNomihodaiChargedExtra(o) ? ' kitchen-table-status__hist-row--nh-extra' : ''
-                                        }`}
-                                      >
-                                        <span aria-hidden>{meta.emoji}</span>
-                                        <span className="kitchen-table-status__hist-name">{meta.firstLine}</span>
-                                        <span
-                                          className={`kitchen-table-status__hist-bill${
-                                            o.isNomihodai && !isNomihodaiChargedExtra(o)
-                                              ? ' kitchen-table-status__hist-bill--nh'
-                                              : ''
-                                          }`}
-                                          title="会計区分（詳細確認で切替）"
-                                        >
-                                          {o.isNomihodai && !isNomihodaiChargedExtra(o) ? 'NH' : '通常'}
-                                        </span>
-                                        <span
-                                          className={
-                                            o.status === 'pending'
-                                              ? 'kitchen-table-status__st kitchen-table-status__st--wait'
-                                              : 'kitchen-table-status__st kitchen-table-status__st--ok'
-                                          }
-                                        >
-                                          {o.status === 'pending' ? '未提供' : '済'}
-                                        </span>
-                                        {o.status === 'pending' ? (
+                            <section className="kitchen-table-status__orders" aria-label="注文と伝票">
+                              {pendingList.length > 0 ? (
+                                <>
+                                  <h3 className="kitchen-table-status__orders-heading">未提供</h3>
+                                  <ul className="kitchen-table-status__hist-list">
+                                    {pendingList.map((o) => {
+                                      const meta = orderKindMeta(o);
+                                      return (
+                                        <li key={o.id} className="kitchen-table-status__hist-row">
+                                          <span aria-hidden>{meta.emoji}</span>
+                                          <span className="kitchen-table-status__hist-name">{meta.firstLine}</span>
+                                          <span className="kitchen-table-status__st kitchen-table-status__st--wait">
+                                            未提供
+                                          </span>
                                           <button
                                             type="button"
                                             className="kitchen-table-status__hist-serve"
@@ -1476,126 +1522,125 @@ export default function KitchenApp() {
                                           >
                                             提供済
                                           </button>
-                                        ) : (
-                                          <span className="kitchen-table-status__hist-serve-spacer" aria-hidden />
-                                        )}
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </>
+                              ) : null}
+                              {servedList.length > 0 ? (
+                                <>
+                                  <h3 className="kitchen-table-status__orders-heading">提供済・伝票</h3>
+                                  <ul className="kitchen-table-status__slip-list">
+                                    {servedList.map((o) => (
+                                      <li
+                                        key={o.id}
+                                        className={`kitchen-table-status__slip-row${
+                                          isNomihodaiChargedExtra(o) ? ' kitchen-table-status__slip-row--nh-extra' : ''
+                                        }`}
+                                      >
+                                        <div className="kitchen-table-status__slip-main">
+                                          <span className="kitchen-table-status__slip-name">{o.itemName}</span>
+                                          <span className="kitchen-table-status__slip-meta">
+                                            {orderLineSlipMetaPrice(o)} /{' '}
+                                            {o.createdAt ? fmtTime(o.createdAt) : '--:--'}
+                                          </span>
+                                        </div>
+                                        <OrderBillingToggle
+                                          orderId={o.id}
+                                          isNomihodai={nhToggleShowsNomihodaiActive(o)}
+                                          onSetNomihodai={setOrderIsNomihodai}
+                                          compact
+                                        />
                                       </li>
-                                    );
-                                  })}
-                                </ul>
-                              )}
+                                    ))}
+                                  </ul>
+                                </>
+                              ) : null}
+                              {pendingList.length === 0 && servedList.length === 0 ? (
+                                <p className="kitchen-table-status__orders-empty">注文・伝票明細はまだありません</p>
+                              ) : null}
                               {pendingN > 0 ? (
                                 <p className="kitchen-table-status__alert">未提供 {pendingN} 件あり</p>
                               ) : null}
+                            </section>
+
+                            <div className="kitchen-slip-total kitchen-slip-total--in-card">
+                              <div>通常提供 {slip.normalCount}点</div>
+                              <div>飲み放題提供 {slip.nomihodaiCount}点</div>
+                              <div>通常小計（税込）￥{slip.normalSubtotal.toLocaleString()}</div>
+                              {slip.nomihodaiPlanYen > 0 ? (
+                                <div>飲み放題プラン（税込）￥{slip.nomihodaiPlanYen.toLocaleString()}</div>
+                              ) : null}
+                              {(slip.alcoholChargeYen ?? 0) > 0 ? (
+                                <div className="kitchen-slip-total__alcohol">
+                                  {getAlcoholTableCharge(session, label).lineName} ￥
+                                  {(slip.alcoholChargeYen ?? 0).toLocaleString()}
+                                </div>
+                              ) : null}
+                              <strong>合計（税込）￥{slip.slipGrandTotal.toLocaleString()}</strong>
                             </div>
-                            <button
-                              type="button"
-                              className="kitchen-table-status__detail"
-                              onClick={() => setTableDetailLabel(label)}
-                            >
-                              詳細確認
-                            </button>
+
+                            <div className="kitchen-table-status__foot">
+                              <button
+                                type="button"
+                                className="kitchen-table-status__verbal"
+                                onClick={() => setVerbalOrderTable(label)}
+                              >
+                                口頭注文
+                              </button>
+                              {canUsePassPrnt() ? (
+                                <button
+                                  type="button"
+                                  className="kitchen-table-status__print-slip"
+                                  onClick={() =>
+                                    printReceiptWithFeedback(
+                                      buildSlipReceiptPayload({
+                                        checkoutSlip: slip,
+                                        session,
+                                        tableLabel: label,
+                                        memo: session.tableMemoByLabel?.[label] ?? '',
+                                        payment: 'detail',
+                                      }),
+                                      { openDrawer: false }
+                                    )
+                                  }
+                                >
+                                  明細印刷
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="kitchen-btn kitchen-btn--checkout kitchen-table-status__checkout"
+                                disabled={
+                                  slip.normalCount + slip.nomihodaiCount === 0 &&
+                                  slip.nomihodaiPlanYen <= 0 &&
+                                  (slip.alcoholChargeYen ?? 0) <= 0
+                                }
+                                onClick={() => setCheckoutPage({ tableId: slip.tableId, tableLabel: slip.tableLabel })}
+                              >
+                                会計
+                              </button>
+                              <button
+                                type="button"
+                                className="kitchen-table-status__detail"
+                                onClick={() => setTableDetailLabel(label)}
+                              >
+                                全履歴
+                              </button>
+                            </div>
                           </article>
                         );
                       })}
                     </div>
                   </section>
 
-                <section className="kitchen-orders kitchen-orders--in-hub kitchen-slip-ledger" aria-labelledby="kitchen-slip-heading">
-                  <div className="kitchen-orders__head">
-                    <h2 id="kitchen-slip-heading" className="kitchen-orders__title">
-                      伝票明細（提供済・卓別）
-                    </h2>
-                    <span className="kitchen-orders__badge">{servedOrders.length}件</span>
-                  </div>
-                  <p className="kitchen-orders__lead">
-                    提供済みの注文が紙伝票のように卓ごとに積み上がります。客席の「飲み放題」タブからの注文は自動で「飲み放題」区分になります。口頭や取り違えのときは、各行の切替で<strong>飲み放題／通常</strong>を訂正してください。
-                  </p>
-                  {servedOrders.length === 0 ? (
-                    <div className="kitchen-orders__empty">
-                      <span className="kitchen-orders__empty-icon" aria-hidden>
-                        ○
-                      </span>
-                      <p className="kitchen-empty">伝票の明細（提供済）はまだありません</p>
-                    </div>
-                  ) : (
-                    <div className="kitchen-table-cards-grid">
-                      {servedByTable.map((table) => (
-                        <article key={table.key} className="kitchen-table-order-card kitchen-table-order-card--slip">
-                          <header className="kitchen-table-order-card__head">
-                            <span className="kitchen-table-order-card__label">TABLE</span>
-                            <strong className="kitchen-table-order-card__num">{table.tableLabel}</strong>
-                            <span className="kitchen-table-order-card__count">伝票</span>
-                          </header>
-                          <ul className="kitchen-table-order-card__list">
-                            {table.orders.map((o) => (
-                              <li
-                                key={o.id}
-                                className={`kitchen-table-order-card__row kitchen-table-order-card__row--slip${
-                                  isNomihodaiChargedExtra(o)
-                                    ? ' kitchen-table-order-card__row--nh-extra-bill'
-                                    : ''
-                                }`}
-                              >
-                                <div className="kitchen-table-order-card__text">
-                                  <span className="kitchen-table-order-card__item">{o.itemName}</span>
-                                  <span className="kitchen-table-order-card__meta">
-                                    {orderLineSlipMetaPrice(o)} /{' '}
-                                    {o.createdAt ? fmtTime(o.createdAt) : '--:--'}
-                                  </span>
-                                </div>
-                                <OrderBillingToggle
-                                  orderId={o.id}
-                                  isNomihodai={nhToggleShowsNomihodaiActive(o)}
-                                  onSetNomihodai={setOrderIsNomihodai}
-                                  compact
-                                />
-                              </li>
-                            ))}
-                          </ul>
-                          <div className="kitchen-slip-total">
-                            <div>通常提供 {table.normalCount}点</div>
-                            <div>飲み放題提供 {table.nomihodaiCount}点</div>
-                            <div>通常小計（税込）￥{table.normalSubtotal.toLocaleString()}</div>
-                            {table.nomihodaiPlanYen > 0 ? (
-                              <div>飲み放題プラン（税込）￥{table.nomihodaiPlanYen.toLocaleString()}</div>
-                            ) : null}
-                            {(table.alcoholChargeYen ?? 0) > 0 ? (
-                              <div className="kitchen-slip-total__alcohol">
-                                {getAlcoholTableCharge(session, table.tableLabel).lineName}{' '}
-                                ￥{(table.alcoholChargeYen ?? 0).toLocaleString()}
-                              </div>
-                            ) : null}
-                            <strong>合計（税込）￥{table.slipGrandTotal.toLocaleString()}</strong>
-                            <div className="kitchen-slip-actions">
-                              <button
-                                type="button"
-                                className="kitchen-btn kitchen-btn--checkout"
-                                disabled={
-                                  table.normalCount + table.nomihodaiCount === 0 &&
-                                  table.nomihodaiPlanYen <= 0 &&
-                                  (table.alcoholChargeYen ?? 0) <= 0
-                                }
-                                onClick={() =>
-                                  setCheckoutPage({ tableId: table.tableId, tableLabel: table.tableLabel })
-                                }
-                              >
-                                会計
-                              </button>
-                            </div>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </section>
-
                 <section className="kitchen-panel kitchen-panel--muted kitchen-flow-note">
                     <h2 className="kitchen-h2">会計フロー（飲み放題）</h2>
                     <ol className="kitchen-flow-note__list">
                       <li>客が「お会計」→ このタブ・上部バナーに通知</li>
                       <li>
-                        伝票の<strong>会計</strong>または上部の<strong>会計ページへ</strong>で明細確認のうえ、現金／カード／カード＋5%を選ぶと飲み放題停止・日計記録・<strong>お会計済み</strong>タブへ移動します
+                        各卓カードの<strong>会計</strong>または上部の<strong>会計ページへ</strong>で明細確認のうえ、現金／カード／カード＋5%を選ぶと飲み放題停止・日計記録・<strong>お会計済み</strong>タブへ移動します
                       </li>
                       <li>
                         客席は THANK YOU → 退席案内のあと、厨房の<strong>バッシング完了</strong>または客席の<strong>バッシングOK</strong>で飲み放題タブを再利用可能にする
@@ -1620,7 +1665,7 @@ export default function KitchenApp() {
                   <span className="kitchen-orders__badge">{todayCheckoutEntries.length}件</span>
                 </div>
                 <p className="kitchen-orders__lead">
-                  「各卓・伝票」で伝票の<strong>会計</strong>を確定するたびに、ここへ新しい行が積み上がります。客席の飲み放題タブが退席案内のままのときは、各卓カードの<strong>バッシング完了・卓タブレット再利用</strong>（または客席のバッシングOK）でリセットしてください。日計データはこの端末の localStorage と共通です。オーナー向けは{' '}
+                  「各卓・伝票」で各卓の<strong>会計</strong>を確定するたびに、ここへ新しい行が積み上がります。iPad＋PassPRNT＋mPOP では会計画面や各行から<strong>必要なときだけレシート印刷</strong>できます。客席の飲み放題タブが退席案内のままのときは、各卓カードの<strong>バッシング完了・卓タブレット再利用</strong>（または客席のバッシングOK）でリセットしてください。日計データはこの端末の localStorage と共通です。オーナー向けは{' '}
                   <code className="kitchen-code">master.html</code> から行ってください。
                 </p>
                 {todayCheckoutEntries.length === 0 ? (
@@ -1647,6 +1692,19 @@ export default function KitchenApp() {
                             {formatLedgerPaymentJa(e.payment)}
                           </span>
                           <span className="kitchen-checkout-log__total">￥{Number(e.total || 0).toLocaleString()}</span>
+                          {canUsePassPrnt() ? (
+                            <button
+                              type="button"
+                              className="kitchen-checkout-log__reprint"
+                              onClick={() =>
+                                printReceiptWithFeedback(buildLedgerReceiptPayload(e), {
+                                  openDrawer: false,
+                                })
+                              }
+                            >
+                              再印刷
+                            </button>
+                          ) : null}
                         </header>
                         {e.checkoutMemo ? (
                           <p className="kitchen-checkout-log__memo">メモ：{e.checkoutMemo}</p>
@@ -1735,142 +1793,23 @@ export default function KitchenApp() {
         </div>
       ) : null}
 
-      {checkoutPage && checkoutSlip ? (
-        <div
-          className="kitchen-checkout-page-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="kitchen-checkout-page-title"
-          onClick={() => setCheckoutPage(null)}
-        >
-          <div className="kitchen-checkout-page" onClick={(e) => e.stopPropagation()}>
-            <header className="kitchen-checkout-page__head">
-              <div>
-                <h2 id="kitchen-checkout-page-title" className="kitchen-checkout-page__title">
-                  {checkoutPage.tableLabel}番卓・会計
-                </h2>
-                <p className="kitchen-checkout-page__lead">
-                  内容を確認のうえ、お支払い方法を選んで確定してください。確定後は<strong>お会計済み（日計）</strong>タブへ移ります。
-                </p>
-              </div>
-              {session.checkoutRequestByLabel?.[checkoutPage.tableLabel] ? (
-                <span className="kitchen-checkout-page__badge" role="status">
-                  お会計依頼中
-                </span>
-              ) : null}
-            </header>
-
-            {checkoutPageMemo ? (
-              <p className="kitchen-checkout-page__memo">
-                <strong>卓メモ</strong>：{checkoutPageMemo}
-              </p>
-            ) : (
-              <p className="kitchen-checkout-page__memo kitchen-checkout-page__memo--empty">卓メモ：なし</p>
-            )}
-
-            {checkoutPendingCount > 0 ? (
-              <div className="kitchen-checkout-page__warn" role="alert">
-                この卓に<strong>未提供が{checkoutPendingCount}件</strong>あります。会計前に提供状況を確認してください。
-              </div>
-            ) : null}
-
-            <section className="kitchen-checkout-page__slip" aria-labelledby="kitchen-checkout-slip-h">
-              <h3 id="kitchen-checkout-slip-h" className="kitchen-checkout-page__h3">
-                伝票（提供済・会計区分）
-              </h3>
-              {checkoutSlip.orders.length === 0 ? (
-                <p className="kitchen-checkout-page__empty-slip">
-                  {(checkoutSlip.alcoholChargeYen ?? 0) > 0
-                    ? '提供済の単品行はありません（チャージのみ加算の会計の場合があります）。'
-                    : '提供済みの注文明細はありません（飲み放題プランのみの会計の場合があります）。'}
-                </p>
-              ) : (
-                <ul className="kitchen-checkout-page__lines">
-                  {checkoutSlip.orders.map((o) => {
-                    const meta = orderKindMeta(o);
-                    return (
-                      <li
-                        key={o.id}
-                        className={`kitchen-checkout-page__line${
-                          isNomihodaiChargedExtra(o) ? ' kitchen-checkout-page__line--nh-extra-bill' : ''
-                        }`}
-                      >
-                        <span className="kitchen-checkout-page__line-ico" aria-hidden>
-                          {meta.emoji}
-                        </span>
-                        <span className="kitchen-checkout-page__line-name">{meta.firstLine}</span>
-                        <span className="kitchen-checkout-page__line-bill">
-                          {orderLineTaxInLabel(o)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              <div className="kitchen-checkout-page__totals">
-                <div>通常提供 {checkoutSlip.normalCount}点</div>
-                <div>飲み放題提供 {checkoutSlip.nomihodaiCount}点</div>
-                <div>通常小計（税込）￥{checkoutSlip.normalSubtotal.toLocaleString()}</div>
-                {checkoutSlip.nomihodaiPlanYen > 0 ? (
-                  <div>飲み放題プラン（税込）￥{checkoutSlip.nomihodaiPlanYen.toLocaleString()}</div>
-                ) : null}
-                {(checkoutSlip.alcoholChargeYen ?? 0) > 0 ? (
-                  <div className="kitchen-checkout-page__alcohol-line">
-                    {getAlcoholTableCharge(session, checkoutSlip.tableLabel).lineName}{' '}
-                    ￥{(checkoutSlip.alcoholChargeYen ?? 0).toLocaleString()}
-                  </div>
-                ) : null}
-                <strong className="kitchen-checkout-page__grand">
-                  会計小計（税込）￥{checkoutSlip.slipGrandTotal.toLocaleString()}
-                </strong>
-                <p className="kitchen-checkout-page__card5-note">
-                  カード・5%（税込＋手数料、端数切上げ）：{' '}
-                  <strong>￥{Math.ceil(checkoutSlip.slipGrandTotal * 1.05).toLocaleString()}</strong>
-                </p>
-              </div>
-            </section>
-
-            <p className="kitchen-checkout-page__pay-hint">お支払い方法を選択して会計を確定</p>
-            <div className="kitchen-checkout-paygrid kitchen-checkout-paygrid--3">
-              <button
-                type="button"
-                className="kitchen-checkout-pay kitchen-checkout-pay--cash"
-                onClick={() => void handleCheckoutPagePay('cash')}
-              >
-                現金・税込（￥{checkoutSlip.slipGrandTotal.toLocaleString()}）
-              </button>
-              <button
-                type="button"
-                className="kitchen-checkout-pay kitchen-checkout-pay--card"
-                onClick={() => void handleCheckoutPagePay('card')}
-              >
-                カード・税込（￥{checkoutSlip.slipGrandTotal.toLocaleString()}）
-              </button>
-              <button
-                type="button"
-                className="kitchen-checkout-pay kitchen-checkout-pay--card5"
-                onClick={() => void handleCheckoutPagePay('card_5pct')}
-              >
-                カード・税込＋5%（￥{Math.ceil(checkoutSlip.slipGrandTotal * 1.05).toLocaleString()}）
-              </button>
-            </div>
-            <div className="kitchen-checkout-page__footer-actions">
-              <button
-                type="button"
-                className="kitchen-checkout-page__linkbtn"
-                onClick={() => {
-                  setCheckoutPage(null);
-                  setStaffTab(STAFF_TABS.tableStatus);
-                }}
-              >
-                伝票タブで修正する
-              </button>
-              <button type="button" className="kitchen-checkout-cancel" onClick={() => setCheckoutPage(null)}>
-                戻る
-              </button>
-            </div>
-          </div>
-        </div>
+      {checkoutPage ? (
+        <KitchenCheckoutModal
+          tableLabel={checkoutPage.tableLabel}
+          tableId={checkoutPage.tableId}
+          checkoutSlip={checkoutSlip}
+          session={session}
+          memo={checkoutPageMemo}
+          pendingCount={checkoutPendingCount}
+          hasCheckoutRequest={!!session.checkoutRequestByLabel?.[checkoutPage.tableLabel]}
+          onClose={() => setCheckoutPage(null)}
+          onEditSlip={() => {
+            setCheckoutPage(null);
+            setStaffTab(STAFF_TABS.tableStatus);
+          }}
+          onFinalize={finalizeCheckoutPayment}
+          onComplete={completeCheckoutFlow}
+        />
       ) : null}
 
       {tableDetailLabel ? (
@@ -1960,6 +1899,17 @@ export default function KitchenApp() {
             <div className="kitchen-detail-modal__foot">
               <button
                 type="button"
+                className="kitchen-detail-modal__verbal"
+                onClick={() => {
+                  const lbl = tableDetailLabel;
+                  setTableDetailLabel(null);
+                  setVerbalOrderTable(lbl);
+                }}
+              >
+                口頭注文
+              </button>
+              <button
+                type="button"
                 className="kitchen-detail-modal__checkout"
                 onClick={() => {
                   if (!tableDetailLabel) return;
@@ -1978,6 +1928,15 @@ export default function KitchenApp() {
           </div>
         </div>
       ) : null}
+
+      {verbalOrderTable != null ? (
+        <KitchenVerbalOrderSheet
+          tableLabel={verbalOrderTable}
+          onClose={() => setVerbalOrderTable(null)}
+          onSubmitted={handleVerbalOrderSubmitted}
+        />
+      ) : null}
+
       <KitchenDiagnosticsFooter />
     </div>
   );

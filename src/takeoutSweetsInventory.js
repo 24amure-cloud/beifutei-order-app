@@ -46,7 +46,23 @@ export const SWEETS_INVENTORY_MASTER = {
  * @param {Record<string, number>} remote - API 等から取得した id→在庫（0 以上の整数想定）
  */
 export function mergeInventoryMap(remote = {}) {
-  return { ...SWEETS_INVENTORY_MASTER, ...remote };
+  let base = { ...SWEETS_INVENTORY_MASTER };
+  try {
+    const raw = localStorage.getItem('beifutei-takeout-sweets-inventory-v1');
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && typeof p === 'object' && !Array.isArray(p)) {
+        for (const [k, v] of Object.entries(p)) {
+          const id = String(k);
+          if (!id.startsWith('ts-')) continue;
+          base[id] = Math.max(0, Math.floor(Number(v) || 0));
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return { ...base, ...remote };
 }
 
 /** 同一オリジン内で販売済み数量を累計（ts-* のみ） */

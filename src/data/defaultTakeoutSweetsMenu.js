@@ -1,0 +1,60 @@
+/** テイクアウトスイーツ客席メニュー（オーナー編集の初期値） */
+export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
+  {
+    id: 'ts-sec-furusan',
+    titleKey: 'ts_section_furusan',
+    titleJa: 'フルーツサンド',
+    titleStyle: '',
+    items: [
+      { id: 'ts-fr-itigo', name: 'いちご', price: 580, rank: 1, color: '#F48FB1', image: 'furusan-itigo.png' },
+      { id: 'ts-fr-furu-tumix', name: 'フレーツMIX', price: 630, rank: 2, color: '#81D4FA', image: 'furusan-furu-tumix.png' },
+      { id: 'ts-fr-golden-pine', name: 'ゴールドパイン', price: 560, rank: 3, color: '#FFB74D', image: 'furusan-go-rudennpainn.png' },
+      { id: 'ts-fr-itigokiui', name: 'キウイいちご', price: 490, image: 'furusan-itigokiui.png' },
+      { id: 'ts-fr-itigopain', name: 'いちごパイン', price: 580, image: 'furusan-itigopain.png' },
+      { id: 'ts-fr-ichigobanana', name: 'いちごバナナ', price: 680, image: 'furusan-tigobanana.png' },
+      { id: 'ts-fr-chocobanana', name: 'バナナチョコ', price: 480, image: 'furusan-tyokobanana.png' },
+      { id: 'ts-fr-orange', name: 'オレンジ', price: 520, image: 'furusan-orange.png' },
+      { id: 'ts-fr-kiui-mix', name: 'キウイMIX', price: 480, image: 'furusan-kiui-mix.png' },
+    ],
+  },
+  {
+    id: 'ts-sec-kukki',
+    titleKey: 'ts_section_kukki',
+    titleJa: 'クッキーサンド',
+    titleStyle: '#E6E6FA',
+    items: [
+      { id: 'ts-kk-hani', name: 'ハニーポッド\nクッキーサンド', price: 460, image: 'kukki-hani-poddo.png' },
+      { id: 'ts-kk-matcha', name: '抹茶\nクッキーサンド', price: 460, image: 'kukki-mattya.png' },
+      { id: 'ts-kk-hasukappu', name: '苫小牧ハスカップチョコ\nクッキーサンド', price: 480, image: 'kukki-nattutyoko.png' },
+      { id: 'ts-kk-nuts-choco', name: 'ナッツチョコ\nクッキーサンド', price: 460, image: 'kukki-nattutyoko.png' },
+      { id: 'ts-kk-pine', name: 'パイン\nクッキーサンド', price: 460, image: 'kukki-pain.png' },
+      { id: 'ts-kk-peach', name: 'ピーチ\nクッキーサンド', price: 460, image: 'kukki-pi-ti.png' },
+      { id: 'ts-kk-vanilla', name: 'ロイヤルバニラ\nクッキーサンド', price: 420, image: 'kukki-roiyarubanira.png' },
+      { id: 'ts-kk-straw', name: 'ストロベリー\nクッキーサンド', price: 460, image: 'kukki-sutoroberi-.png' },
+    ],
+  },
+  {
+    id: 'ts-sec-scone',
+    titleKey: 'ts_section_scone',
+    titleJa: 'スコーン',
+    titleStyle: '#FFE4B5',
+    items: [
+      { id: 'ts-sc-plain', name: '発酵バタースコーン', price: 360, image: 'hakko-bata-.png' },
+      { id: 'ts-sc-choco', name: 'ココアスコーン', price: 360, image: 'kokoa.png' },
+      { id: 'ts-sc-matcha', name: '抹茶スコーン', price: 360, image: 'mattya.png' },
+      { id: 'ts-sc-caramel', name: 'キャラメルスコーン', price: 360, image: 'kyarameru.png' },
+      { id: 'ts-sc-maple', name: 'メープルスコーン', price: 360, image: 'meipuru.png' },
+      { id: 'ts-sc-namacream', name: '生クリームスコーン', price: 360, image: 'namakuri-mu.png' },
+    ],
+  },
+  {
+    id: 'ts-sec-rittire',
+    titleKey: 'ts_section_rittire',
+    titleJa: 'リトルレアクッキー',
+    titleStyle: '#E0FFFF',
+    items: [
+      { id: 'ts-rt-1', name: 'リトルレアクッキー\n（1枚）', price: 380, image: 'rittireakukki-.png' },
+      { id: 'ts-rt-4', name: 'リトルレアクッキー\n（4枚）', price: 1400, image: 'rittireakukki-4mai.png' },
+    ],
+  },
+];

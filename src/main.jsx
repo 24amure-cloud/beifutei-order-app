@@ -4,6 +4,8 @@ import './index.css'
 import App from './App.jsx'
 import { MenuMasterProvider } from './MenuMasterContext.jsx'
 import { NomihodaiCatalogProvider } from './NomihodaiCatalogContext.jsx'
+import { TakeoutSweetsMenuProvider } from './TakeoutSweetsMenuContext.jsx'
+import { SideDishMenuProvider } from './SideDishMenuContext.jsx'
 import { NomihodaiSessionProvider } from './NomihodaiSessionContext.jsx'
 import { GuestUiLocaleProvider } from './GuestUiLocaleContext.jsx'
 import RootErrorBoundary from './RootErrorBoundary.jsx'
@@ -15,7 +17,11 @@ createRoot(document.getElementById('root')).render(
         <GuestUiLocaleProvider>
           <MenuMasterProvider>
             <NomihodaiCatalogProvider>
-              <App />
+              <TakeoutSweetsMenuProvider>
+                <SideDishMenuProvider>
+                  <App />
+                </SideDishMenuProvider>
+              </TakeoutSweetsMenuProvider>
             </NomihodaiCatalogProvider>
           </MenuMasterProvider>
         </GuestUiLocaleProvider>

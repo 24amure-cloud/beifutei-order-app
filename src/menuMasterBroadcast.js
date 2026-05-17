@@ -1,7 +1,7 @@
 /** オーナーがメニューを反映したとき、同一オリジンの客席・厨房タブへ通知 */
 const CHANNEL_NAME = 'beifutei-menu-master-v1';
 
-/** @typedef {'drink' | 'nomihodai' | 'all'} MenuPublishKind */
+/** @typedef {'drink' | 'nomihodai' | 'takeout' | 'sidedish' | 'all'} MenuPublishKind */
 
 /**
  * @param {MenuPublishKind} kind

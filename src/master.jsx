@@ -4,6 +4,8 @@ import './index.css';
 import { tryAutoBackupYesterdayLedger } from './dailyLedgerCsvExport.js';
 import { MenuMasterProvider } from './MenuMasterContext.jsx';
 import { NomihodaiCatalogProvider } from './NomihodaiCatalogContext.jsx';
+import { TakeoutSweetsMenuProvider } from './TakeoutSweetsMenuContext.jsx';
+import { SideDishMenuProvider } from './SideDishMenuContext.jsx';
 import { NomihodaiSessionProvider } from './NomihodaiSessionContext.jsx';
 import MasterMenuPage from './MasterMenuPage.jsx';
 import { isSupabaseConfigured } from './supabaseClient.js';
@@ -41,7 +43,11 @@ createRoot(document.getElementById('root')).render(
       <NomihodaiSessionProvider>
         <MenuMasterProvider>
           <NomihodaiCatalogProvider>
-            <MasterAppShell />
+            <TakeoutSweetsMenuProvider>
+              <SideDishMenuProvider>
+                <MasterAppShell />
+              </SideDishMenuProvider>
+            </TakeoutSweetsMenuProvider>
           </NomihodaiCatalogProvider>
         </MenuMasterProvider>
       </NomihodaiSessionProvider>

@@ -591,6 +591,46 @@ export function NomihodaiSessionProvider({ children }) {
     return { ok: true };
   }, [session.tableLabel]);
 
+  /** 厨房：口頭注文を任意の卓へ追加（status で未提供キュー／提供済伝票を選択） */
+  const addStaffOrdersForTable = useCallback(
+    async (tableLabel, rows, options = {}) => {
+      const lbl = normalizeTableLabelKey(String(tableLabel ?? ''));
+      if (!lbl || !Array.isArray(rows) || rows.length === 0) return { ok: true };
+      const status = options.status === 'served' ? 'served' : 'pending';
+      const defaultNh = !!options.isNomihodai;
+      const t = Date.now();
+      const inserts = [];
+      rows.forEach((r, idx) => {
+        const qty = Math.max(1, Math.floor(Number(r.qty) || 1));
+        const priceYen = normalizeItemPriceYen(r.itemPrice ?? r.price);
+        const inNhPlan = r.isNomihodai != null ? !!r.isNomihodai : defaultNh;
+        for (let q = 0; q < qty; q += 1) {
+          inserts.push({
+            id: `ord-staff-${t}-${idx}-${q}-${Math.random().toString(36).slice(2, 7)}`,
+            table_label: lbl,
+            item_id: r.itemId || `staff-${lbl}-${t}-${idx}-${q}`,
+            item_name: String(r.itemName || '品名未設定').trim() || '品名未設定',
+            item_price: inNhPlan && (r.kind === 'drink' || r.nhPlanFree) ? 0 : priceYen,
+            status,
+            is_nomihodai: inNhPlan,
+            created_at: t + idx * 20 + q,
+          });
+        }
+      });
+      if (!inserts.length) return { ok: true };
+      ordersRecentOptimisticRef.current = Date.now();
+      setDbOrders((prev) => [...prev, ...inserts]);
+      const { error } = await supabase.from('beifutei_orders').insert(inserts);
+      if (error) {
+        pushKitchenDiagFromSupabase('beifutei_orders:insert', error, '厨房口頭INSERT');
+        setDbOrders((prev) => prev.filter((o) => !inserts.some((i) => i.id === o.id)));
+        return { ok: false, errorMessage: error.message || String(error) };
+      }
+      return { ok: true, count: inserts.length };
+    },
+    [],
+  );
+
   const startNomihodai = useCallback(async ({ tableLabel, menCount, womenCount, durationMs = NOMIHODAI_BASE_MS }) => {
     const lbl = normalizeTableLabelKey(tableLabel != null ? String(tableLabel) : String(session.tableLabel));
     if (!lbl) return;
@@ -1100,6 +1140,7 @@ export function NomihodaiSessionProvider({ children }) {
       setTableAlcoholCharge,
       requestGuestCheckout,
       addGuestOrders,
+      addStaffOrdersForTable,
       requestTableCheckout,
       clearCheckoutRequestForTable,
       clearTableCheckoutRequest,
@@ -1138,6 +1179,7 @@ export function NomihodaiSessionProvider({ children }) {
       setTableAlcoholCharge,
       requestGuestCheckout,
       addGuestOrders,
+      addStaffOrdersForTable,
       requestTableCheckout,
       clearCheckoutRequestForTable,
       clearTableCheckoutRequest,
@@ -1150,7 +1192,7 @@ export function NomihodaiSessionProvider({ children }) {
       countdown,
       pendingNomihodaiCount,
       canOrderMoreNomihodai,
-    ]
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

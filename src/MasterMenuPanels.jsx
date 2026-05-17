@@ -333,3 +333,325 @@ export function MasterNomihodaiMenuPanel({
     </>
   );
 }
+
+/** テイクアウトスイーツ：価格・在庫・品切れ */
+export function MasterTakeoutMenuPanel({
+  takeoutSections,
+  takeoutDirty,
+  takeoutApplyNotice,
+  applyTakeoutMenu,
+  discardTakeoutDraft,
+  addTakeoutSection,
+  onResetTakeoutDefaults,
+  updateTakeoutSection,
+  removeTakeoutSection,
+  updateTakeoutItem,
+  removeTakeoutItem,
+  addTakeoutItem,
+  setTakeoutItemStock,
+  markTakeoutSoldOut,
+  catIdPrefix = 'master-cat-takeout',
+}) {
+  return (
+    <>
+      <section className="master-card">
+        <div className="master-card-head">
+          <h2 className="master-card-title">テイクアウトスイーツ</h2>
+          <div className="master-toolbar">
+            <button type="button" className="master-btn master-btn--primary" onClick={addTakeoutSection}>
+              カテゴリを追加
+            </button>
+            <button type="button" className="master-btn master-btn--danger" onClick={onResetTakeoutDefaults}>
+              初期データに戻す
+            </button>
+          </div>
+        </div>
+
+        <MasterApplyBar
+          dirty={takeoutDirty}
+          applyNotice={takeoutApplyNotice}
+          onApply={applyTakeoutMenu}
+          onDiscard={discardTakeoutDraft}
+        />
+
+        <p className="master-page-lead master-page-lead--compact">
+          在庫数・価格を編集し「客席に反映」でタブレットのテイクアウト画面に出します。在庫 0 は品切れ表示になります。
+        </p>
+
+        <div className="master-sections">
+          {takeoutSections.map((sec) => (
+            <div key={sec.id} id={`${catIdPrefix}-${sec.id}`} className="master-sec master-sec--anchor">
+              <div className="master-sec-top">
+                <label className="master-field">
+                  <span className="master-field-label">カテゴリ名（日本語）</span>
+                  <input
+                    type="text"
+                    className="master-input"
+                    value={sec.titleJa ?? ''}
+                    onChange={(e) => updateTakeoutSection(sec.id, { titleJa: e.target.value })}
+                  />
+                </label>
+                <label className="master-field">
+                  <span className="master-field-label">i18nキー（任意）</span>
+                  <input
+                    type="text"
+                    className="master-input"
+                    value={sec.titleKey ?? ''}
+                    onChange={(e) => updateTakeoutSection(sec.id, { titleKey: e.target.value })}
+                    placeholder="ts_section_furusan"
+                  />
+                </label>
+                <button type="button" className="master-btn master-btn--ghost" onClick={() => removeTakeoutSection(sec.id)}>
+                  カテゴリ削除
+                </button>
+              </div>
+
+              <div className="master-table-wrap">
+                <table className="master-table">
+                  <thead>
+                    <tr>
+                      <th className="master-th-id">ID</th>
+                      <th>品名</th>
+                      <th className="master-th-price">価格</th>
+                      <th className="master-th-price">在庫数</th>
+                      <th className="master-th-act">品切れ</th>
+                      <th className="master-th-act" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sec.items.map((it) => (
+                      <tr key={`${sec.id}-${it.id}`}>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input master-input--mono"
+                            value={it.id}
+                            onChange={(e) => updateTakeoutItem(sec.id, it.id, { id: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input"
+                            value={it.name}
+                            onChange={(e) => updateTakeoutItem(sec.id, it.id, { name: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input master-input--price"
+                            inputMode="numeric"
+                            value={String(it.price ?? '')}
+                            onChange={(e) => {
+                              const n = Number(e.target.value);
+                              if (!Number.isNaN(n) && Number.isFinite(n)) {
+                                updateTakeoutItem(sec.id, it.id, { price: n });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input master-input--price"
+                            inputMode="numeric"
+                            value={String(it.stock ?? 0)}
+                            onChange={(e) => setTakeoutItemStock(sec.id, it.id, e.target.value)}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="master-btn master-btn--small"
+                            onClick={() => markTakeoutSoldOut(sec.id, it.id)}
+                            title="在庫を0にする"
+                          >
+                            品切れ
+                          </button>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="master-btn master-btn--small"
+                            onClick={() => removeTakeoutItem(sec.id, it.id)}
+                          >
+                            削除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" className="master-btn master-btn--secondary" onClick={() => addTakeoutItem(sec.id)}>
+                ＋ 品目を追加
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
+
+/** サイドメニュー */
+export function MasterSideDishMenuPanel({
+  sideDishSections,
+  sideDishDirty,
+  sideDishApplyNotice,
+  applySideDishMenu,
+  discardSideDishDraft,
+  addSideDishSection,
+  onResetSideDishDefaults,
+  updateSideDishSection,
+  removeSideDishSection,
+  updateSideDishItem,
+  removeSideDishItem,
+  addSideDishItem,
+  catIdPrefix = 'master-cat-sidedish',
+}) {
+  return (
+    <>
+      <section className="master-card">
+        <div className="master-card-head">
+          <h2 className="master-card-title">サイドメニュー</h2>
+          <div className="master-toolbar">
+            <button type="button" className="master-btn master-btn--primary" onClick={addSideDishSection}>
+              ブロックを追加
+            </button>
+            <button type="button" className="master-btn master-btn--danger" onClick={onResetSideDishDefaults}>
+              初期データに戻す
+            </button>
+          </div>
+        </div>
+
+        <MasterApplyBar
+          dirty={sideDishDirty}
+          applyNotice={sideDishApplyNotice}
+          onApply={applySideDishMenu}
+          onDiscard={discardSideDishDraft}
+        />
+
+        <p className="master-page-lead master-page-lead--compact">
+          品名・価格・画像ファイル名を編集できます。レイアウト種別は客席画面の表示形式です（hero＝おすすめ大カード、drinks＝おすすめドリンク、list系＝一覧）。
+        </p>
+
+        <div className="master-sections">
+          {sideDishSections.map((sec) => (
+            <div key={sec.id} id={`${catIdPrefix}-${sec.id}`} className="master-sec master-sec--anchor">
+              <div className="master-sec-top">
+                <label className="master-field">
+                  <span className="master-field-label">レイアウト</span>
+                  <select
+                    className="master-input"
+                    value={sec.layout || 'list'}
+                    onChange={(e) => updateSideDishSection(sec.id, { layout: e.target.value })}
+                  >
+                    <option value="hero">hero（おすすめ大）</option>
+                    <option value="drinks">drinks（ドリンク3種）</option>
+                    <option value="list-images">list-images（とりあえず系）</option>
+                    <option value="list-images-foot">list-images-foot（人気・おつまみ）</option>
+                    <option value="list">list（シンプル一覧）</option>
+                  </select>
+                </label>
+                <label className="master-field">
+                  <span className="master-field-label">見出し（日本語）</span>
+                  <input
+                    type="text"
+                    className="master-input"
+                    value={sec.titleJa ?? ''}
+                    onChange={(e) => updateSideDishSection(sec.id, { titleJa: e.target.value })}
+                  />
+                </label>
+                <label className="master-field">
+                  <span className="master-field-label">i18nキー</span>
+                  <input
+                    type="text"
+                    className="master-input"
+                    value={sec.titleKey ?? ''}
+                    onChange={(e) => updateSideDishSection(sec.id, { titleKey: e.target.value })}
+                  />
+                </label>
+                <button type="button" className="master-btn master-btn--ghost" onClick={() => removeSideDishSection(sec.id)}>
+                  ブロック削除
+                </button>
+              </div>
+
+              <div className="master-table-wrap">
+                <table className="master-table">
+                  <thead>
+                    <tr>
+                      <th className="master-th-id">ID</th>
+                      <th>品名（厨房・伝票）</th>
+                      <th className="master-th-price">価格</th>
+                      <th>画像ファイル</th>
+                      <th className="master-th-act" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sec.items.map((it) => (
+                      <tr key={`${sec.id}-${it.id}`}>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input master-input--mono"
+                            value={it.id}
+                            onChange={(e) => updateSideDishItem(sec.id, it.id, { id: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input"
+                            value={it.name}
+                            onChange={(e) => updateSideDishItem(sec.id, it.id, { name: e.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input master-input--price"
+                            inputMode="numeric"
+                            value={String(it.price ?? '')}
+                            onChange={(e) => {
+                              const n = Number(e.target.value);
+                              if (!Number.isNaN(n) && Number.isFinite(n)) {
+                                updateSideDishItem(sec.id, it.id, { price: n });
+                              }
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="master-input"
+                            value={it.image ?? ''}
+                            onChange={(e) => updateSideDishItem(sec.id, it.id, { image: e.target.value })}
+                            placeholder="public 内のファイル名"
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="master-btn master-btn--small"
+                            onClick={() => removeSideDishItem(sec.id, it.id)}
+                          >
+                            削除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button type="button" className="master-btn master-btn--secondary" onClick={() => addSideDishItem(sec.id)}>
+                ＋ 品目を追加
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
+    </>
+  );
+}
