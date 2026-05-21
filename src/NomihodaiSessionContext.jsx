@@ -41,6 +41,12 @@ import {
   ALCOHOL_CHARGE_BEFORE_21_YEN,
   getAlcoholTableCharge,
 } from './alcoholTableCharge.js';
+import {
+  clearGuestPartyLocal,
+  guestPartyFromTableRow,
+  loadGuestPartyLocalAll,
+  saveGuestPartyLocal,
+} from './guestPartyDemographics.js';
 
 const Ctx = createContext(null);
 
@@ -120,6 +126,11 @@ function checkoutTableResetPayload(tableLabel) {
     table_memo: null,
     alcohol_charge_people: 0,
     alcohol_charge_yen_per_person: 0,
+    guest_party_men: 0,
+    guest_party_women: 0,
+    guest_party_children: 0,
+    guest_party_captured_at: null,
+    guest_party_locale: null,
   };
 }
 
@@ -517,6 +528,7 @@ export function NomihodaiSessionProvider({ children }) {
     const nomihodaiByLabel = {};
     const nomihodaiGuestIntentByLabel = {};
     const tableMemoByLabel = {};
+    const guestPartyByLabel = {};
     /** 卓ラベル → 会計依頼時刻（厨房は全卓分を参照） */
     const checkoutRequestByLabel = {};
     let checkoutRequestAt = null;
@@ -547,6 +559,8 @@ export function NomihodaiSessionProvider({ children }) {
       if (row.table_memo) {
         tableMemoByLabel[lbl] = row.table_memo;
       }
+      const party = guestPartyFromTableRow(row);
+      if (party) guestPartyByLabel[lbl] = party;
       const cq = row.checkout_requested_at != null ? Number(row.checkout_requested_at) : null;
       if (Number.isFinite(cq) && cq > 0) {
         checkoutRequestByLabel[lbl] = cq;
@@ -580,6 +594,11 @@ export function NomihodaiSessionProvider({ children }) {
       if (farewellFromTableRow(row)) guestFarewellActiveByLabel[lbl] = true;
     }
 
+    const localParty = loadGuestPartyLocalAll();
+    for (const [lbl, party] of Object.entries(localParty)) {
+      if (!guestPartyByLabel[lbl]) guestPartyByLabel[lbl] = party;
+    }
+
     const alcoholChargeByLabel = {};
     dbTables.forEach((row) => {
       const lbl = normalizeTableLabelKey(row.table_label ?? '');
@@ -599,6 +618,7 @@ export function NomihodaiSessionProvider({ children }) {
       nomihodaiByLabel,
       nomihodaiGuestIntentByLabel,
       tableMemoByLabel,
+      guestPartyByLabel,
       checkoutRequestByLabel,
       checkoutRequestAt,
       guestFarewellActiveByLabel,
@@ -619,6 +639,16 @@ export function NomihodaiSessionProvider({ children }) {
   // Actions translating to Supabase Updates
   const addGuestOrders = useCallback(async (rows) => {
     if (!Array.isArray(rows) || rows.length === 0) return { ok: true };
+    const lbl = normalizeTableLabelKey(session.tableLabel ?? '');
+    const party =
+      session.guestPartyByLabel?.[lbl] ?? loadGuestPartyLocalAll()[lbl] ?? null;
+    if (!(party?.capturedAt > 0)) {
+      return {
+        ok: false,
+        errorMessage: 'PARTY_NOT_CAPTURED',
+        guestHint: 'ご来店人数の入力が完了していません。',
+      };
+    }
     const t = Date.now();
     const inserts = rows.map((r, idx) => ({
       id: `ord-${t}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
@@ -646,7 +676,65 @@ export function NomihodaiSessionProvider({ children }) {
     }
     /* INSERT 成功後の即時 select は RLS で [] になり得るため行わない（楽観行＋Realtime／定期 refetch に任せる） */
     return { ok: true };
-  }, [session.tableLabel, applyDbConnectionFromError]);
+  }, [session.tableLabel, session.guestPartyByLabel, applyDbConnectionFromError]);
+
+  const submitGuestPartyDemographics = useCallback(
+    async ({ men, women, children, locale }) => {
+      const lbl = normalizeTableLabelKey(session.tableLabel ?? '');
+      if (!lbl) return { ok: false, errorMessage: 'NO_TABLE' };
+
+      const m = Math.max(0, Math.min(99, Math.floor(Number(men) || 0)));
+      const w = Math.max(0, Math.min(99, Math.floor(Number(women) || 0)));
+      const c = Math.max(0, Math.min(99, Math.floor(Number(children) || 0)));
+      if (m + w + c < 1) return { ok: false, errorMessage: 'EMPTY_PARTY' };
+      const loc = locale === 'en' ? 'en' : 'ja';
+
+      const capturedAt = Date.now();
+      const party = { men: m, women: w, children: c, locale: loc, capturedAt };
+
+      setDbTables((prev) => {
+        const idx = prev.findIndex((t) => normalizeTableLabelKey(t.table_label ?? '') === lbl);
+        const patch = {
+          table_label: lbl,
+          guest_party_men: m,
+          guest_party_women: w,
+          guest_party_children: c,
+          guest_party_captured_at: capturedAt,
+          guest_party_locale: loc,
+        };
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...patch };
+          return normalizeTableStatesRows(next);
+        }
+        return normalizeTableStatesRows([...prev, patch]);
+      });
+
+      saveGuestPartyLocal(lbl, party);
+
+      const { error } = await supabase.from('beifutei_table_states').upsert(
+        {
+          table_label: lbl,
+          guest_party_men: m,
+          guest_party_women: w,
+          guest_party_children: c,
+          guest_party_captured_at: capturedAt,
+          guest_party_locale: loc,
+        },
+        { onConflict: 'table_label', defaultToNull: false },
+      );
+
+      if (error) {
+        pushKitchenDiagFromSupabase('beifutei_table_states:upsert', error, '客席人数upsert');
+        applyDbConnectionFromError(error);
+        /* localStorage は保存済みのため客席は進める */
+      }
+
+      void refetchTablesFromDb();
+      return { ok: true };
+    },
+    [session.tableLabel, applyDbConnectionFromError, refetchTablesFromDb],
+  );
 
   /** 厨房：口頭注文を任意の卓へ追加（status で未提供キュー／提供済伝票を選択） */
   const addStaffOrdersForTable = useCallback(
@@ -996,6 +1084,8 @@ export function NomihodaiSessionProvider({ children }) {
     const stayMinutes = nomihodaiPlanYen > 0 && n?.startMs ? Math.max(0, Math.round((checkoutNow - n.startMs) / 60000)) : null;
     const rawMemo = session.tableMemoByLabel[tl];
     const checkoutMemo = typeof rawMemo === 'string' ? rawMemo.replace(/\s+/g, ' ').trim().slice(0, TABLE_MEMO_MAX_LEN) : '';
+    const party =
+      session.guestPartyByLabel?.[tl] ?? loadGuestPartyLocalAll()[tl] ?? null;
 
     appendDailyLedgerEntry({
       recordedAt: checkoutNow,
@@ -1018,6 +1108,11 @@ export function NomihodaiSessionProvider({ children }) {
       people: nomihodaiPlanYen > 0 && n ? Math.max(1, Number(n.people) || 1) : 1,
       stayMinutes,
       checkoutMemo,
+      partyMen: party?.men ?? 0,
+      partyWomen: party?.women ?? 0,
+      partyChildren: party?.children ?? 0,
+      guestUiLocale: party?.locale === 'en' ? 'en' : party?.locale === 'ja' ? 'ja' : undefined,
+      orderSource: 'table',
     });
 
     // Cleanup Supabase
@@ -1058,6 +1153,7 @@ export function NomihodaiSessionProvider({ children }) {
       return normalizeTableStatesRows([...prev, merged]);
     });
     void refetchTablesFromDb();
+    clearGuestPartyLocal(tl);
 
     const cqRaw = session.checkoutRequestByLabel?.[tl];
     const cqNum = Number(cqRaw);
@@ -1194,6 +1290,7 @@ export function NomihodaiSessionProvider({ children }) {
       requestNomihodaiGuestIntent,
       clearNomihodaiGuestIntent,
       setSessionTableLabel,
+      submitGuestPartyDemographics,
       setTableMemo,
       setTableAlcoholCharge,
       requestGuestCheckout,
@@ -1234,6 +1331,7 @@ export function NomihodaiSessionProvider({ children }) {
       requestNomihodaiGuestIntent,
       clearNomihodaiGuestIntent,
       setSessionTableLabel,
+      submitGuestPartyDemographics,
       setTableMemo,
       setTableAlcoholCharge,
       requestGuestCheckout,

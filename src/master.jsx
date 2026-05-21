@@ -18,14 +18,8 @@ function MasterAppShell() {
   }
 
   return (
-    <div className="master-app-root">
+    <div className="master-app-root master-app-root--president">
       <LedgerScheduledBackup />
-      <div className="master-app-banner" role="banner">
-        <span className="master-app-banner__label">オーナー専用</span>
-        <span className="master-app-banner__text">
-          メニュー編集・オーダー／売上サマリー（お客様向けオーダー画面とは別URLです）
-        </span>
-      </div>
       <MasterMenuPage />
     </div>
   );

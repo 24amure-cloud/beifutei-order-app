@@ -2,6 +2,17 @@ import { SWEETS_INVENTORY_MASTER } from './takeoutSweetsInventory.js';
 
 export const TAKEOUT_INVENTORY_STORAGE_KEY = 'beifutei-takeout-sweets-inventory-v1';
 
+/** 在庫保存時（同一オリジンの客席・厨房タブへ即通知） */
+export const TAKEOUT_INVENTORY_UPDATED_EVENT = 'beifutei-takeout-inventory-updated';
+
+function broadcastTakeoutInventoryUpdated() {
+  try {
+    window.dispatchEvent(new CustomEvent(TAKEOUT_INVENTORY_UPDATED_EVENT));
+  } catch {
+    /* ignore */
+  }
+}
+
 function sanitizeMap(raw) {
   const out = {};
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
@@ -27,6 +38,7 @@ export function loadTakeoutInventoryMap() {
 
 export function saveTakeoutInventoryMap(map) {
   localStorage.setItem(TAKEOUT_INVENTORY_STORAGE_KEY, JSON.stringify(sanitizeMap(map)));
+  broadcastTakeoutInventoryUpdated();
 }
 
 export function inventoryMapFromSections(sections) {

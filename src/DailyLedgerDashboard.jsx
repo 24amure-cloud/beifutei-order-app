@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { buildDailyReport } from './dailyLedgerAnalytics.js';
 import { downloadDailyLedgerCsvForDate } from './dailyLedgerCsvExport.js';
-import { isLedgerDriveUploadConfigured } from './ledgerDriveSettings.js';
 import LedgerDriveSetupPanel from './LedgerDriveSetupPanel.jsx';
+import LedgerDataNotice from './LedgerDataNotice.jsx';
+import LedgerDemographicsCards from './LedgerDemographicsCards.jsx';
 import {
   DAILY_LEDGER_STORAGE_KEY,
   LEDGER_SETTINGS_KEY,
@@ -65,13 +66,9 @@ export default function DailyLedgerDashboard() {
     <section className="master-card master-card--ledger">
       <div className="master-card-head master-card-head--ledger">
         <div>
-          <h2 className="master-card-title">日計管理</h2>
+          <h2 className="master-card-title">日計</h2>
           <p className="master-page-lead master-page-lead--compact">
-            厨房「各卓・伝票」で会計確定したデータを集計しています。同一ブラウザ・同一オリジンのみです。
-            毎朝7時以降、前日分の CSV を1日1回自動保存します（会計端末の厨房画面を開いたまま、または7時以降に開いたとき）。
-            {isLedgerDriveUploadConfigured()
-              ? ' Google Drive へのアップロード設定済みです。'
-              : ' 下の「Google Drive 自動保存の設定」から接続できます。'}
+            日付を選ぶと、その日の会計一覧と売上内訳が見られます。
           </p>
         </div>
         <div className="master-ledger-head-tools">
@@ -88,11 +85,12 @@ export default function DailyLedgerDashboard() {
             className="master-btn master-btn--secondary master-btn--small"
             onClick={() => downloadDailyLedgerCsvForDate(dateKey)}
           >
-            対象日をCSV保存
+            CSVで保存
           </button>
         </div>
       </div>
 
+      <LedgerDataNotice />
       <LedgerDriveSetupPanel />
 
       <div className="master-ledger-kpi-grid">
@@ -132,14 +130,6 @@ export default function DailyLedgerDashboard() {
             {report.avgStayMin != null ? `${report.avgStayMin.toFixed(1)} 分` : '—'}
           </strong>
         </div>
-        <div className="master-ledger-kpi">
-          <span className="master-ledger-kpi__label">男女比（飲み放題会計時の人数）</span>
-          <strong className="master-ledger-kpi__value">
-            {report.genderRatio
-              ? `男性 ${report.genderRatio.menSum}名 (${report.genderRatio.menPct.toFixed(0)}%) ／ 女性 ${report.genderRatio.womenSum}名 (${report.genderRatio.womenPct.toFixed(0)}%)`
-              : '—'}
-          </strong>
-        </div>
         <div className="master-ledger-kpi master-ledger-kpi--cost">
           <span className="master-ledger-kpi__label">原価率（店舗設定）</span>
           <div className="master-ledger-cogs">
@@ -160,6 +150,13 @@ export default function DailyLedgerDashboard() {
           </p>
         </div>
       </div>
+
+      <LedgerDemographicsCards
+        partyRatio={report.partyRatio}
+        localeRatio={report.localeRatio}
+        genderRatio={report.genderRatio}
+        nhSessionCount={report.nhSessionCount}
+      />
 
       <div className="master-ledger-block master-ledger-block--checkout-log">
         <h3 className="master-ledger-block__title">会計一覧（卓メモ）</h3>

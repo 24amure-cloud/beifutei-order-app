@@ -386,7 +386,7 @@ export function MasterNomihodaiMenuPanel({
   );
 }
 
-/** テイクアウトスイーツ：価格・在庫・品切れ */
+/** テイクアウトスイーツ：価格・品目（在庫は厨房スタッフ画面） */
 export function MasterTakeoutMenuPanel({
   takeoutSections,
   takeoutDirty,
@@ -400,8 +400,6 @@ export function MasterTakeoutMenuPanel({
   updateTakeoutItem,
   removeTakeoutItem,
   addTakeoutItem,
-  setTakeoutItemStock,
-  markTakeoutSoldOut,
   catIdPrefix = 'master-cat-takeout',
 }) {
   return (
@@ -428,7 +426,8 @@ export function MasterTakeoutMenuPanel({
         />
 
         <p className="master-page-lead master-page-lead--compact">
-          カテゴリ名・品目・在庫・価格を編集し「メニューを反映」で、客席タブレットと厨房スタッフのテイクアウトスイーツ画面に同時に出ます。在庫 0 は品切れ表示になります。
+          カテゴリ名・品目・価格を編集し「メニューを反映」で、客席タブレットと厨房に出ます。
+          <strong>在庫の増減・品切れは厨房画面の「スイーツ在庫」タブ</strong>で行います（会計作業と分離）。
         </p>
 
         <div className="master-sections">
@@ -466,8 +465,6 @@ export function MasterTakeoutMenuPanel({
                       <th className="master-th-id">ID</th>
                       <th>品名</th>
                       <th className="master-th-price">価格</th>
-                      <th className="master-th-price">在庫数</th>
-                      <th className="master-th-act">品切れ</th>
                       <th className="master-th-act" />
                     </tr>
                   </thead>
@@ -503,25 +500,6 @@ export function MasterTakeoutMenuPanel({
                               }
                             }}
                           />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="master-input master-input--price"
-                            inputMode="numeric"
-                            value={String(it.stock ?? 0)}
-                            onChange={(e) => setTakeoutItemStock(sec.id, it.id, e.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="master-btn master-btn--small"
-                            onClick={() => markTakeoutSoldOut(sec.id, it.id)}
-                            title="在庫を0にする"
-                          >
-                            品切れ
-                          </button>
                         </td>
                         <td>
                           <button

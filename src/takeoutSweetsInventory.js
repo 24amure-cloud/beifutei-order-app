@@ -28,6 +28,7 @@ export const SWEETS_INVENTORY_MASTER = {
   'ts-kk-matcha': 5,
   'ts-kk-hasukappu': 40,
   'ts-kk-nuts-choco': 0,
+  'ts-kk-choco-sand': 10,
   'ts-kk-pine': 12,
   'ts-kk-peach': 9,
   'ts-kk-vanilla': 7,

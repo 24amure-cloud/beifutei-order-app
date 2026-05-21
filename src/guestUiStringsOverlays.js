@@ -207,7 +207,7 @@ export const OVERLAY_EN = {
   ts_section_furusan: 'Fruit sandwich',
   ts_section_kukki: 'Cookie sandwich',
   ts_section_scone: 'Scone',
-  ts_section_rittire: 'Little rare cookie',
+  ts_section_rittire: 'Rich rare cookie',
   ts_soldout: 'Sold out',
   ts_popular_no: 'Popular',
   ts_rank_suffix: 'No.',

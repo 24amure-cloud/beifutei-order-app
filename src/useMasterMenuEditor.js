@@ -273,9 +273,7 @@ export function useMasterMenuEditor() {
       ...sec,
       items: sec.items.map(({ stock, ...rest }) => rest),
     }));
-    const nextInv = inventoryMapFromSections(draftTakeout);
     setTakeoutSections(nextSections);
-    setTakeoutInventoryMap(nextInv);
     notifyMenuPublished('takeout');
     setTakeoutApplyNotice('ok');
     window.setTimeout(() => setTakeoutApplyNotice(null), 4000);
@@ -444,7 +442,6 @@ export function useMasterMenuEditor() {
         items: sec.items.map(({ stock, ...rest }) => rest),
       }));
       setTakeoutSections(nextSections);
-      setTakeoutInventoryMap(inventoryMapFromSections(draftTakeout));
     }
     if (sideDishDirty) setSideDishSections(structuredClone(draftSideDish));
     notifyMenuPublished('all');

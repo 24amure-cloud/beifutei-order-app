@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { pullAndMergeDailyLedgerFromSupabase } from './dailyLedgerSync.js';
 import DailyLedgerDashboard from './DailyLedgerDashboard.jsx';
 import OwnerSalesCalendar from './OwnerSalesCalendar.jsx';
+import MonthClosePanel from './MonthClosePanel.jsx';
 import MasterOpsPanel from './MasterOpsPanel.jsx';
 import {
   MasterDrinkMenuPanel,
@@ -11,209 +13,211 @@ import {
 } from './MasterMenuPanels.jsx';
 import { useMasterMenuEditor } from './useMasterMenuEditor.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
-import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
+import { getLocalDateKey } from './dailyLedger.js';
 import { sideDishSectionNavLabel } from './sideDishMenuLabels.js';
+
+const MENU_MODES = ['drink', 'nomihodai', 'takeout', 'sidedish'];
+const MENU_LABELS = {
+  drink: 'ドリンク',
+  nomihodai: '飲み放題',
+  takeout: 'テイクアウト',
+  sidedish: 'サイド',
+};
+
+const MAIN_TABS = [
+  { id: 'ops', label: '本日の売上' },
+  { id: 'ledger', label: '日計' },
+  { id: 'salesCalendar', label: '売上カレンダー' },
+  { id: 'monthClose', label: '月締め' },
+  { id: 'menu', label: 'メニュー編集', isMenu: true },
+];
+
+function isMenuMode(mode) {
+  return MENU_MODES.includes(mode);
+}
+
+function todayLabel() {
+  try {
+    return new Date().toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+    });
+  } catch {
+    return getLocalDateKey();
+  }
+}
 
 export default function MasterMenuPage() {
   const editor = useMasterMenuEditor();
-  const {
-    guestNomihodaiIntentLabels,
-    session,
-    nomihodaiActive,
-    countdown,
-    pendingNomihodaiCount,
-  } = useNomihodaiSession();
+  const { guestNomihodaiIntentLabels } = useNomihodaiSession();
 
-  const [activeMode, setActiveMode] = useState('drink');
+  const [activeMode, setActiveMode] = useState('ops');
+  const [lastMenuMode, setLastMenuMode] = useState('drink');
+
+  useEffect(() => {
+    pullAndMergeDailyLedgerFromSupabase();
+  }, []);
 
   const requestActiveMode = (mode) => {
     if (mode === activeMode) return;
     if (activeMode === 'drink' && editor.drinkDirty && mode !== 'drink') {
-      if (!window.confirm('ドリンクメニューに未反映の変更があります。このまま切り替えますか？')) return;
+      if (!window.confirm('ドリンクの変更がまだ反映されていません。このまま移動しますか？')) return;
     }
     if (activeMode === 'nomihodai' && editor.nhDirty && mode !== 'nomihodai') {
-      if (!window.confirm('飲み放題メニューに未反映の変更があります。このまま切り替えますか？')) return;
+      if (!window.confirm('飲み放題の変更がまだ反映されていません。このまま移動しますか？')) return;
     }
     if (activeMode === 'takeout' && editor.takeoutDirty && mode !== 'takeout') {
-      if (!window.confirm('テイクアウトスイーツに未反映の変更があります。このまま切り替えますか？')) return;
+      if (!window.confirm('テイクアウトの変更がまだ反映されていません。このまま移動しますか？')) return;
     }
     if (activeMode === 'sidedish' && editor.sideDishDirty && mode !== 'sidedish') {
-      if (!window.confirm('サイドメニューに未反映の変更があります。このまま切り替えますか？')) return;
+      if (!window.confirm('サイドメニューの変更がまだ反映されていません。このまま移動しますか？')) return;
     }
+    if (isMenuMode(mode)) setLastMenuMode(mode);
     setActiveMode(mode);
   };
 
-  const kitchenHref = `${String(import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')}kitchen.html`;
+  const onMainTab = (tab) => {
+    if (tab.isMenu) {
+      requestActiveMode(lastMenuMode);
+      return;
+    }
+    requestActiveMode(tab.id);
+  };
 
+  const kitchenHref = `${String(import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')}kitchen.html`;
+  const menuMode = isMenuMode(activeMode) ? activeMode : lastMenuMode;
   const catPrefix =
-    activeMode === 'drink'
+    menuMode === 'drink'
       ? 'master-cat-drink'
-      : activeMode === 'nomihodai'
+      : menuMode === 'nomihodai'
         ? 'master-cat-nh'
-        : activeMode === 'takeout'
+        : menuMode === 'takeout'
           ? 'master-cat-takeout'
-          : activeMode === 'sidedish'
-            ? 'master-cat-sidedish'
-            : '';
+          : 'master-cat-sidedish';
   const catList =
-    activeMode === 'drink'
+    menuMode === 'drink'
       ? editor.drinkSections
-      : activeMode === 'nomihodai'
+      : menuMode === 'nomihodai'
         ? editor.nomihodaiCatalog
-        : activeMode === 'takeout'
+        : menuMode === 'takeout'
           ? editor.takeoutSections
-          : activeMode === 'sidedish'
-            ? editor.sideDishSections
-            : [];
+          : editor.sideDishSections;
+
+  const tabActive = (tab) =>
+    tab.isMenu ? isMenuMode(activeMode) : activeMode === tab.id;
 
   return (
-    <main className="main-content master-page">
-      <div className="master-page-inner master-owner-shell">
+    <main className="main-content master-page master-page--president">
+      <div className="master-page-inner master-owner-shell master-owner-shell--president">
         {guestNomihodaiIntentLabels.length > 0 && (
-          <div className="master-intent-banner" role="status">
-            <strong>卓{guestNomihodaiIntentLabels.join('・')}：客席から飲み放題の希望があります。</strong>
-            厨房の「各卓・伝票」タブで該当卓が強調されます。人数を確認して「飲み放題開始」を押してください。
-            <a href={kitchenHref} className="master-intent-banner__link" target="_blank" rel="noopener noreferrer">
-              厨房画面を開く
+          <div className="master-president-alert" role="alert">
+            <strong>卓 {guestNomihodaiIntentLabels.join('・')}</strong>
+            <span>お客様から飲み放題の希望があります</span>
+            <a href={kitchenHref} className="master-president-alert__link" target="_blank" rel="noopener noreferrer">
+              厨房で確認
             </a>
           </div>
         )}
 
-        <header className="master-page-header master-page-header--owner">
-          <h1 className="master-page-title">オーナー専用コーナー</h1>
-          <p className="master-page-lead">
-            左ナビ先頭のプルダウンで客席・厨房・オーナーのURLを開けます。メニュー編集はカテゴリから該当ブロックへジャンプ。オーダー・提供は厨房、卓まわりの数字は「卓・売上サマリー」からどうぞ。
-          </p>
+        <header className="master-president-header">
+          <p className="master-president-header__date">{todayLabel()}</p>
+          <h1 className="master-president-header__title">店舗管理</h1>
+          <p className="master-president-header__lead">数字の確認とメニュー変更ができます。日常の確認は「本日の売上」からどうぞ。</p>
         </header>
 
-        <div className="master-owner-grid">
-          <aside className="master-owner-aside" aria-label="オーナーメニュー">
-            <div className="master-owner-aside__brand">
-              <span className="master-owner-aside__badge">店舗用</span>
-              <p className="master-owner-aside__brand-text">横長ディスプレイ想定・左ナビ</p>
-            </div>
+        <nav className="master-president-tabs" aria-label="メイン">
+          {MAIN_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`master-president-tab${tabActive(tab) ? ' master-president-tab--active' : ''}`}
+              onClick={() => onMainTab(tab)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-            <StoreEntryUrlsPanel variant="master" />
+        <div className="master-owner-grid master-owner-grid--president">
+          <aside className="master-owner-aside master-owner-aside--president" aria-label="よく使う操作">
+            <a
+              href={kitchenHref}
+              className="master-president-kitchen"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              厨房・スタッフ画面を開く
+            </a>
 
-            <div className="master-owner-aside__group">
-              <h2 className="master-owner-aside__heading">メニュー編集</h2>
-              <MasterGlobalApplyBar
-                anyMenuDirty={editor.anyMenuDirty}
-                allApplyNotice={editor.allApplyNotice}
-                applyAllMenus={editor.applyAllMenus}
-                discardAllDrafts={editor.discardAllDrafts}
-              />
-              <div className="master-owner-aside__modes">
-                <button
-                  type="button"
-                  className={`master-owner-mode${activeMode === 'drink' ? ' master-owner-mode--active' : ''}`}
-                  onClick={() => requestActiveMode('drink')}
-                >
-                  ドリンクメニュー
-                </button>
-                <button
-                  type="button"
-                  className={`master-owner-mode${activeMode === 'nomihodai' ? ' master-owner-mode--active' : ''}`}
-                  onClick={() => requestActiveMode('nomihodai')}
-                >
-                  飲み放題（プラン内）
-                </button>
-                <button
-                  type="button"
-                  className={`master-owner-mode${activeMode === 'takeout' ? ' master-owner-mode--active' : ''}`}
-                  onClick={() => requestActiveMode('takeout')}
-                >
-                  テイクアウトスイーツ
-                </button>
-                <button
-                  type="button"
-                  className={`master-owner-mode${activeMode === 'sidedish' ? ' master-owner-mode--active' : ''}`}
-                  onClick={() => requestActiveMode('sidedish')}
-                >
-                  サイドメニュー
-                </button>
+            {!isMenuMode(activeMode) && (
+              <div className="master-president-aside-hint">
+                <p>過去の売上は「日計」「売上カレンダー」タブでご確認ください。</p>
               </div>
-            </div>
+            )}
 
-            {(activeMode === 'drink' ||
-              activeMode === 'nomihodai' ||
-              activeMode === 'takeout' ||
-              activeMode === 'sidedish') && (
-              <nav className="master-owner-catnav" aria-label="カテゴリ一覧">
-                <h3 className="master-owner-catnav__title">カテゴリ</h3>
-                {catList.length === 0 ? (
-                  <p className="master-owner-catnav__empty">カテゴリがありません。「カテゴリを追加」から作成してください。</p>
-                ) : (
-                  <ul className="master-owner-catlist">
-                    {catList.map((sec) => (
-                      <li key={sec.id}>
-                        <a className="master-owner-catlink" href={`#${catPrefix}-${sec.id}`}>
-                          <span className="master-owner-catlink__ja">
+            {isMenuMode(activeMode) && (
+              <>
+                <div className="master-owner-aside__group">
+                  <h2 className="master-owner-aside__heading">編集するメニュー</h2>
+                  <MasterGlobalApplyBar
+                    anyMenuDirty={editor.anyMenuDirty}
+                    allApplyNotice={editor.allApplyNotice}
+                    applyAllMenus={editor.applyAllMenus}
+                    discardAllDrafts={editor.discardAllDrafts}
+                  />
+                  <div className="master-owner-aside__modes">
+                    {MENU_MODES.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className={`master-owner-mode${activeMode === m ? ' master-owner-mode--active' : ''}`}
+                        onClick={() => requestActiveMode(m)}
+                      >
+                        {MENU_LABELS[m]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {catList.length > 0 && (
+                  <nav className="master-owner-catnav" aria-label="カテゴリ">
+                    <h3 className="master-owner-catnav__title">ジャンプ</h3>
+                    <ul className="master-owner-catlist">
+                      {catList.map((sec) => (
+                        <li key={sec.id}>
+                          <a className="master-owner-catlink" href={`#${catPrefix}-${sec.id}`}>
                             {activeMode === 'sidedish'
                               ? sideDishSectionNavLabel(sec)
                               : sec.titleJa || '（無題）'}
-                          </span>
-                          {sec.titleEn ? (
-                            <span className="master-owner-catlink__en">{sec.titleEn}</span>
-                          ) : null}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </nav>
                 )}
-              </nav>
+              </>
             )}
-
-            <div className="master-owner-aside__group master-owner-aside__group--spaced">
-              <h2 className="master-owner-aside__heading">オーダー管理・売上</h2>
-              <a
-                href={kitchenHref}
-                className="master-owner-kitchen-link"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                スタッフ・オーダー画面を開く
-              </a>
-              <button
-                type="button"
-                className={`master-owner-mode master-owner-mode--sub${activeMode === 'ops' ? ' master-owner-mode--active' : ''}`}
-                onClick={() => requestActiveMode('ops')}
-              >
-                卓・売上サマリー
-              </button>
-              <button
-                type="button"
-                className={`master-owner-mode master-owner-mode--sub${activeMode === 'ledger' ? ' master-owner-mode--active' : ''}`}
-                onClick={() => requestActiveMode('ledger')}
-              >
-                日計管理
-              </button>
-              <button
-                type="button"
-                className={`master-owner-mode master-owner-mode--sub${activeMode === 'salesCalendar' ? ' master-owner-mode--active' : ''}`}
-                onClick={() => requestActiveMode('salesCalendar')}
-              >
-                売上カレンダー
-              </button>
-            </div>
           </aside>
 
-          <div className="master-owner-main">
+          <div className="master-owner-main master-owner-main--president">
+            {activeMode === 'ops' && (
+              <>
+                <MasterOpsPanel
+                  kitchenHref={kitchenHref}
+                  showKitchenLink={false}
+                  onOpenLedger={() => requestActiveMode('ledger')}
+                  onOpenCalendar={() => requestActiveMode('salesCalendar')}
+                />
+              </>
+            )}
+            {activeMode === 'ledger' && <DailyLedgerDashboard />}
+            {activeMode === 'salesCalendar' && <OwnerSalesCalendar />}
+            {activeMode === 'monthClose' && <MonthClosePanel />}
             {activeMode === 'drink' && <MasterDrinkMenuPanel {...editor} />}
             {activeMode === 'nomihodai' && <MasterNomihodaiMenuPanel {...editor} />}
             {activeMode === 'takeout' && <MasterTakeoutMenuPanel {...editor} />}
             {activeMode === 'sidedish' && <MasterSideDishMenuPanel {...editor} />}
-            {activeMode === 'ops' && (
-              <MasterOpsPanel
-                session={session}
-                nomihodaiActive={nomihodaiActive}
-                countdown={countdown}
-                kitchenHref={kitchenHref}
-                pendingNomihodaiCount={pendingNomihodaiCount}
-              />
-            )}
-            {activeMode === 'ledger' && <DailyLedgerDashboard />}
-            {activeMode === 'salesCalendar' && <OwnerSalesCalendar />}
           </div>
         </div>
       </div>

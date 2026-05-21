@@ -1,7 +1,12 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_TAKEOUT_SWEETS_SECTIONS } from './data/defaultTakeoutSweetsMenu.js';
 import { loadTakeoutSweetsSections, saveTakeoutSweetsSections, TAKEOUT_SWEETS_MENU_STORAGE_KEY } from './takeoutSweetsMenuStorage.js';
-import { loadTakeoutInventoryMap, saveTakeoutInventoryMap, TAKEOUT_INVENTORY_STORAGE_KEY } from './takeoutSweetsInventoryStorage.js';
+import {
+  loadTakeoutInventoryMap,
+  saveTakeoutInventoryMap,
+  TAKEOUT_INVENTORY_STORAGE_KEY,
+  TAKEOUT_INVENTORY_UPDATED_EVENT,
+} from './takeoutSweetsInventoryStorage.js';
 import { useMenuPublishedSync } from './useMenuPublishedSync.js';
 
 const TakeoutSweetsMenuContext = createContext(null);
@@ -44,6 +49,12 @@ export function TakeoutSweetsMenuProvider({ children }) {
     TAKEOUT_SWEETS_MENU_STORAGE_KEY,
     TAKEOUT_INVENTORY_STORAGE_KEY,
   ]);
+
+  useEffect(() => {
+    const onInv = () => syncFromStorage();
+    window.addEventListener(TAKEOUT_INVENTORY_UPDATED_EVENT, onInv);
+    return () => window.removeEventListener(TAKEOUT_INVENTORY_UPDATED_EVENT, onInv);
+  }, [syncFromStorage]);
 
   const value = useMemo(
     () => ({

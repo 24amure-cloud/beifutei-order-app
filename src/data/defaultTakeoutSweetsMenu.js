@@ -7,7 +7,7 @@ export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
     titleStyle: '',
     items: [
       { id: 'ts-fr-itigo', name: 'いちご', price: 580, rank: 1, color: '#F48FB1', image: 'furusan-itigo.png' },
-      { id: 'ts-fr-furu-tumix', name: 'フレーツMIX', price: 630, rank: 2, color: '#81D4FA', image: 'furusan-furu-tumix.png' },
+      { id: 'ts-fr-furu-tumix', name: 'フルーツMIX', price: 630, rank: 2, color: '#81D4FA', image: 'furusan-furu-tumix.png' },
       { id: 'ts-fr-golden-pine', name: 'ゴールドパイン', price: 560, rank: 3, color: '#FFB74D', image: 'furusan-go-rudennpainn.png' },
       { id: 'ts-fr-itigokiui', name: 'キウイいちご', price: 490, image: 'furusan-itigokiui.png' },
       { id: 'ts-fr-itigopain', name: 'いちごパイン', price: 580, image: 'furusan-itigopain.png' },
@@ -26,6 +26,7 @@ export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
       { id: 'ts-kk-hani', name: 'ハニーポッド\nクッキーサンド', price: 460, image: 'kukki-hani-poddo.png' },
       { id: 'ts-kk-matcha', name: '抹茶\nクッキーサンド', price: 460, image: 'kukki-mattya.png' },
       { id: 'ts-kk-hasukappu', name: '苫小牧ハスカップチョコ\nクッキーサンド', price: 480, image: '' },
+      { id: 'ts-kk-choco-sand', name: 'チョコレート\nクッキーサンド', price: 460, image: 'kukkisanndo-choko.png' },
       { id: 'ts-kk-nuts-choco', name: 'ナッツチョコ\nクッキーサンド', price: 460, image: 'kukkisanndo-choko.png' },
       { id: 'ts-kk-pine', name: 'パイン\nクッキーサンド', price: 460, image: 'kukki-pain.png' },
       { id: 'ts-kk-peach', name: 'ピーチ\nクッキーサンド', price: 460, image: 'kukki-pi-ti.png' },
@@ -50,11 +51,11 @@ export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
   {
     id: 'ts-sec-rittire',
     titleKey: 'ts_section_rittire',
-    titleJa: 'リトルレアクッキー',
+    titleJa: 'リッチレアクッキー',
     titleStyle: '#E0FFFF',
     items: [
-      { id: 'ts-rt-1', name: 'リトルレアクッキー\n（1枚）', price: 380, image: 'rittireakukki-.png' },
-      { id: 'ts-rt-4', name: 'リトルレアクッキー\n（4枚）', price: 1400, image: 'rittireakukki-4mai.png' },
+      { id: 'ts-rt-1', name: 'リッチレアクッキー\n（1枚）', price: 380, image: 'rittireakukki-.png' },
+      { id: 'ts-rt-4', name: 'リッチレアクッキー\n（4枚）', price: 1400, image: 'rittireakukki-4mai.png' },
     ],
   },
 ];

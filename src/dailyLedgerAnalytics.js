@@ -30,6 +30,13 @@ export function buildDailyReport(entries, dateKey, options = {}) {
 
   let menSum = 0;
   let womenSum = 0;
+  let partyMenSum = 0;
+  let partyWomenSum = 0;
+  let partyChildrenSum = 0;
+  let partyCheckoutCount = 0;
+  let localeJaCount = 0;
+  let localeEnCount = 0;
+  let localeKnownCount = 0;
   const staySamples = [];
   let nhSessionCount = 0;
   let nhExtendedCount = 0;
@@ -65,6 +72,21 @@ export function buildDailyReport(entries, dateKey, options = {}) {
     const h = hourOf(e.recordedAt);
     byHour[h].checkouts += 1;
     byHour[h].sales += e.total;
+
+    const pm = Math.max(0, Number(e.partyMen) || 0);
+    const pw = Math.max(0, Number(e.partyWomen) || 0);
+    const pc = Math.max(0, Number(e.partyChildren) || 0);
+    if (pm + pw + pc > 0) {
+      partyCheckoutCount += 1;
+      partyMenSum += pm;
+      partyWomenSum += pw;
+      partyChildrenSum += pc;
+    }
+    if (e.guestUiLocale === 'ja' || e.guestUiLocale === 'en') {
+      localeKnownCount += 1;
+      if (e.guestUiLocale === 'en') localeEnCount += 1;
+      else localeJaCount += 1;
+    }
 
     if (nh > 0) {
       nhSessionCount += 1;
@@ -102,6 +124,31 @@ export function buildDailyReport(entries, dateKey, options = {}) {
   const genderRatio =
     peopleTotal > 0
       ? { menPct: (menSum / peopleTotal) * 100, womenPct: (womenSum / peopleTotal) * 100, menSum, womenSum }
+      : null;
+
+  const partyPeopleTotal = partyMenSum + partyWomenSum + partyChildrenSum;
+  const partyRatio =
+    partyPeopleTotal > 0
+      ? {
+          menSum: partyMenSum,
+          womenSum: partyWomenSum,
+          childrenSum: partyChildrenSum,
+          menPct: (partyMenSum / partyPeopleTotal) * 100,
+          womenPct: (partyWomenSum / partyPeopleTotal) * 100,
+          childrenPct: (partyChildrenSum / partyPeopleTotal) * 100,
+          checkoutCount: partyCheckoutCount,
+        }
+      : null;
+
+  const localeRatio =
+    localeKnownCount > 0
+      ? {
+          jaCount: localeJaCount,
+          enCount: localeEnCount,
+          jaPct: (localeJaCount / localeKnownCount) * 100,
+          enPct: (localeEnCount / localeKnownCount) * 100,
+          checkoutCount: localeKnownCount,
+        }
       : null;
 
   const costYen = grandTotal * (cogsPct / 100);
@@ -155,6 +202,8 @@ export function buildDailyReport(entries, dateKey, options = {}) {
     nhExtendedCount,
     avgStayMin,
     genderRatio,
+    partyRatio,
+    localeRatio,
     cogsPct,
     costYen,
     grossProfit,

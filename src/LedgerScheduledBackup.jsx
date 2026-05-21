@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { startScheduledLedgerBackup } from './dailyLedgerScheduledBackup.js';
+import { pullAndMergeDailyLedgerFromSupabase } from './dailyLedgerSync.js';
 import { loadLedgerDriveSettings, saveLedgerDriveSettings } from './ledgerDriveSettings.js';
 
 function seedDriveSettingsFromEnv() {
@@ -18,6 +19,7 @@ function seedDriveSettingsFromEnv() {
 export default function LedgerScheduledBackup() {
   useEffect(() => {
     seedDriveSettingsFromEnv();
+    pullAndMergeDailyLedgerFromSupabase();
     const id = startScheduledLedgerBackup();
     return () => window.clearInterval(id);
   }, []);

@@ -138,10 +138,10 @@ export default function LedgerDriveSetupPanel() {
   const envSecret = String(import.meta.env.VITE_LEDGER_DRIVE_WEBHOOK_SECRET || '').trim();
 
   return (
-    <details className="master-ledger-drive-setup" open={!configured}>
+    <details className="master-ledger-drive-setup" open={false}>
       <summary className="master-ledger-drive-setup__summary">
-        Google Drive 自動保存の設定
-        {configured ? '（設定済み）' : '（未設定・タップで開く）'}
+        日計の自動バックアップ（スタッフ・設定済みなら不要）
+        {configured ? ' ✓' : ''}
       </summary>
       <div className="master-ledger-drive-setup__body">
         <div className="master-ledger-drive-setup__guide">

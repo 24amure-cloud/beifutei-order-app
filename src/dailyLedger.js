@@ -1,6 +1,7 @@
 /** 会計確定の日次集計（localStorage・厨房／オーナー画面で共有） */
 
 export const DAILY_LEDGER_STORAGE_KEY = 'beifutei-daily-ledger-v1';
+export const DAILY_LEDGER_BACKUP_KEY = 'beifutei-daily-ledger-backup-v1';
 export const LEDGER_SETTINGS_KEY = 'beifutei-ledger-settings-v1';
 
 /** @typedef {{
@@ -26,6 +27,11 @@ export const LEDGER_SETTINGS_KEY = 'beifutei-ledger-settings-v1';
  *   people?: number,
  *   stayMinutes?: number|null,
  *   checkoutMemo?: string,
+ *   partyMen?: number,
+ *   partyWomen?: number,
+ *   partyChildren?: number,
+ *   guestUiLocale?: 'ja'|'en',
+ *   orderSource?: 'table'|'staff_retail',
  * }} LedgerEntry */
 
 /** 表示用：卓番とメモを横並びで見せる */
@@ -81,7 +87,7 @@ function broadcastLedgerUpdated() {
   }
 }
 
-function isValidEntry(e) {
+export function isValidEntry(e) {
   return (
     e &&
     typeof e.id === 'string' &&
@@ -91,16 +97,41 @@ function isValidEntry(e) {
   );
 }
 
-export function loadDailyLedger() {
+function readLedgerStore(key) {
   try {
-    const raw = localStorage.getItem(DAILY_LEDGER_STORAGE_KEY);
-    if (!raw) return { version: 2, entries: [] };
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
     const p = JSON.parse(raw);
-    if (!p || !Array.isArray(p.entries)) return { version: 2, entries: [] };
-    return { version: 2, entries: p.entries.filter(isValidEntry) };
+    if (!p || !Array.isArray(p.entries)) return [];
+    return p.entries.filter(isValidEntry);
   } catch {
-    return { version: 2, entries: [] };
+    return [];
   }
+}
+
+export function loadDailyLedger() {
+  const primary = readLedgerStore(DAILY_LEDGER_STORAGE_KEY);
+  const backup = readLedgerStore(DAILY_LEDGER_BACKUP_KEY);
+  if (backup.length === 0) return { version: 2, entries: primary };
+  const map = new Map();
+  for (const e of backup) map.set(e.id, e);
+  for (const e of primary) map.set(e.id, e);
+  const entries = Array.from(map.values()).sort((a, b) => a.recordedAt - b.recordedAt);
+  return { version: 2, entries };
+}
+
+/** @param {LedgerEntry[]} entries */
+export function persistDailyLedgerEntries(entries) {
+  const next = { version: 2, entries: entries.filter(isValidEntry) };
+  const body = JSON.stringify(next);
+  localStorage.setItem(DAILY_LEDGER_STORAGE_KEY, body);
+  try {
+    localStorage.setItem(DAILY_LEDGER_BACKUP_KEY, body);
+  } catch {
+    /* ignore */
+  }
+  broadcastLedgerUpdated();
+  return next;
 }
 
 /**
@@ -155,11 +186,22 @@ export function appendDailyLedgerEntry(partial) {
       typeof partial.checkoutMemo === 'string'
         ? partial.checkoutMemo.replace(/\s+/g, ' ').trim().slice(0, 120)
         : '',
+    partyMen: Math.max(0, Math.floor(Number(partial.partyMen) || 0)),
+    partyWomen: Math.max(0, Math.floor(Number(partial.partyWomen) || 0)),
+    partyChildren: Math.max(0, Math.floor(Number(partial.partyChildren) || 0)),
+    guestUiLocale: partial.guestUiLocale === 'en' ? 'en' : partial.guestUiLocale === 'ja' ? 'ja' : undefined,
+    orderSource:
+      partial.orderSource === 'staff_retail'
+        ? 'staff_retail'
+        : partial.orderSource === 'table'
+          ? 'table'
+          : undefined,
   };
   const prev = loadDailyLedger();
-  const next = { version: 2, entries: [...prev.entries, entry] };
-  localStorage.setItem(DAILY_LEDGER_STORAGE_KEY, JSON.stringify(next));
-  broadcastLedgerUpdated();
+  persistDailyLedgerEntries([...prev.entries, entry]);
+  import('./dailyLedgerSync.js').then(({ pushDailyLedgerEntryToSupabase }) => {
+    pushDailyLedgerEntryToSupabase(entry);
+  });
   return entry;
 }
 

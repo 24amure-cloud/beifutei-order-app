@@ -11,6 +11,7 @@ import { getNomihodaiForTable, TABLE_MEMO_MAX_LEN } from './nomihodaiSession.js'
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import TableMemoRibbon from './TableMemoRibbon.jsx';
 import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
+import TakeoutSweetsStockPanel from './TakeoutSweetsStockPanel.jsx';
 import { KitchenDiagnosticsFooter, KitchenRealtimeBadge } from './KitchenStaffDiagnostics.jsx';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
@@ -166,6 +167,8 @@ const STAFF_TABS = {
   checkoutDone: 'checkout-done',
   /** カフェ／ソフトクリーム／テイクアウト（客席UI複製・手元注文） */
   retailTakeout: 'retail-takeout',
+  /** テイクアウトスイーツ在庫（会計・注文と分離） */
+  sweetsStock: 'sweets-stock',
 };
 
 /** 厨房：注文行の会計区分（客席の注文区分を反映。口頭等の訂正可） */
@@ -694,7 +697,9 @@ export default function KitchenApp() {
         ? '各卓・伝票'
         : staffTab === STAFF_TABS.checkoutDone
           ? 'お会計済み'
-          : 'カフェ・テイクアウト';
+          : staffTab === STAFF_TABS.sweetsStock
+            ? 'スイーツ在庫'
+            : 'カフェ・テイクアウト';
 
   const todayDateKey = getLocalDateKey(now);
   const todayCheckoutEntries = useMemo(() => {
@@ -808,6 +813,13 @@ export default function KitchenApp() {
             onClick={() => setStaffTab(STAFF_TABS.retailTakeout)}
           >
             カフェ・テイクアウト
+          </button>
+          <button
+            type="button"
+            className={`kitchen-v2-tab kitchen-v2-tab--sweets-stock${staffTab === STAFF_TABS.sweetsStock ? ' is-active' : ''}`}
+            onClick={() => setStaffTab(STAFF_TABS.sweetsStock)}
+          >
+            スイーツ在庫
           </button>
         </nav>
         <KitchenRealtimeBadge />
@@ -1750,6 +1762,8 @@ export default function KitchenApp() {
                 )}
               </section>
             )}
+
+            {staffTab === STAFF_TABS.sweetsStock && <TakeoutSweetsStockPanel />}
 
             {staffTab === STAFF_TABS.retailTakeout && (
               <KitchenStaffRetailHub onRetailCheckoutComplete={() => setStaffTab(STAFF_TABS.checkoutDone)} />

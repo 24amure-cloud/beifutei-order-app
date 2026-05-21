@@ -23,7 +23,7 @@ const RETAIL_EN = {
   'pz-bismark': 'Bismark',
   'pz-quattro': 'Quattro formaggi',
   'ts-fr-itigo': 'Strawberry',
-  'ts-fr-furu-tumix': 'Fruit mix',
+  'ts-fr-furu-tumix': 'Fruits mix',
   'ts-fr-golden-pine': 'Golden pineapple',
   'ts-fr-itigokiui': 'Kiwi & strawberry',
   'ts-fr-itigopain': 'Strawberry & pineapple',
@@ -34,6 +34,7 @@ const RETAIL_EN = {
   'ts-kk-hani': 'Honey pod\ncookie sandwich',
   'ts-kk-matcha': 'Matcha\ncookie sandwich',
   'ts-kk-hasukappu': 'Tomakomai haskap choco\ncookie sandwich',
+  'ts-kk-choco-sand': 'Chocolate\ncookie sandwich',
   'ts-kk-nuts-choco': 'Nut chocolate\ncookie sandwich',
   'ts-kk-pine': 'Pineapple\ncookie sandwich',
   'ts-kk-peach': 'Peach\ncookie sandwich',
@@ -45,8 +46,8 @@ const RETAIL_EN = {
   'ts-sc-caramel': 'Caramel scone',
   'ts-sc-maple': 'Maple scone',
   'ts-sc-namacream': 'Fresh cream scone',
-  'ts-rt-1': 'Little rare cookie\n(1 pc)',
-  'ts-rt-4': 'Little rare cookie\n(4 pcs)',
+  'ts-rt-1': 'Rich rare cookie\n(1 pc)',
+  'ts-rt-4': 'Rich rare cookie\n(4 pcs)',
 };
 
 /** テイクアウトスイーツカードの表示名（客席のみ。カート `name` は日本語のまま） */

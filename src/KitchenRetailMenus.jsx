@@ -6,6 +6,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { appendDailyLedgerEntry } from './dailyLedger.js';
 import { assertTakeoutSweetsCart, applyTakeoutSweetsSales } from './takeoutSweetsInventory.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
+import KitchenRetailStatsGate from './KitchenRetailStatsGate.jsx';
 
 const RetailStaffCartContext = createContext(null);
 
@@ -333,212 +334,115 @@ export function KitchenStaffCafeMenu() {
   );
 }
 
-const FRUIT_SOFT_IMG_REGULAR = assetUrl('名称未設定-1_0000_regyura-furusofu.png');
-const FRUIT_SOFT_IMG_MINI = assetUrl('名称未設定-2_0000_mini_furusofu.png');
-const FRUIT_BEAR_LOGO = assetUrl('fruit-bear-logo.png');
+/**
+ * 厨房テイクアウト：ソフトクリーム（文字一覧・客席の画像UIは使わない）
+ * @param {{
+ *   name: string,
+ *   note?: string,
+ *   options: Array<{ key: string, label: string, price: number }>,
+ *   selectedKey: string,
+ *   onSelect: (key: string) => void,
+ *   onAdd: () => void,
+ *   fixedPrice?: number,
+ * }} props
+ */
+function KitchenStaffSoftcreamRow({ name, note, options, selectedKey, onSelect, onAdd, fixedPrice }) {
+  const selected = options.find((o) => o.key === selectedKey) ?? options[0];
+  const price = selected?.price ?? fixedPrice ?? 0;
+
+  return (
+    <article className="kretail-soft-row">
+      <div className="kretail-soft-row__left">
+        <h3 className="kretail-soft-row__name">{name}</h3>
+        {note ? <span className="kretail-soft-row__note">{note}</span> : null}
+        {options.length > 1 ? (
+          <div className="kretail-soft-row__opts" role="group" aria-label={`${name}の選択`}>
+            {options.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`kretail-soft-row__opt${selectedKey === opt.key ? ' kretail-soft-row__opt--on' : ''}`}
+                onClick={() => onSelect(opt.key)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div className="kretail-soft-row__right">
+        <span className="kretail-soft-row__price">
+          ￥{price.toLocaleString()}
+          <small className="kretail-soft-row__tax">税込</small>
+        </span>
+        <button type="button" className="kretail-soft-row__add" onClick={onAdd}>
+          追加
+        </button>
+      </div>
+    </article>
+  );
+}
 
 export function KitchenStaffFruitStudioMenu() {
   const { addToCart } = useRetailStaffCart();
-  const [opts, setOpts] = useState({
-    soft: { type: 'コーン', price: 460 },
-    fruit: { size: 'レギュラー', price: 880 },
-  });
+  const [fruitSize, setFruitSize] = useState('レギュラー');
+  const [softType, setSoftType] = useState('コーン');
 
-  const setSoftType = (type) => setOpts((o) => ({ ...o, soft: { ...o.soft, type } }));
+  const fruitOpts = [
+    { key: 'ミニ', label: 'ミニ', price: 660 },
+    { key: 'レギュラー', label: 'レギュラー', price: 880 },
+  ];
+  const softOpts = [
+    { key: 'コーン', label: 'コーン', price: 460 },
+    { key: 'カップ', label: 'カップ', price: 460 },
+  ];
 
   return (
-    <main className="main-content kitchen-staff-retail-menu kitchen-staff-retail-menu--soft">
-      <div className="fruit-wrapper">
-        <PageHeaderImage pageKey="fruit" alt="ソフトクリーム" />
+    <div className="kitchen-staff-retail-menu kitchen-staff-retail-menu--soft kretail-soft-list">
+      <h2 className="kretail-soft-list__title">ソフトクリーム</h2>
+      <p className="kretail-soft-list__lead">商品名・選択肢・価格を確認して「追加」</p>
 
-        <div className="kitchen-staff-fruit-carousel kitchen-staff-hero-list kitchen-staff-hero-list--cols-3" role="region" aria-label="ソフトクリーム（一覧）">
-          <div className="fruit-top-row">
-          <div className="fruit-hero fruit-hero--cafe">
-            <div className="fruit-hero-body">
-              <div className="cafe-card-top fruit-hero-top">
-                <div className="cafe-card-content fruit-hero-text">
-                  <h2 className="fruit-hero-title">本日のソフトクリーム</h2>
-                  <p className="fruit-hero-lead">Fresh Fruit Soft</p>
-                  <p className="fruit-hero-desc">
-                    新鮮フルーツの上に
-                    <br />
-                    ジェラ生ソフトを乗せました
-                  </p>
-                  <p className="fruit-hero-tagline">ミニ or レギュラー</p>
-                  <p className="fruit-hero-price-band">
-                    <span className="fruit-hero-price-num">660</span>
-                    <span className="fruit-hero-price-sep">yen / </span>
-                    <span className="fruit-hero-price-num">880</span>
-                    <span className="fruit-hero-price-yen">yen</span>
-                  </p>
-                  <p className="fruit-hero-note">ご提供できるフルーツは日替わりです。</p>
-                </div>
-                <div className="fruit-card-media fruit-card-media--fruit-hero">
-                  <div className="cafe-hokkaido-icon fruit-hokkaido-icon--fruit">HOKKAIDO</div>
-                  <div className="fruit-fruitsoft-visual" aria-hidden="true">
-                    <div
-                      className="fruit-fruitsoft-regular"
-                      style={{ backgroundImage: `url("${FRUIT_SOFT_IMG_REGULAR}")` }}
-                    />
-                    <div
-                      className="fruit-fruitsoft-mini"
-                      style={{ backgroundImage: `url("${FRUIT_SOFT_IMG_MINI}")` }}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="cafe-actions-row fruit-hero-actions">
-                <div className="cafe-toggles fruit-hero-size-toggles">
-                  <div className="cafe-toggle-group">
-                    <button
-                      type="button"
-                      className={`cafe-size-btn ${opts.fruit.size === 'ミニ' ? 'active' : ''}`}
-                      onClick={() => setOpts((o) => ({ ...o, fruit: { size: 'ミニ', price: 660 } }))}
-                    >
-                      ミニ
-                    </button>
-                    <button
-                      type="button"
-                      className={`cafe-size-btn ${opts.fruit.size === 'レギュラー' ? 'active' : ''}`}
-                      onClick={() => setOpts((o) => ({ ...o, fruit: { size: 'レギュラー', price: 880 } }))}
-                    >
-                      レギュラー
-                    </button>
-                  </div>
-                </div>
-                <div className="cafe-actions-order">
-                  <div className="cafe-price-display">
-                    {opts.fruit.price}
-                    <span>yen〜</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="cafe-order-btn"
-                    onClick={() =>
-                      addToCart({
-                        id: `fr-fruit-${opts.fruit.size}`,
-                        name: `本日のソフトクリーム (${opts.fruit.size})`,
-                        price: opts.fruit.price,
-                      })
-                    }
-                  >
-                    ＋ 追加
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+      <KitchenStaffSoftcreamRow
+        name="本日のソフトクリーム"
+        note="フルーツは日替わり"
+        options={fruitOpts}
+        selectedKey={fruitSize}
+        onSelect={setFruitSize}
+        onAdd={() => {
+          const o = fruitOpts.find((x) => x.key === fruitSize) ?? fruitOpts[1];
+          addToCart({
+            id: `fr-fruit-${o.key}`,
+            name: `本日のソフトクリーム（${o.label}）`,
+            price: o.price,
+          });
+        }}
+      />
 
-          <aside className="fruit-hero-side" aria-hidden="true">
-            <div className="fruit-hero-bear">
-              <img src={FRUIT_BEAR_LOGO} alt="" className="fruit-hero-bear-img" width={280} height={280} decoding="async" />
-            </div>
-          </aside>
-          </div>
+      <KitchenStaffSoftcreamRow
+        name="ジェラ生ソフト"
+        note="十勝ミルク使用"
+        options={softOpts}
+        selectedKey={softType}
+        onSelect={setSoftType}
+        onAdd={() => {
+          const o = softOpts.find((x) => x.key === softType) ?? softOpts[0];
+          addToCart({
+            id: `fr-soft-${o.key}`,
+            name: `ジェラ生ソフト（${o.label}）`,
+            price: o.price,
+          });
+        }}
+      />
 
-          <div className="fruit-grid-2">
-          <div className="fruit-card fruit-card--gelato">
-            <div className="fruit-ribbon-orange">北海道十勝ミルク使用</div>
-            <div className="fruit-badge-round" style={{ left: '225px', top: '30px' }}>
-              TOKACHI
-              <br />
-              MILK
-            </div>
-            <div className="cafe-card-top fruit-card-top">
-              <div className="cafe-card-content">
-                <h3 className="fruit-card-title">ジェラ生ソフト</h3>
-                <p className="fruit-card-subtitle">Gelato Soft</p>
-                <p className="fruit-card-desc">
-                  北海道産十勝ミルクを原料とした
-                  <br />
-                  ふわもこ自家製ソフトクリーム
-                </p>
-                <p className="cafe-price-info cafe-price-info-spaced">
-                  カップ or コーン
-                  <br />
-                  460yen
-                </p>
-              </div>
-              <div className="fruit-card-media fruit-card-media--gelato">
-                <div className="fruit-gelato-visual" aria-hidden="true">
-                  <div className="fruit-gelato-cone" style={{ backgroundImage: cssBgUrl('名称未設定-1_0001_jeranamako-nn.png') }} />
-                  <div className="fruit-gelato-cup" style={{ backgroundImage: cssBgUrl('名称未設定-1_0003_jeranamakappu.png') }} />
-                </div>
-              </div>
-            </div>
-            <div className="cafe-actions-row fruit-card-actions">
-              <div className="cafe-toggles">
-                <div className="cafe-toggle-group">
-                  <button
-                    type="button"
-                    className={`cafe-size-btn ${opts.soft.type === 'コーン' ? 'active' : ''}`}
-                    onClick={() => setSoftType('コーン')}
-                  >
-                    コーン
-                  </button>
-                  <button
-                    type="button"
-                    className={`cafe-size-btn ${opts.soft.type === 'カップ' ? 'active' : ''}`}
-                    onClick={() => setSoftType('カップ')}
-                  >
-                    カップ
-                  </button>
-                </div>
-              </div>
-              <div className="cafe-actions-order">
-                <div className="cafe-price-display">
-                  {opts.soft.price}
-                  <span>yen〜</span>
-                </div>
-                <button
-                  type="button"
-                  className="cafe-order-btn"
-                  onClick={() =>
-                    addToCart({
-                      id: `fr-soft-${opts.soft.type}`,
-                      name: `ジェラ生ソフト (${opts.soft.type})`,
-                      price: opts.soft.price,
-                    })
-                  }
-                >
-                  ＋ 追加
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="fruit-card fruit-card--affogato">
-            <div className="cafe-card-top fruit-card-top">
-              <div className="cafe-card-content">
-                <h3 className="fruit-card-title">アフォガード</h3>
-                <p className="fruit-card-subtitle">Affogato</p>
-                <p className="fruit-card-desc">
-                  ジェラ生ソフトに
-                  <br />
-                  ほろ苦いエスプレッソを注ぎます
-                </p>
-                <p className="cafe-price-info cafe-price-info-spaced">680yen</p>
-              </div>
-              <div className="fruit-card-media fruit-card-media--affogato">
-                <div className="fruit-card-img fruit-card-img--affogato" style={{ backgroundImage: cssBgUrl('名称未設定-2_0001_afoga-do.png') }} />
-              </div>
-            </div>
-            <div className="cafe-actions-row fruit-card-actions fruit-card-actions--single">
-              <div className="cafe-actions-order">
-                <div className="cafe-price-display">
-                  680
-                  <span>yen〜</span>
-                </div>
-                <button type="button" className="cafe-order-btn" onClick={() => addToCart({ id: 'fr-affogato', name: 'アフォガード', price: 680 })}>
-                  ＋ 追加
-                </button>
-              </div>
-            </div>
-          </div>
-          </div>
-        </div>
-      </div>
-    </main>
+      <KitchenStaffSoftcreamRow
+        name="アフォガード"
+        options={[]}
+        selectedKey=""
+        fixedPrice={680}
+        onSelect={() => {}}
+        onAdd={() => addToCart({ id: 'fr-affogato', name: 'アフォガード', price: 680 })}
+      />
+    </div>
   );
 }
 
@@ -556,6 +460,8 @@ const LEDGER_TAKEOUT_GUEST_LABEL = 'テイクアウト客';
  */
 export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
   const [sub, setSub] = useState('fruit');
+  /** @type {{ locale: 'ja'|'en', men: number, women: number, children: number } | null} */
+  const [retailStats, setRetailStats] = useState(null);
   /** @type {Array<{ key: string, id: string, name: string, price: number, qty: number }>} */
   const [cart, setCart] = useState([]);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -566,6 +472,7 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
   }, [cart]);
 
   const addToCart = useCallback((item) => {
+    if (!retailStats) return;
     const id = String(item.id ?? '');
     const name = String(item.name ?? '');
     const price = Math.max(0, Number(item.price) || 0);
@@ -579,7 +486,7 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
       }
       return [...prev, { key: `${id}-${Date.now()}`, id, name, price, qty: 1 }];
     });
-  }, []);
+  }, [retailStats]);
 
   const cartCtx = useMemo(() => ({ addToCart }), [addToCart]);
 
@@ -604,6 +511,10 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
 
   const commitLedger = (payment) => {
     setCheckoutMsg(null);
+    if (!retailStats) {
+      setCheckoutMsg('先に「人数・言語」の入力を完了してください。');
+      return;
+    }
     const stock = assertTakeoutSweetsCart(cart);
     if (!stock.ok) {
       setCheckoutMsg(
@@ -634,9 +545,15 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
       lines,
       hadNomihodaiCheckout: false,
       checkoutMemo: '店内飲食なし・テイクアウト客（スタッフ手入力）',
+      partyMen: retailStats.men,
+      partyWomen: retailStats.women,
+      partyChildren: retailStats.children,
+      guestUiLocale: retailStats.locale,
+      orderSource: 'staff_retail',
     });
     applyTakeoutSweetsSales(cart.map((r) => ({ id: r.id, qty: r.qty })));
     setCart([]);
+    setRetailStats(null);
     setCheckoutOpen(false);
     setCheckoutMsg(null);
     try {
@@ -650,6 +567,27 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
     <RetailStaffCartContext.Provider value={cartCtx}>
       <div className="kitchen-retail-root">
         <div className="kitchen-retail-hub">
+          {retailStats ? (
+            <div className="kitchen-retail-hub__stats-bar">
+              <div className="kitchen-retail-hub__stats-chips" aria-label="入力済み人数">
+                <span className={`iou-chip iou-chip--locale-${retailStats.locale}`}>
+                  {retailStats.locale === 'en' ? '外' : '日'}
+                </span>
+                <span className="iou-chip">男{retailStats.men}</span>
+                <span className="iou-chip">女{retailStats.women}</span>
+                <span className="iou-chip">子{retailStats.children}</span>
+              </div>
+              <button
+                type="button"
+                className="kitchen-retail-hub__stats-reset"
+                onClick={() => setRetailStats(null)}
+                aria-label="人数を入れ直す"
+                title="入れ直す"
+              >
+                ↺
+              </button>
+            </div>
+          ) : null}
           <div className="kitchen-retail-hub__top">
             <div className="kitchen-retail-hub__toolbar">
               <div className="kitchen-retail-hub__toolbar-row">
@@ -691,17 +629,27 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
 
           <div className="kitchen-retail-hub__body">
             <div className="kitchen-retail-hub__scroll">
-              {sub === 'fruit' ? <KitchenStaffFruitStudioMenu /> : null}
-              {sub === 'cafe' ? <KitchenStaffCafeMenu /> : null}
-              {sub === 'takeout' ? <KitchenStaffTakeoutSweetsMenu /> : null}
+              {!retailStats ? (
+                <div className="kitchen-retail-hub__stats-pane">
+                  <KitchenRetailStatsGate onConfirm={(stats) => setRetailStats(stats)} />
+                </div>
+              ) : null}
+              {retailStats && sub === 'fruit' ? <KitchenStaffFruitStudioMenu /> : null}
+              {retailStats && sub === 'cafe' ? <KitchenStaffCafeMenu /> : null}
+              {retailStats && sub === 'takeout' ? <KitchenStaffTakeoutSweetsMenu /> : null}
             </div>
 
-            <aside className="kitchen-retail-cart" aria-label="テイクアウト用カート">
+            <aside
+              className={`kitchen-retail-cart${!retailStats ? ' kitchen-retail-cart--locked' : ''}`}
+              aria-label="テイクアウト用カート"
+            >
               <div className="kitchen-retail-cart__head">
                 <span className="kitchen-retail-cart__title">カート</span>
                 <strong className="kitchen-retail-cart__sum">￥{subtotal.toLocaleString()}</strong>
               </div>
-              {cart.length === 0 ? (
+              {!retailStats ? (
+                <p className="kitchen-retail-cart__empty">左で「日／外」と人数を入力すると注文できます</p>
+              ) : cart.length === 0 ? (
                 <p className="kitchen-retail-cart__empty">商品の「追加」からカートに入れてください</p>
               ) : (
                 <ul className="kitchen-retail-cart__list">
@@ -734,7 +682,7 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
                 <button
                   type="button"
                   className="kitchen-retail-cart__checkout"
-                  disabled={cart.length === 0}
+                  disabled={!retailStats || cart.length === 0}
                   onClick={() => {
                     setCheckoutMsg(null);
                     setCheckoutOpen(true);

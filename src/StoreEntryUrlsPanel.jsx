@@ -8,31 +8,31 @@ import {
 const ENTRY_ROWS = [
   {
     id: 'guest',
-    title: 'お客様（客席オーダー）',
-    note: '卓ごとのURLは「卓・売上サマリー」内の「客席オーダー用URL」でコピー（?table=卓番）',
+    title: 'お客様用（卓オーダー）',
+    titleShort: 'お客様用',
+    note: '卓ごとのQRは下の「スタッフ用」から',
     buildUrl: buildSiteRootUrl,
   },
   {
     id: 'kitchen',
-    title: 'スタッフ・厨房',
-    note: '未提供・各卓・会計・カフェ／テイクアウト',
+    title: '厨房・スタッフ用',
+    titleShort: '厨房',
+    note: '注文確認・会計',
     buildUrl: buildKitchenPageAbsoluteUrl,
   },
   {
     id: 'master',
-    title: 'オーナー専用',
-    note: 'メニュー編集・売上・日計',
+    title: '管理画面（この画面）',
+    titleShort: '管理画面',
+    note: '売上・メニュー',
     buildUrl: buildMasterPageAbsoluteUrl,
   },
 ];
 
-/**
- * 客席 / 厨房 / オーナーの3入口（URL・新規タブで開く・コピー）。
- * variant: master=プルダウン選択、kitchen=折りたたみ一覧
- */
 export default function StoreEntryUrlsPanel({ variant = 'master' }) {
   const [copyKey, setCopyKey] = useState(null);
   const [selectedId, setSelectedId] = useState('guest');
+  const isPresident = variant === 'master-president';
 
   const rows = useMemo(
     () =>
@@ -77,6 +77,42 @@ export default function StoreEntryUrlsPanel({ variant = 'master' }) {
     </div>
   );
 
+  const presidentBody = (
+    <div className="store-entry-urls__picker store-entry-urls__picker--president">
+      <label className="store-entry-urls__select-label">
+        <span className="store-entry-urls__select-caption">別の画面を開く</span>
+        <select
+          className="store-entry-urls__select"
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+        >
+          {rows.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.titleShort || row.title}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="store-entry-urls__actions store-entry-urls__actions--row">
+        <a
+          className="store-entry-urls__open store-entry-urls__open--large"
+          href={selected.url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          開く
+        </a>
+        <button
+          type="button"
+          className="store-entry-urls__copy store-entry-urls__copy--large"
+          onClick={() => copyUrl(selected.id, selected.url)}
+        >
+          {copyKey === selected.id ? 'コピーしました' : 'リンクをコピー'}
+        </button>
+      </div>
+    </div>
+  );
+
   const dropdownBody = (
     <div className="store-entry-urls__picker">
       <label className="store-entry-urls__select-label">
@@ -93,11 +129,11 @@ export default function StoreEntryUrlsPanel({ variant = 'master' }) {
           ))}
         </select>
       </label>
-      <p className="store-entry-urls__note">{selected.note}</p>
-      <code className="store-entry-urls__href">{selected.url}</code>
+      {!isPresident && <p className="store-entry-urls__note">{selected.note}</p>}
+      {!isPresident && <code className="store-entry-urls__href">{selected.url}</code>}
       <div className="store-entry-urls__actions store-entry-urls__actions--row">
         <a
-          className="store-entry-urls__open"
+          className={`store-entry-urls__open${isPresident ? ' store-entry-urls__open--large' : ''}`}
           href={selected.url}
           target="_blank"
           rel="noopener noreferrer"
@@ -106,7 +142,7 @@ export default function StoreEntryUrlsPanel({ variant = 'master' }) {
         </a>
         <button
           type="button"
-          className="store-entry-urls__copy"
+          className={`store-entry-urls__copy${isPresident ? ' store-entry-urls__copy--large' : ''}`}
           onClick={() => copyUrl(selected.id, selected.url)}
         >
           {copyKey === selected.id ? 'コピー済' : 'URLをコピー'}
@@ -125,9 +161,12 @@ export default function StoreEntryUrlsPanel({ variant = 'master' }) {
   }
 
   return (
-    <section className="store-entry-urls store-entry-urls--master" aria-label="店舗の3つの画面">
-      <h2 className="store-entry-urls__heading">3つの画面</h2>
-      {dropdownBody}
+    <section
+      className={`store-entry-urls store-entry-urls--master${isPresident ? ' store-entry-urls--president' : ''}`}
+      aria-label="画面を開く"
+    >
+      <h2 className="store-entry-urls__heading">{isPresident ? 'ほかの画面' : '画面を開く'}</h2>
+      {isPresident ? presidentBody : dropdownBody}
     </section>
   );
 }

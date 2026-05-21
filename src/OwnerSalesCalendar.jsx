@@ -10,6 +10,7 @@ import {
   summarizeLedgerDay,
 } from './dailyLedger.js';
 import { summarizeLedgerCategoryBuckets } from './ledgerCategoryBuckets.js';
+import LedgerDataNotice from './LedgerDataNotice.jsx';
 
 const WEEK_JA = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -73,9 +74,11 @@ export default function OwnerSalesCalendar() {
       if (e.key === DAILY_LEDGER_STORAGE_KEY || e.key === LEDGER_SETTINGS_KEY || e.key === null) onLed();
     };
     window.addEventListener('beifutei-daily-ledger-updated', onLed);
+    window.addEventListener('beifutei-daily-ledger-synced', onLed);
     window.addEventListener('storage', onStorage);
     return () => {
       window.removeEventListener('beifutei-daily-ledger-updated', onLed);
+      window.removeEventListener('beifutei-daily-ledger-synced', onLed);
       window.removeEventListener('storage', onStorage);
     };
   }, []);
@@ -129,7 +132,7 @@ export default function OwnerSalesCalendar() {
         <div>
           <h2 className="master-card-title">売上カレンダー</h2>
           <p className="master-page-lead master-page-lead--compact">
-            厨房「各卓・伝票」で会計確定した日計が日別に表示されます（このブラウザの localStorage と同一）。
+            カレンダーで日を選ぶと、その日の売上が確認できます。
           </p>
         </div>
         <div className="owner-cal-nav">
@@ -142,6 +145,8 @@ export default function OwnerSalesCalendar() {
           </button>
         </div>
       </div>
+
+      <LedgerDataNotice />
 
       <div className="owner-cal-layout">
         <div className="owner-cal-grid-wrap">

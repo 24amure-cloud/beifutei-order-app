@@ -20,6 +20,7 @@ import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
+import GuestOnboardingGate from './GuestOnboardingGate.jsx';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
 
@@ -1320,8 +1321,14 @@ function App() {
   const guestPostCheckoutFullscreen =
     !!farewell || !!session.checkoutRequestAt;
 
+  const myParty = session.guestPartyByLabel?.[session.tableLabel];
+  const needsGuestOnboarding =
+    !guestPostCheckoutFullscreen &&
+    !!session.tableLabel &&
+    !(myParty?.capturedAt > 0);
+
   /** オーバーレイより上に z-index 固定のカート・上部バナーを隠す（会計フローと重複しない） */
-  const hideGuestOrderingChrome = guestPostCheckoutFullscreen;
+  const hideGuestOrderingChrome = guestPostCheckoutFullscreen || needsGuestOnboarding;
 
   useEffect(() => {
     if (!guestPostCheckoutFullscreen) return;
@@ -1604,7 +1611,8 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <div className={`app-container${needsGuestOnboarding ? ' app-container--onboarding' : ''}`}>
+      {needsGuestOnboarding ? <GuestOnboardingGate /> : null}
       <SupabaseConnectionBanner variant="guest" />
       {/* SIDEBAR */}
       <aside className="sidebar">
