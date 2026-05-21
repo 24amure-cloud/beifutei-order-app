@@ -11529,18 +11529,33 @@ button.kitchen-guest-intent--nav {
   display: none;
 }
 
-/* --- 1列ヒーロー一覧（カフェ4・ソフト3）コンパクト --- */
+/* --- 1行ヒーロー（ソフト3横並び・カフェ4横並び）コンパクト --- */
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-wrapper,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-wrapper {
   padding: 6px 8px 8px;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-hero-list {
-  display: flex;
-  flex-direction: column;
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .kitchen-staff-hero-list--cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 0;
   margin: 0;
+  align-items: stretch;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .kitchen-staff-hero-list--cols-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  align-items: stretch;
+}
+
+/* 客席用 .cafe-grid-2（2×2）より優先して 1行4列 */
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-wrapper .kitchen-staff-hero-list--cols-4.cafe-grid-2 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-top-row,
@@ -11569,9 +11584,9 @@ button.kitchen-guest-intent--nav {
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card > .cafe-card-top.pizza-hero-top,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-top.cafe-card-top,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-top.cafe-card-top {
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
   margin: 0;
 }
 
@@ -11596,10 +11611,11 @@ button.kitchen-guest-intent--nav {
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-title,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-title,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.2;
   margin: 0 0 2px;
+  text-align: center;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-price-info-spaced,
@@ -11629,18 +11645,20 @@ button.kitchen-guest-intent--nav {
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card-top .cafe-img-area.cafe-img-area-promo,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-top .fruit-card-media--fruit-hero,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-top .fruit-card-media {
-  width: 52px;
-  min-width: 52px;
-  max-width: 52px;
-  min-height: 52px;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 44px;
   flex-shrink: 0;
-  margin: 0;
+  margin: 0 auto;
   overflow: hidden;
+  align-self: center;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-img-area-promo-lg .cafe-img-placeholder.cafe-img-promo-lg {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
   border-radius: 50%;
   background-size: cover;
 }
@@ -11651,8 +11669,8 @@ button.kitchen-guest-intent--nav {
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-fruitsoft-visual {
-  width: 52px;
-  height: 52px;
+  width: 100%;
+  height: 44px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-fruitsoft-regular {
@@ -11689,25 +11707,22 @@ button.kitchen-guest-intent--nav {
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-actions.cafe-actions-row,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions.cafe-actions-row {
   margin: 0;
-  padding: 4px 6px;
+  padding: 4px 5px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(61, 43, 31, 0.06);
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-toggles,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-actions .cafe-toggles,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions .cafe-toggles {
-  width: auto;
-  flex: 1 1 auto;
-  justify-content: flex-start;
+  width: 100%;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
   margin: 0;
 }
 
@@ -11715,10 +11730,10 @@ button.kitchen-guest-intent--nav {
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-size-btn,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-toggle-btn,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-size-btn {
-  min-height: 34px;
-  min-width: 34px;
-  padding: 4px 10px;
-  font-size: 12px;
+  min-height: 30px;
+  min-width: 28px;
+  padding: 3px 8px;
+  font-size: 11px;
   font-weight: 700;
   border-radius: 999px;
 }
@@ -11727,12 +11742,11 @@ button.kitchen-guest-intent--nav {
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-actions .cafe-actions-order,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions .cafe-actions-order,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions--single .cafe-actions-order {
-  width: auto;
-  flex: 0 0 auto;
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  justify-content: flex-end;
+  gap: 4px;
+  justify-content: space-between;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-price-display__num,
@@ -11743,9 +11757,9 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-order-btn,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-order-btn {
-  min-height: 34px;
-  padding: 5px 12px;
-  font-size: 12px;
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 11px;
   font-weight: 800;
   border-radius: 8px;
   flex-shrink: 0;
