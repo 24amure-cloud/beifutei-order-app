@@ -859,7 +859,7 @@ function CafeMenu({ addToCart }) {
   };
 
   return (
-    <main className="main-content main-content--cafe-heroes" style={{ background: '#FAF6ED' }}>
+    <main className="main-content main-content--cafe-heroes guest-menu-surface" style={{ background: '#FAF6ED' }}>
       <div className="cafe-wrapper">
         <div className="cafe-grid-2">
           {/* coffee (Americano) */}
@@ -1067,7 +1067,7 @@ function FruitStudioMenu({ addToCart }) {
   const setSoftType = (type) => setOpts((o) => ({ ...o, soft: { ...o.soft, type } }));
 
   return (
-    <main className="main-content fruit-page">
+    <main className="main-content fruit-page guest-menu-surface">
       <div className="fruit-wrapper">
         <PageHeaderImage pageKey="fruit" alt={ut('header_fruit')} />
 

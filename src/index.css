@@ -11553,8 +11553,7 @@ button.kitchen-guest-intent--nav {
   align-items: stretch;
 }
 
-/* 客席用 .cafe-grid-2（2×2）より優先して 1行4列 */
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-wrapper .kitchen-staff-hero-list--cols-4.cafe-grid-2 {
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-wrapper .kitchen-staff-hero-list--cols-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
@@ -11767,6 +11766,129 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-side {
   display: none;
+}
+
+/* ===== 客席専用：カフェ・ソフトクリーム（元レイアウト維持・スタッフCSSと分離） ===== */
+.guest-menu-surface.main-content--cafe-heroes {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  flex: 1;
+  min-height: 0;
+}
+
+.guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top {
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-card-top .cafe-img-area.cafe-img-area-promo {
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 56%;
+}
+
+.guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-img-area-promo-lg .cafe-img-placeholder.cafe-img-promo-lg {
+  width: min(96%, clamp(118px, 20vw, 236px));
+  height: clamp(132px, min(24vw, 30vh), 288px);
+  max-height: min(34vh, 52vw);
+  margin: 0;
+  border-radius: 0;
+}
+
+.guest-menu-surface.main-content--cafe-heroes .cafe-title {
+  font-size: 26px;
+  font-weight: bold;
+  text-align: left;
+}
+
+.guest-menu-surface.fruit-page .fruit-top-row {
+  display: grid;
+  grid-template-columns: var(--fruit-top-hero) var(--fruit-top-bear);
+}
+
+.guest-menu-surface.fruit-page .fruit-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.guest-menu-surface.fruit-page .fruit-hero-top.cafe-card-top,
+.guest-menu-surface.fruit-page .fruit-card-top.cafe-card-top {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.guest-menu-surface.fruit-page .fruit-hero-top .fruit-card-media--fruit-hero,
+.guest-menu-surface.fruit-page .fruit-card-top .fruit-card-media {
+  width: 228px;
+  min-width: 228px;
+  max-width: none;
+  min-height: 228px;
+  overflow: visible;
+}
+
+.guest-menu-surface.fruit-page .fruit-fruitsoft-visual {
+  width: 100%;
+  height: 228px;
+}
+
+.guest-menu-surface.fruit-page .fruit-fruitsoft-regular {
+  width: 214px;
+  height: 214px;
+  left: 46%;
+  bottom: -18px;
+  transform: translateX(-56%);
+}
+
+.guest-menu-surface.fruit-page .fruit-fruitsoft-mini {
+  width: 122px;
+  height: 122px;
+  right: 20px;
+  bottom: -12px;
+}
+
+.guest-menu-surface.fruit-page .fruit-card-media--gelato {
+  min-height: 198px;
+}
+
+.guest-menu-surface.fruit-page .fruit-gelato-visual {
+  height: 198px;
+  min-height: 198px;
+}
+
+.guest-menu-surface.fruit-page .fruit-card-img--affogato {
+  height: 148px;
+  min-height: 148px;
+}
+
+.guest-menu-surface.fruit-page .fruit-hero-title,
+.guest-menu-surface.fruit-page .fruit-card-title {
+  font-size: 26px;
+  text-align: left;
+}
+
+.guest-menu-surface.fruit-page .fruit-hero-lead,
+.guest-menu-surface.fruit-page .fruit-hero-desc,
+.guest-menu-surface.fruit-page .fruit-hero-note,
+.guest-menu-surface.fruit-page .fruit-card-desc,
+.guest-menu-surface.fruit-page .fruit-card-subtitle,
+.guest-menu-surface.fruit-page .fruit-hero-tagline,
+.guest-menu-surface.fruit-page .fruit-hokkaido-icon--fruit {
+  display: block;
+}
+
+.guest-menu-surface.fruit-page .fruit-badge-round {
+  display: block;
 }
 
 /* --- テイクアウトスイーツ（スタッフ）：カテゴリ内グリッド・小型カード --- */

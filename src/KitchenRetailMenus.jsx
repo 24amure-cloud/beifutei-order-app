@@ -159,7 +159,7 @@ export function KitchenStaffCafeMenu() {
   return (
     <main className="main-content kitchen-staff-retail-menu kitchen-staff-retail-menu--cafe">
       <div className="cafe-wrapper">
-        <div className="cafe-grid-2 kitchen-staff-hero-list kitchen-staff-hero-list--cols-4">
+        <div className="kitchen-staff-hero-list kitchen-staff-hero-list--cols-4">
           <div className="cafe-card cafe-card-bg-beige">
             <div className="cafe-card-top pizza-hero-top">
               <div className="cafe-card-content">
@@ -347,7 +347,7 @@ export function KitchenStaffFruitStudioMenu() {
   const setSoftType = (type) => setOpts((o) => ({ ...o, soft: { ...o.soft, type } }));
 
   return (
-    <main className="main-content fruit-page kitchen-staff-retail-menu kitchen-staff-retail-menu--soft">
+    <main className="main-content kitchen-staff-retail-menu kitchen-staff-retail-menu--soft">
       <div className="fruit-wrapper">
         <PageHeaderImage pageKey="fruit" alt="ソフトクリーム" />
 
