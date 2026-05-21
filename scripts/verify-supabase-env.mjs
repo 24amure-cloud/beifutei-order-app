@@ -4,6 +4,7 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { normalizeSupabaseAnonKey, normalizeSupabaseProjectUrl } from '../src/supabaseEnv.js';
+import { resolveSupabaseClientConfig } from '../src/supabaseProjectDefaults.js';
 
 function loadMergedEnv() {
   const merged = { ...process.env };
@@ -23,10 +24,10 @@ function loadMergedEnv() {
       merged.SUPABASE_KEY ||
       '',
   );
-  return { url, key };
+  return resolveSupabaseClientConfig({ url, key });
 }
 
-const { url, key } = loadMergedEnv();
+const { url, key, usedFallback } = loadMergedEnv();
 
 if (!url || !key) {
   console.error('\n[beifutei] ビルド中止: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY が未設定です。\n');
@@ -36,9 +37,12 @@ if (!url || !key) {
 const prefix = key.slice(0, 22);
 console.log(`[beifutei] Supabase 検証: ${new URL(url).host}  key=${prefix}…`);
 
-if (key.startsWith('sb_publishable__')) {
+if (usedFallback) {
   console.warn(
-    '[beifutei] 警告: Vercel のキーは無効ですが、ビルド時に店舗用フォールバックキーへ差し替えます。',
+    '[beifutei] 警告: Vercel の Supabase 変数が誤設定のため、店舗用フォールバック URL/キーでビルドします。',
+  );
+  console.warn(
+    '[beifutei] VITE_SUPABASE_URL は https://xxxx.supabase.co、VITE_SUPABASE_ANON_KEY は publishable/anon キーを入れてください。',
   );
 }
 
