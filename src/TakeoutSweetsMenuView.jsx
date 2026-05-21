@@ -89,7 +89,7 @@ export default function TakeoutSweetsMenuView({
 
   return (
     <main
-      className="main-content"
+      className={`main-content${isGuest ? '' : ' kitchen-staff-retail-menu kitchen-staff-retail-menu--takeout'}`}
       style={{ background: 'linear-gradient(135deg, #FFE4E1 0%, #FFF0F5 50%, #F0F8FF 100%)' }}
     >
       <div className="ts-wrapper">

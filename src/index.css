@@ -11029,7 +11029,7 @@ button.kitchen-guest-intent--nav {
 /* メニュー左・カート右を常時表示（カートが画面外に出ない） */
 .kitchen-retail-hub__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 268px;
+  grid-template-columns: minmax(0, 1fr) 220px;
   grid-template-rows: minmax(0, 1fr);
   flex: 1;
   min-height: 0;
@@ -11040,7 +11040,7 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-retail-hub__toolbar {
   flex-shrink: 0;
-  padding: 12px 14px;
+  padding: 8px 10px;
   border-bottom: 1px solid #ebe7e1;
   background: linear-gradient(180deg, #faf8f5 0%, #fff 100%);
 }
@@ -11116,17 +11116,17 @@ button.kitchen-guest-intent--nav {
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px 12px;
+  gap: 6px;
+  padding: 6px 8px 8px;
   border-bottom: 1px solid #e8e0d6;
   background: linear-gradient(180deg, #f7f2ea 0%, #faf8f5 55%, #f3eee6 100%);
 }
 
 .kitchen-retail-hub__tab {
-  padding: 9px 16px;
+  padding: 6px 12px;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -11210,7 +11210,7 @@ button.kitchen-guest-intent--nav {
   overflow: hidden;
   border-left: 2px solid #e8dfd4;
   border-top: none;
-  padding: 10px 10px 12px;
+  padding: 8px 8px 10px;
   background: linear-gradient(180deg, #fffdf8 0%, #faf6f0 100%);
   box-shadow: inset 4px 0 12px rgba(90, 70, 55, 0.04);
 }
@@ -11232,7 +11232,7 @@ button.kitchen-guest-intent--nav {
 }
 
 .kitchen-retail-cart__sum {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
   color: #1f1f1f;
   font-variant-numeric: tabular-nums;
@@ -11355,10 +11355,10 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-retail-cart__checkout {
   width: 100%;
-  padding: 14px 16px;
-  border-radius: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
   border: none;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 900;
   cursor: pointer;
   color: #fff;
@@ -11398,74 +11398,58 @@ button.kitchen-guest-intent--nav {
   z-index: 9600;
 }
 
-/* 厨房テイクアウト：スタッフ向けに写真・品名・追加を強調（説明は省略可） */
+/* 厨房：カフェ・テイクアウト・ソフト（スタッフ）— コンパクト一覧（横スライドなし・縦スクロールのみ） */
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu {
   min-height: 0;
+  font-size: 13px;
 }
 
-/* 大見出し画像のみ省略（テイクアウト本文・注意文は客席と同じまま） */
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .hedda-page-header {
   display: none;
 }
 
-/* --- カフェ（スタッフ）：テイクアウトスイーツ同様・右方向へ横スライド --- */
+/* --- カフェ（スタッフ）：2列グリッド --- */
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper {
+  padding: 6px 8px 10px;
+}
+
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-grid-2 {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  max-width: none;
-  padding: 4px 4px 18px;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: 6px;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #c9a882 rgba(0, 0, 0, 0.06);
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-grid-2::-webkit-scrollbar {
-  height: 8px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-grid-2::-webkit-scrollbar-thumb {
-  background-color: #c9a882;
-  border-radius: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow: visible;
+  padding: 0;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-card {
-  flex: 0 0 min(268px, 78vw);
-  scroll-snap-align: start;
   margin-bottom: 0;
-  padding: 12px 12px 10px;
+  padding: 8px 8px 6px;
+  min-width: 0;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: 4px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-card-top .cafe-img-area.cafe-img-area-promo {
   order: -1;
   width: 100%;
   max-width: none;
-  min-height: 120px;
+  min-height: 72px;
   justify-content: center;
   align-items: center;
-  align-self: stretch;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-img-area-promo-lg .cafe-img-placeholder.cafe-img-promo-lg {
-  width: min(168px, 86%);
-  height: clamp(120px, 36vw, 152px);
+  width: min(96px, 72%);
+  height: 72px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-img-area-promo .cafe-badge.cafe-badge-promo-lg {
-  width: clamp(72px, 20vw, 100px);
-  height: clamp(72px, 20vw, 100px);
+  width: 52px;
+  height: 52px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-subtitle,
@@ -11474,27 +11458,43 @@ button.kitchen-guest-intent--nav {
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-title {
-  font-size: clamp(17px, 3.6vw, 22px);
+  font-size: 14px;
   line-height: 1.2;
+  margin-bottom: 2px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-price-info-spaced {
   min-height: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-menu-price-pair,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-menu-size-range {
+  font-size: 11px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-actions-row {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
-  border-radius: 12px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
+  gap: 4px;
+  border-radius: 8px;
+  padding: 6px;
+  margin-top: 4px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-toggles {
   width: 100%;
   justify-content: center;
   flex-wrap: wrap;
+  gap: 4px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-toggle-btn,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-size-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  min-height: 28px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-actions-order {
@@ -11503,52 +11503,43 @@ button.kitchen-guest-intent--nav {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-order-btn {
   flex: 1 1 100%;
-  min-height: 44px;
-  border-radius: 12px;
-  font-size: 15px;
+  min-height: 34px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 800;
+  padding: 6px 8px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-price-display__num {
-  font-size: 20px;
+  font-size: 15px;
 }
 
-/* --- フルーツ（スタッフ）：カルーセル内で横スライド（ts-grid に近い操作感） --- */
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-price-display__suffix,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-price-display span {
+  font-size: 11px;
+}
+
+/* --- ソフトクリーム（スタッフ）：2列グリッド --- */
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu.fruit-page .fruit-wrapper {
+  padding: 6px 8px 10px;
+}
+
 .kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 16px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 4px 4px 18px;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: 6px;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #7ecbbb rgba(0, 0, 0, 0.06);
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel::-webkit-scrollbar {
-  height: 8px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel::-webkit-scrollbar-thumb {
-  background-color: #7ecbbb;
-  border-radius: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow: visible;
+  padding: 0;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel .fruit-top-row {
-  flex: 0 0 min(288px, 78vw);
-  scroll-snap-align: start;
-  display: grid;
-  grid-template-columns: 1fr;
+  grid-column: 1 / -1;
+  display: block;
   margin-bottom: 0;
   min-width: 0;
 }
@@ -11557,51 +11548,69 @@ button.kitchen-guest-intent--nav {
   display: none;
 }
 
-/* グリッドを「中身だけ」親の横並びに参加させ、カードごとにスナップ */
 .kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel .fruit-grid-2 {
   display: contents;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel .fruit-card {
-  flex: 0 0 min(268px, 78vw);
-  scroll-snap-align: start;
   margin-bottom: 0;
+  min-width: 0;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel .fruit-badge-round {
   left: auto;
-  right: 10px;
-  top: 10px;
+  right: 6px;
+  top: 6px;
+  transform: scale(0.72);
+  transform-origin: top right;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel .fruit-ribbon-orange {
+  font-size: 10px;
+  padding: 3px 8px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-lead,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-desc,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-note,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-desc,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-subtitle {
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-subtitle,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-tagline {
   display: none;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-title,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-title {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-price-band {
+  font-size: 13px;
+  margin: 4px 0;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-top.cafe-card-top,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-top.cafe-card-top {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: 4px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-top .fruit-card-media--fruit-hero,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-top .fruit-card-media {
   order: -1;
   width: 100%;
-  min-height: 120px;
+  min-height: 72px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-actions.cafe-actions-row,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-actions.cafe-actions-row {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
-  border-radius: 12px;
+  gap: 4px;
+  border-radius: 8px;
+  padding: 6px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-actions .cafe-toggles,
@@ -11610,20 +11619,122 @@ button.kitchen-guest-intent--nav {
   justify-content: center;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-actions .cafe-actions-order,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-actions .cafe-actions-order {
-  width: 100%;
-  flex-wrap: wrap;
-  justify-content: space-between;
-}
-
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-actions .cafe-order-btn,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-actions .cafe-order-btn {
   flex: 1 1 100%;
-  min-height: 44px;
-  border-radius: 12px;
-  font-size: 15px;
+  min-height: 34px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 800;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-hero-actions .cafe-price-display,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu .fruit-card-actions .cafe-price-display {
+  font-size: 14px;
+}
+
+/* --- テイクアウトスイーツ（スタッフ）：カテゴリ内グリッド・小型カード --- */
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-wrapper {
+  padding: 6px 8px 10px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-header-note {
+  display: none;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-section {
+  padding: 22px 8px 10px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border-width: 1px;
+  box-shadow: 0 2px 8px rgba(255, 192, 203, 0.2);
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-section-title {
+  top: -12px;
+  left: 10px;
+  padding: 4px 12px;
+  font-size: 12px;
+  gap: 6px;
+  border-radius: 16px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 8px;
+  overflow: visible;
+  padding-bottom: 0;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-card {
+  min-width: 0;
+  padding: 6px;
+  border-radius: 10px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-card:hover {
+  transform: none;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-img {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 4px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-name {
+  font-size: 11px;
+  height: auto;
+  min-height: 2.6em;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-price {
+  font-size: 13px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-add-btn {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-card-footer {
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-soldout-badge {
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
+  padding: 3px 6px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-rank-stack {
+  top: 4px;
+  left: 4px;
+  transform: scale(0.82);
+  transform-origin: top left;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-rank-badge {
+  font-size: 9px;
+}
+
+@media (max-width: 520px) {
+  .kitchen-retail-hub__scroll .kitchen-staff-retail-menu .cafe-wrapper .cafe-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .kitchen-retail-hub__scroll .kitchen-staff-fruit-carousel {
+    grid-template-columns: 1fr;
+  }
+
+  .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  }
 }
 
 .kitchen-v2-content .kitchen-orders,

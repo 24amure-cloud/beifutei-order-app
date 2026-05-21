@@ -351,7 +351,7 @@ export function KitchenStaffFruitStudioMenu() {
       <div className="fruit-wrapper">
         <PageHeaderImage pageKey="fruit" alt="ソフトクリーム" />
 
-        <div className="kitchen-staff-fruit-carousel" role="region" aria-label="ソフトクリーム（横スクロール）">
+        <div className="kitchen-staff-fruit-carousel" role="region" aria-label="ソフトクリーム（一覧）">
           <div className="fruit-top-row">
           <div className="fruit-hero fruit-hero--cafe">
             <div className="fruit-hero-body">
