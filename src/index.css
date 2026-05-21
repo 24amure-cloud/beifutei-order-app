@@ -15878,8 +15878,16 @@ button.kitchen-guest-intent--nav {
   cursor: pointer;
 }
 
-.kitchen-checkout-log__reprint {
+.kitchen-checkout-log__card-actions {
   margin-left: auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.kitchen-checkout-log__reprint {
   flex-shrink: 0;
   min-height: 36px;
   padding: 6px 12px;
@@ -15889,6 +15897,116 @@ button.kitchen-guest-intent--nav {
   border: 1px solid #c9b8a0;
   background: #fffdf9;
   color: #5a5348;
+  cursor: pointer;
+}
+
+.kitchen-checkout-log__delete,
+.master-ledger-entry-delete {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1px solid #e0b8b8;
+  background: #fff4f0;
+  color: #8b3a28;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.master-ledger-act {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.ledger-delete-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 9600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(40, 32, 28, 0.45);
+}
+
+.ledger-delete-dialog__panel {
+  width: min(360px, 94vw);
+  padding: 20px 18px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.ledger-delete-dialog__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 800;
+  color: #2a221c;
+}
+
+.ledger-delete-dialog__lead {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #6b5a48;
+}
+
+.ledger-delete-dialog__field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.ledger-delete-dialog__lab {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a7560;
+}
+
+.ledger-delete-dialog__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #d8d0c4;
+  border-radius: 8px;
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  box-sizing: border-box;
+}
+
+.ledger-delete-dialog__err {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #a33;
+}
+
+.ledger-delete-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ledger-delete-dialog__cancel {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #d8d0c4;
+  border-radius: 8px;
+  background: #f5efe6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ledger-delete-dialog__submit {
+  min-height: 40px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #a61e36;
+  color: #fff;
+  font-weight: 800;
   cursor: pointer;
 }
 

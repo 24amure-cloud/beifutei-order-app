@@ -75,3 +75,16 @@ export async function pullAndMergeDailyLedgerFromSupabase() {
     return { ok: false, error: String(e?.message || e) };
   }
 }
+
+/** 日計1件をクラウドから削除（端末間の再同期で復活しないようにする） */
+export async function deleteDailyLedgerEntryFromSupabase(entryId) {
+  const id = String(entryId || '').trim();
+  if (!isSupabaseConfigured || !id) return { ok: false, skipped: true };
+  try {
+    const { error } = await supabase.from(TABLE).delete().eq('id', id);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e) };
+  }
+}

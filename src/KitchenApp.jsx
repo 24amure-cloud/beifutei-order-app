@@ -19,6 +19,7 @@ import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 import KitchenVerbalOrderSheet from './KitchenVerbalOrderSheet.jsx';
 import KitchenCheckoutModal from './KitchenCheckoutModal.jsx';
+import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
 import {
   buildLedgerReceiptPayload,
   buildSlipReceiptPayload,
@@ -1708,19 +1709,26 @@ export default function KitchenApp() {
                             {formatLedgerPaymentJa(e.payment)}
                           </span>
                           <span className="kitchen-checkout-log__total">￥{Number(e.total || 0).toLocaleString()}</span>
-                          {canUsePassPrnt() ? (
-                            <button
-                              type="button"
-                              className="kitchen-checkout-log__reprint"
-                              onClick={() =>
-                                printReceiptWithFeedback(buildLedgerReceiptPayload(e), {
-                                  openDrawer: false,
-                                })
-                              }
-                            >
-                              再印刷
-                            </button>
-                          ) : null}
+                          <div className="kitchen-checkout-log__card-actions">
+                            {canUsePassPrnt() ? (
+                              <button
+                                type="button"
+                                className="kitchen-checkout-log__reprint"
+                                onClick={() =>
+                                  printReceiptWithFeedback(buildLedgerReceiptPayload(e), {
+                                    openDrawer: false,
+                                  })
+                                }
+                              >
+                                再印刷
+                              </button>
+                            ) : null}
+                            <LedgerEntryDeleteButton
+                              entry={e}
+                              variant="kitchen"
+                              onDeleted={() => setLedgerRevision((r) => r + 1)}
+                            />
+                          </div>
                         </header>
                         {e.checkoutMemo ? (
                           <p className="kitchen-checkout-log__memo">メモ：{e.checkoutMemo}</p>

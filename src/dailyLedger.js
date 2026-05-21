@@ -205,6 +205,20 @@ export function appendDailyLedgerEntry(partial) {
   return entry;
 }
 
+/** 会計済み伝票（日計1件）を削除。厨房・オーナー共通の localStorage */
+export function removeDailyLedgerEntry(entryId) {
+  const id = String(entryId || '').trim();
+  if (!id) return false;
+  const prev = loadDailyLedger();
+  const next = prev.entries.filter((e) => e.id !== id);
+  if (next.length === prev.entries.length) return false;
+  persistDailyLedgerEntries(next);
+  import('./dailyLedgerSync.js').then(({ deleteDailyLedgerEntryFromSupabase }) => {
+    deleteDailyLedgerEntryFromSupabase(id);
+  });
+  return true;
+}
+
 export function summarizeLedgerDay(entries, dateKey) {
   const day = entries.filter((e) => e.dateKey === dateKey);
   let cash = 0;
