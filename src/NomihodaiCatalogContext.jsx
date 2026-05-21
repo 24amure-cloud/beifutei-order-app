@@ -1,7 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { DEFAULT_NOMIHODAI_CATALOG } from './data/defaultNomihodaiCatalog.js';
-import { loadNomihodaiCatalog, saveNomihodaiCatalog } from './nomihodaiCatalogStorage.js';
-import { subscribeMenuPublished } from './menuMasterBroadcast.js';
+import { loadNomihodaiCatalog, saveNomihodaiCatalog, NOMIHODAI_CATALOG_STORAGE_KEY } from './nomihodaiCatalogStorage.js';
+import { useMenuPublishedSync } from './useMenuPublishedSync.js';
 
 const NomihodaiCatalogContext = createContext(null);
 
@@ -22,19 +22,11 @@ export function NomihodaiCatalogProvider({ children }) {
     setCatalogState(fresh);
   }, []);
 
-  useEffect(() => {
-    const sync = () => setCatalogState(loadNomihodaiCatalog());
-    window.addEventListener('storage', sync);
-    window.addEventListener('focus', sync);
-    const unsubBc = subscribeMenuPublished((msg) => {
-      if (msg?.kind === 'nomihodai' || msg?.kind === 'all') sync();
-    });
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener('focus', sync);
-      unsubBc();
-    };
+  const syncFromStorage = useCallback(() => {
+    setCatalogState(loadNomihodaiCatalog());
   }, []);
+
+  useMenuPublishedSync(syncFromStorage, ['nomihodai', 'all'], NOMIHODAI_CATALOG_STORAGE_KEY);
 
   const value = useMemo(
     () => ({

@@ -1,25 +1,75 @@
 import React from 'react';
+import {
+  MASTER_MENU_APPLY_HINT_CLEAN,
+  MASTER_MENU_APPLY_HINT_DIRTY,
+  MASTER_MENU_APPLIED_LABEL,
+  MASTER_MENU_APPLY_LABEL,
+} from './masterMenuApplyCopy.js';
 
-function MasterApplyBar({ dirty, applyNotice, onApply, onDiscard }) {
+/** ドリンク・飲み放題・テイクアウト・サイドの未反映分をまとめて客席・スタッフへ反映 */
+export function MasterGlobalApplyBar({ anyMenuDirty, allApplyNotice, applyAllMenus, discardAllDrafts }) {
   return (
-    <div className="master-apply-bar" role="status" aria-live="polite">
+    <div
+      className={`master-apply-bar master-apply-bar--global${anyMenuDirty ? ' master-apply-bar--dirty' : ''}`}
+      role="status"
+      aria-live="polite"
+    >
       <p className="master-apply-bar__hint">
-        {dirty
-          ? '編集内容はまだ客席タブレットに出ていません。「客席に反映」を押してください。'
-          : '客席タブレットと同じ内容です。'}
+        {anyMenuDirty
+          ? 'ドリンク・飲み放題・テイクアウトスイーツ・サイドのいずれかに未反映の編集があります。まとめて客席タブレット・スタッフ画面へ反映できます。'
+          : '4種類のメニューはすべて客席タブレット・スタッフ画面と同期済みです。'}
       </p>
       <div className="master-apply-bar__actions">
-        <button type="button" className="master-btn master-btn--apply" disabled={!dirty} onClick={onApply}>
-          客席に反映
+        <button type="button" className="master-btn master-btn--apply" disabled={!anyMenuDirty} onClick={applyAllMenus}>
+          すべて反映（客席・スタッフ）
         </button>
-        <button type="button" className="master-btn master-btn--ghost" disabled={!dirty} onClick={onDiscard}>
-          変更を破棄
+        <button type="button" className="master-btn master-btn--ghost" disabled={!anyMenuDirty} onClick={discardAllDrafts}>
+          すべて破棄
         </button>
-        {applyNotice === 'ok' ? <span className="master-apply-bar__ok">反映しました</span> : null}
+        {allApplyNotice === 'ok' ? (
+          <span className="master-apply-bar__ok">{MASTER_MENU_APPLIED_LABEL}</span>
+        ) : null}
       </div>
     </div>
   );
 }
+
+function MasterApplyBar({
+  dirty,
+  applyNotice,
+  onApply,
+  onDiscard,
+  hintDirty,
+  hintClean,
+  applyLabel = '客席に反映',
+  appliedLabel = '反映しました',
+}) {
+  return (
+    <div className="master-apply-bar" role="status" aria-live="polite">
+      <p className="master-apply-bar__hint">
+        {dirty
+          ? (hintDirty ?? '編集内容はまだ客席タブレットに出ていません。「客席に反映」を押してください。')
+          : (hintClean ?? '客席タブレットと同じ内容です。')}
+      </p>
+      <div className="master-apply-bar__actions">
+        <button type="button" className="master-btn master-btn--apply" disabled={!dirty} onClick={onApply}>
+          {applyLabel}
+        </button>
+        <button type="button" className="master-btn master-btn--ghost" disabled={!dirty} onClick={onDiscard}>
+          変更を破棄
+        </button>
+        {applyNotice === 'ok' ? <span className="master-apply-bar__ok">{appliedLabel}</span> : null}
+      </div>
+    </div>
+  );
+}
+
+const MENU_APPLY_PROPS = {
+  hintDirty: MASTER_MENU_APPLY_HINT_DIRTY,
+  hintClean: MASTER_MENU_APPLY_HINT_CLEAN,
+  applyLabel: MASTER_MENU_APPLY_LABEL,
+  appliedLabel: MASTER_MENU_APPLIED_LABEL,
+};
 
 /** ドリンクメニューマスター本体（カード＋全セクション） */
 export function MasterDrinkMenuPanel({
@@ -57,6 +107,7 @@ export function MasterDrinkMenuPanel({
           applyNotice={drinkApplyNotice}
           onApply={applyDrinkMenu}
           onDiscard={discardDrinkDraft}
+          {...MENU_APPLY_PROPS}
         />
 
         <div className="master-sections">
@@ -233,6 +284,7 @@ export function MasterNomihodaiMenuPanel({
           applyNotice={nhApplyNotice}
           onApply={applyNomihodaiMenu}
           onDiscard={discardNomihodaiDraft}
+          {...MENU_APPLY_PROPS}
         />
 
         <p className="master-page-lead master-page-lead--compact">
@@ -372,10 +424,11 @@ export function MasterTakeoutMenuPanel({
           applyNotice={takeoutApplyNotice}
           onApply={applyTakeoutMenu}
           onDiscard={discardTakeoutDraft}
+          {...MENU_APPLY_PROPS}
         />
 
         <p className="master-page-lead master-page-lead--compact">
-          在庫数・価格を編集し「客席に反映」でタブレットのテイクアウト画面に出します。在庫 0 は品切れ表示になります。
+          カテゴリ名・品目・在庫・価格を編集し「メニューを反映」で、客席タブレットと厨房スタッフのテイクアウトスイーツ画面に同時に出ます。在庫 0 は品切れ表示になります。
         </p>
 
         <div className="master-sections">
@@ -531,6 +584,7 @@ export function MasterSideDishMenuPanel({
           applyNotice={sideDishApplyNotice}
           onApply={applySideDishMenu}
           onDiscard={discardSideDishDraft}
+          {...MENU_APPLY_PROPS}
         />
 
         <p className="master-page-lead master-page-lead--compact">

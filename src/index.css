@@ -5943,6 +5943,21 @@ button.fruit-toggle-btn {
   background: linear-gradient(180deg, #fffef9 0%, #f5f0e8 100%);
 }
 
+.master-apply-bar--global {
+  margin: 0 0 12px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.master-apply-bar--global.master-apply-bar--dirty {
+  border-color: #c4a574;
+  background: linear-gradient(180deg, #fff8eb 0%, #f8edd8 100%);
+}
+
+.master-apply-bar--global .master-apply-bar__actions {
+  justify-content: flex-start;
+}
+
 .master-apply-bar__hint {
   margin: 0;
   flex: 1 1 220px;

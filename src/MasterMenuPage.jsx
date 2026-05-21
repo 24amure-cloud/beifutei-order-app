@@ -7,6 +7,7 @@ import {
   MasterNomihodaiMenuPanel,
   MasterTakeoutMenuPanel,
   MasterSideDishMenuPanel,
+  MasterGlobalApplyBar,
 } from './MasterMenuPanels.jsx';
 import { useMasterMenuEditor } from './useMasterMenuEditor.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
@@ -96,6 +97,12 @@ export default function MasterMenuPage() {
 
             <div className="master-owner-aside__group">
               <h2 className="master-owner-aside__heading">メニュー編集</h2>
+              <MasterGlobalApplyBar
+                anyMenuDirty={editor.anyMenuDirty}
+                allApplyNotice={editor.allApplyNotice}
+                applyAllMenus={editor.applyAllMenus}
+                discardAllDrafts={editor.discardAllDrafts}
+              />
               <div className="master-owner-aside__modes">
                 <button
                   type="button"

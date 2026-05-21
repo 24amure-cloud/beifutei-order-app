@@ -82,6 +82,7 @@ export function useMasterMenuEditor() {
   const [nhApplyNotice, setNhApplyNotice] = useState(null);
   const [takeoutApplyNotice, setTakeoutApplyNotice] = useState(null);
   const [sideDishApplyNotice, setSideDishApplyNotice] = useState(null);
+  const [allApplyNotice, setAllApplyNotice] = useState(null);
 
   useEffect(() => {
     setDraftDrink(structuredClone(publishedDrink));
@@ -113,6 +114,10 @@ export function useMasterMenuEditor() {
   const sideDishDirty = useMemo(
     () => !catalogEqual(draftSideDish, publishedSideDish),
     [draftSideDish, publishedSideDish]
+  );
+  const anyMenuDirty = useMemo(
+    () => drinkDirty || nhDirty || takeoutDirty || sideDishDirty,
+    [drinkDirty, nhDirty, takeoutDirty, sideDishDirty],
   );
 
   const applyDrinkMenu = useCallback(() => {
@@ -429,11 +434,83 @@ export function useMasterMenuEditor() {
     window.setTimeout(() => setSideDishApplyNotice(null), 4000);
   }, [resetSideDishMenuToDefault]);
 
+  const applyAllMenus = useCallback(() => {
+    if (!anyMenuDirty) return;
+    if (drinkDirty) setDrinkSections(structuredClone(draftDrink));
+    if (nhDirty) setNomihodaiCatalog(structuredClone(draftNh));
+    if (takeoutDirty) {
+      const nextSections = structuredClone(draftTakeout).map((sec) => ({
+        ...sec,
+        items: sec.items.map(({ stock, ...rest }) => rest),
+      }));
+      setTakeoutSections(nextSections);
+      setTakeoutInventoryMap(inventoryMapFromSections(draftTakeout));
+    }
+    if (sideDishDirty) setSideDishSections(structuredClone(draftSideDish));
+    notifyMenuPublished('all');
+    if (drinkDirty) setDrinkApplyNotice('ok');
+    if (nhDirty) setNhApplyNotice('ok');
+    if (takeoutDirty) setTakeoutApplyNotice('ok');
+    if (sideDishDirty) setSideDishApplyNotice('ok');
+    setAllApplyNotice('ok');
+    window.setTimeout(() => {
+      setDrinkApplyNotice(null);
+      setNhApplyNotice(null);
+      setTakeoutApplyNotice(null);
+      setSideDishApplyNotice(null);
+      setAllApplyNotice(null);
+    }, 4000);
+  }, [
+    anyMenuDirty,
+    drinkDirty,
+    nhDirty,
+    takeoutDirty,
+    sideDishDirty,
+    draftDrink,
+    draftNh,
+    draftTakeout,
+    draftSideDish,
+    setDrinkSections,
+    setNomihodaiCatalog,
+    setTakeoutSections,
+    setTakeoutInventoryMap,
+    setSideDishSections,
+  ]);
+
+  const discardAllDrafts = useCallback(() => {
+    if (!anyMenuDirty) return;
+    if (!window.confirm('未反映のメニュー編集をすべて破棄しますか？')) return;
+    if (drinkDirty) setDraftDrink(structuredClone(publishedDrink));
+    if (nhDirty) setDraftNh(structuredClone(publishedNh));
+    if (takeoutDirty) setDraftTakeout(attachStockToSections(publishedTakeout, publishedTakeoutInv));
+    if (sideDishDirty) setDraftSideDish(structuredClone(publishedSideDish));
+    setDrinkApplyNotice(null);
+    setNhApplyNotice(null);
+    setTakeoutApplyNotice(null);
+    setSideDishApplyNotice(null);
+    setAllApplyNotice(null);
+  }, [
+    anyMenuDirty,
+    drinkDirty,
+    nhDirty,
+    takeoutDirty,
+    sideDishDirty,
+    publishedDrink,
+    publishedNh,
+    publishedTakeout,
+    publishedTakeoutInv,
+    publishedSideDish,
+  ]);
+
   return {
     drinkSections: draftDrink,
     nomihodaiCatalog: draftNh,
     drinkDirty,
     nhDirty,
+    anyMenuDirty,
+    allApplyNotice,
+    applyAllMenus,
+    discardAllDrafts,
     drinkApplyNotice,
     nhApplyNotice,
     applyDrinkMenu,

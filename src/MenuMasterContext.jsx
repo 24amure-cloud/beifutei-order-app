@@ -1,7 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { DEFAULT_DRINK_MENU_SECTIONS } from './data/defaultDrinkMenu.js';
-import { loadDrinkMenuSections, saveDrinkMenuSections } from './menuStorage.js';
-import { subscribeMenuPublished } from './menuMasterBroadcast.js';
+import { loadDrinkMenuSections, saveDrinkMenuSections, DRINK_MENU_STORAGE_KEY } from './menuStorage.js';
+import { useMenuPublishedSync } from './useMenuPublishedSync.js';
 
 const MenuMasterContext = createContext(null);
 
@@ -22,19 +22,11 @@ export function MenuMasterProvider({ children }) {
     setDrinkSectionsState(fresh);
   }, []);
 
-  useEffect(() => {
-    const sync = () => setDrinkSectionsState(loadDrinkMenuSections());
-    window.addEventListener('storage', sync);
-    window.addEventListener('focus', sync);
-    const unsubBc = subscribeMenuPublished((msg) => {
-      if (msg?.kind === 'drink' || msg?.kind === 'all') sync();
-    });
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener('focus', sync);
-      unsubBc();
-    };
+  const syncFromStorage = useCallback(() => {
+    setDrinkSectionsState(loadDrinkMenuSections());
   }, []);
+
+  useMenuPublishedSync(syncFromStorage, ['drink', 'all'], DRINK_MENU_STORAGE_KEY);
 
   const value = useMemo(
     () => ({

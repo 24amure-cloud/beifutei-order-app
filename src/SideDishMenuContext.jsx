@@ -1,7 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { DEFAULT_SIDE_DISH_SECTIONS } from './data/defaultSideDishMenu.js';
-import { loadSideDishSections, saveSideDishSections } from './sideDishMenuStorage.js';
-import { subscribeMenuPublished } from './menuMasterBroadcast.js';
+import { loadSideDishSections, saveSideDishSections, SIDE_DISH_MENU_STORAGE_KEY } from './sideDishMenuStorage.js';
+import { useMenuPublishedSync } from './useMenuPublishedSync.js';
 
 const SideDishMenuContext = createContext(null);
 
@@ -22,19 +22,11 @@ export function SideDishMenuProvider({ children }) {
     setSectionsState(fresh);
   }, []);
 
-  useEffect(() => {
-    const sync = () => setSectionsState(loadSideDishSections());
-    window.addEventListener('storage', sync);
-    window.addEventListener('focus', sync);
-    const unsub = subscribeMenuPublished((msg) => {
-      if (msg?.kind === 'sidedish' || msg?.kind === 'all') sync();
-    });
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener('focus', sync);
-      unsub();
-    };
+  const syncFromStorage = useCallback(() => {
+    setSectionsState(loadSideDishSections());
   }, []);
+
+  useMenuPublishedSync(syncFromStorage, ['sidedish', 'all'], SIDE_DISH_MENU_STORAGE_KEY);
 
   const value = useMemo(
     () => ({

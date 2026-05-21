@@ -1,8 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { DEFAULT_TAKEOUT_SWEETS_SECTIONS } from './data/defaultTakeoutSweetsMenu.js';
-import { loadTakeoutSweetsSections, saveTakeoutSweetsSections } from './takeoutSweetsMenuStorage.js';
-import { loadTakeoutInventoryMap, saveTakeoutInventoryMap } from './takeoutSweetsInventoryStorage.js';
-import { subscribeMenuPublished } from './menuMasterBroadcast.js';
+import { loadTakeoutSweetsSections, saveTakeoutSweetsSections, TAKEOUT_SWEETS_MENU_STORAGE_KEY } from './takeoutSweetsMenuStorage.js';
+import { loadTakeoutInventoryMap, saveTakeoutInventoryMap, TAKEOUT_INVENTORY_STORAGE_KEY } from './takeoutSweetsInventoryStorage.js';
+import { useMenuPublishedSync } from './useMenuPublishedSync.js';
 
 const TakeoutSweetsMenuContext = createContext(null);
 
@@ -35,22 +35,15 @@ export function TakeoutSweetsMenuProvider({ children }) {
     setInventoryMapState(inv);
   }, []);
 
-  useEffect(() => {
-    const sync = () => {
-      setSectionsState(loadTakeoutSweetsSections());
-      setInventoryMapState(loadTakeoutInventoryMap());
-    };
-    window.addEventListener('storage', sync);
-    window.addEventListener('focus', sync);
-    const unsub = subscribeMenuPublished((msg) => {
-      if (msg?.kind === 'takeout' || msg?.kind === 'all') sync();
-    });
-    return () => {
-      window.removeEventListener('storage', sync);
-      window.removeEventListener('focus', sync);
-      unsub();
-    };
+  const syncFromStorage = useCallback(() => {
+    setSectionsState(loadTakeoutSweetsSections());
+    setInventoryMapState(loadTakeoutInventoryMap());
   }, []);
+
+  useMenuPublishedSync(syncFromStorage, ['takeout', 'all'], [
+    TAKEOUT_SWEETS_MENU_STORAGE_KEY,
+    TAKEOUT_INVENTORY_STORAGE_KEY,
+  ]);
 
   const value = useMemo(
     () => ({
