@@ -51,12 +51,22 @@ export default function SupabaseConfigMissingScreen() {
           <strong>Value</strong> だけに URL／キーを貼る（名前欄に <code>=</code> や URL を書かない）。
         </li>
         <li style={{ marginBottom: 8 }}>
+          <strong>URL の値</strong>は <code>https://xxxx.supabase.co</code> まで。<strong>/rest/v1 は付けない</strong>
+          （付けると厨房ログに <code>PGRST125 Invalid path</code> が出ます）。
+        </li>
+        <li style={{ marginBottom: 8 }}>
           各変数の <strong>Environment</strong> に <strong>Production</strong> にチェック
         </li>
         <li>
           <strong>Deployments → Redeploy</strong>（できれば「Use existing Build Cache」をオフ）
         </li>
       </ol>
+      <p style={{ marginBottom: 12, fontSize: 14, color: '#8b2500' }}>
+        <strong>注文が送れない・厨房が「DB未設定」のとき：</strong>
+        ビルドに埋め込まれた Supabase が、マイグレーション済みのプロジェクトと<strong>違う</strong>ことがあります。ローカルの{' '}
+        <code>.env</code> の URL（例: <code>…bzzblbub…supabase.co</code>）と、Vercel の変数が<strong>同じホスト名</strong>
+        か確認してから Redeploy してください。
+      </p>
       <p style={{ fontSize: 14, color: '#555' }}>
         ローカルではリポジトリ直下の <code>.env</code> に同じ名前で保存します（Git には含めません）。
       </p>

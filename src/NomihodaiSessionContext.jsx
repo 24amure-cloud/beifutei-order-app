@@ -23,6 +23,12 @@ import {
 } from './nomihodaiConstants.js';
 import { supabase } from './supabaseClient.js';
 import {
+  classifySupabaseProbeError,
+  describeSupabaseConnectionIssue,
+  guestHintFromSupabaseError,
+  probeSupabaseOrdersTable,
+} from './supabaseHealth.js';
+import {
   markKitchenRestSyncError,
   markKitchenRestSyncOk,
   pushKitchenDiag,
@@ -191,6 +197,7 @@ export function NomihodaiSessionProvider({ children }) {
 
   const [dbOrders, setDbOrders] = useState([]);
   const [dbTables, setDbTables] = useState([]);
+  const [dbConnection, setDbConnection] = useState({ ok: true, kind: 'pending', host: '', message: '' });
   const [now, setNow] = useState(() => Date.now());
   /** 楽観追加直後に SELECT が空（RLS 等）で全消ししないよう refetch で参照する */
   const ordersRecentOptimisticRef = useRef(0);
@@ -310,6 +317,45 @@ export function NomihodaiSessionProvider({ children }) {
     startRealtimeRef.current = startRealtimeChannels;
   }, [startRealtimeChannels]);
 
+  const applyDbConnectionFromError = useCallback((error) => {
+    const kind = classifySupabaseProbeError(error);
+    if (kind === 'ok') return;
+    const probe = { ok: false, kind, host: '', detail: error?.message || '' };
+    try {
+      const u = import.meta.env.VITE_SUPABASE_URL;
+      if (u) probe.host = new URL(String(u).trim()).host;
+    } catch {
+      /* ignore */
+    }
+    setDbConnection({
+      ok: false,
+      kind,
+      host: probe.host,
+      message: describeSupabaseConnectionIssue(probe),
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const probe = await probeSupabaseOrdersTable();
+      if (cancelled) return;
+      if (probe.ok) {
+        setDbConnection({ ok: true, kind: 'ok', host: probe.host, message: '' });
+        return;
+      }
+      setDbConnection({
+        ok: false,
+        kind: probe.kind,
+        host: probe.host,
+        message: describeSupabaseConnectionIssue(probe),
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Supabase 初回取得 + Realtime（再同期ボタンで購読だけ張り直せる）
   useEffect(() => {
     const fetchInitial = async () => {
@@ -317,11 +363,16 @@ export function NomihodaiSessionProvider({ children }) {
         supabase.from('beifutei_orders').select('*').order('created_at', { ascending: true }),
         supabase.from('beifutei_table_states').select('*'),
       ]);
-      if (ordersRes.error) markKitchenRestSyncError('beifutei_orders:initial', ordersRes.error);
-      else if (Array.isArray(ordersRes.data)) setDbOrders(ordersRes.data);
+      if (ordersRes.error) {
+        markKitchenRestSyncError('beifutei_orders:initial', ordersRes.error);
+        applyDbConnectionFromError(ordersRes.error);
+      } else if (Array.isArray(ordersRes.data)) setDbOrders(ordersRes.data);
       if (tablesRes.error) markKitchenRestSyncError('beifutei_table_states:initial', tablesRes.error);
       else if (Array.isArray(tablesRes.data)) setDbTables(normalizeTableStatesRows(tablesRes.data));
-      if (!ordersRes.error && !tablesRes.error) markKitchenRestSyncOk();
+      if (!ordersRes.error && !tablesRes.error) {
+        markKitchenRestSyncOk();
+        setDbConnection((prev) => ({ ok: true, kind: 'ok', host: prev.host || '', message: '' }));
+      }
     };
     void fetchInitial();
     startRealtimeChannels();
@@ -332,7 +383,7 @@ export function NomihodaiSessionProvider({ children }) {
       }
       stopRealtimeRef.current();
     };
-  }, [startRealtimeChannels]);
+  }, [startRealtimeChannels, applyDbConnectionFromError]);
 
   const refetchOrdersFromDb = useCallback(async (opts = {}) => {
     const force = !!opts.force;
@@ -584,12 +635,18 @@ export function NomihodaiSessionProvider({ children }) {
     const { error } = await supabase.from('beifutei_orders').insert(inserts);
     if (error) {
       pushKitchenDiagFromSupabase('beifutei_orders:insert', error, '客席まとめINSERT');
+      applyDbConnectionFromError(error);
       setDbOrders((prev) => prev.filter((o) => !inserts.some((i) => i.id === o.id)));
-      return { ok: false, errorMessage: error.message || String(error) };
+      return {
+        ok: false,
+        errorCode: error.code,
+        errorMessage: error.message || String(error),
+        guestHint: guestHintFromSupabaseError(error),
+      };
     }
     /* INSERT 成功後の即時 select は RLS で [] になり得るため行わない（楽観行＋Realtime／定期 refetch に任せる） */
     return { ok: true };
-  }, [session.tableLabel]);
+  }, [session.tableLabel, applyDbConnectionFromError]);
 
   /** 厨房：口頭注文を任意の卓へ追加（status で未提供キュー／提供済伝票を選択） */
   const addStaffOrdersForTable = useCallback(
@@ -1122,6 +1179,7 @@ export function NomihodaiSessionProvider({ children }) {
     () => ({
       session,
       now,
+      dbConnection,
       setSession: () => {}, // Deprecated but kept for surface compatibility
       refresh: () => {}, // Handled by realtime
       fullResyncDbFromSupabase,
@@ -1163,6 +1221,7 @@ export function NomihodaiSessionProvider({ children }) {
     [
       session,
       now,
+      dbConnection,
       fullResyncDbFromSupabase,
       startNomihodai,
       endNomihodai,

@@ -1,6 +1,9 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { recoverStaleServiceWorker } from './swBootRecovery.js'
 import './index.css'
+
+recoverStaleServiceWorker()
 import App from './App.jsx'
 import { MenuMasterProvider } from './MenuMasterContext.jsx'
 import { NomihodaiCatalogProvider } from './NomihodaiCatalogContext.jsx'

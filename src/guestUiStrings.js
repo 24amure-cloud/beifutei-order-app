@@ -52,7 +52,7 @@ const JA = {
   notice_checkout_zero: '現在のお会計は0円です。',
   notice_checkout_no_table: '卓番号が設定されていません。URL の ?table= を確認するか、スタッフにお知らせください。',
   notice_checkout_ok: 'お会計のご依頼を受け付けました。スタッフが伺います。',
-  notice_order_fail_prefix: '注文をサーバーに送れませんでした。Supabase の接続・RLS（beifutei_orders の insert）を確認してください。',
+  notice_order_fail_prefix: '注文を送れませんでした。',
   notice_checkout_fail_prefix: 'お会計依頼を送信できませんでした。',
   notice_checkout_fail_suffix: '通信を確認してください。',
   notice_stock_short: 'テイクアウトスイーツの在庫が足りません（{id}: 残り {have}、ご希望 {need}）。カートを調整してください。',
@@ -213,8 +213,7 @@ const EN = {
   notice_checkout_zero: 'The current bill is ¥0.',
   notice_checkout_no_table: 'Table number is not set. Check the ?table= URL parameter or ask staff.',
   notice_checkout_ok: 'We received your check request. A staff member will come to your table.',
-  notice_order_fail_prefix:
-    'Could not send your order. Please check Supabase connection and RLS (insert on beifutei_orders).',
+  notice_order_fail_prefix: 'Could not send your order.',
   notice_checkout_fail_prefix: 'Could not send your check request.',
   notice_checkout_fail_suffix: 'Please check your connection.',
   notice_stock_short:

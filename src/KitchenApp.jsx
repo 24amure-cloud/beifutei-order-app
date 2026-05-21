@@ -14,6 +14,7 @@ import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
 import { KitchenDiagnosticsFooter, KitchenRealtimeBadge } from './KitchenStaffDiagnostics.jsx';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
+import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 import KitchenVerbalOrderSheet from './KitchenVerbalOrderSheet.jsx';
 import KitchenCheckoutModal from './KitchenCheckoutModal.jsx';
@@ -761,6 +762,7 @@ export default function KitchenApp() {
 
   return (
     <div className="kitchen-v2">
+      <SupabaseConnectionBanner variant="kitchen" />
       <header className="kitchen-v2-topbar">
         <div className="kitchen-v2-brand">
           <strong>YUM</strong>

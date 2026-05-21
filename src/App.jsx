@@ -18,6 +18,7 @@ import {
 } from './guestMenuDisplay.js';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
+import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
@@ -1566,10 +1567,8 @@ function App() {
     );
     const sent = await addGuestOrders(rows);
     if (sent && sent.ok === false) {
-      showNotice(
-        `${ut('notice_order_fail_prefix')}${sent.errorMessage ? ` (${sent.errorMessage})` : ''}`,
-        'warn'
-      );
+      const hint = sent.guestHint || sent.errorMessage || '';
+      showNotice(hint ? `${ut('notice_order_fail_prefix')}${hint}` : ut('notice_order_fail_prefix'), 'warn');
       return;
     }
     applyTakeoutSweetsSales(orderableItems.map((i) => ({ id: i.id, qty: i.qty })));
@@ -1606,6 +1605,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <SupabaseConnectionBanner variant="guest" />
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="logo-area">

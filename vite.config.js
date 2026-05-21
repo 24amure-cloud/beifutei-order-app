@@ -1,6 +1,8 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { normalizeSupabaseAnonKey, normalizeSupabaseProjectUrl } from './src/supabaseEnv.js'
+import { resolveSupabaseClientConfig } from './src/supabaseProjectDefaults.js'
 
 /**
  * Vite は通常 VITE_* だけをクライアントに埋め込む。
@@ -26,7 +28,11 @@ function resolveSupabaseForClient(env) {
     env.NEXT_PUBLIC_SUPABASE_KEY ||
     ''
   ).trim()
-  return { url, key }
+  const normalized = {
+    url: normalizeSupabaseProjectUrl(url),
+    key: normalizeSupabaseAnonKey(key),
+  }
+  return resolveSupabaseClientConfig(normalized)
 }
 
 // https://vite.dev/config/

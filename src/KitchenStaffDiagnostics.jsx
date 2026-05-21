@@ -6,6 +6,8 @@ import {
   subscribeKitchenDiagnostics,
 } from './kitchenDiagnostics.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
+import { getSupabaseProjectHost } from './supabaseHealth.js';
+import { supabaseConfigMeta } from './supabaseClient.js';
 
 function fmtClock(ms) {
   if (ms == null || !Number.isFinite(ms)) return '—';
@@ -17,18 +19,19 @@ function fmtClock(ms) {
 }
 
 function supabaseHostHint() {
-  try {
-    const u = import.meta.env.VITE_SUPABASE_URL;
-    if (!u) return 'URL 未設定';
-    return new URL(u).host;
-  } catch {
-    return String(import.meta.env.VITE_SUPABASE_URL || '').slice(0, 40) || '—';
-  }
+  const h = getSupabaseProjectHost();
+  return h || 'URL 未設定';
+}
+
+function supabaseKeyPrefixHint() {
+  const k = supabaseConfigMeta?.keyPrefix || '';
+  const fb = supabaseConfigMeta?.usedFallback ? '（env無効→店舗キー）' : '';
+  return k ? `${k}…${fb}` : 'キー未設定';
 }
 
 /** 厨房トップバー右上：Realtime + ブラウザオンライン + DB 再同期 */
 export function KitchenRealtimeBadge() {
-  const { fullResyncDbFromSupabase } = useNomihodaiSession();
+  const { fullResyncDbFromSupabase, dbConnection } = useNomihodaiSession();
   const [snap, setSnap] = useState(() => getSnapshot());
   const [busy, setBusy] = useState(false);
 
@@ -54,6 +57,15 @@ export function KitchenRealtimeBadge() {
     label = '再同期中…';
     tone = 'kitchen-live-badge--warn';
     dot = '🟡';
+  } else if (dbConnection && !dbConnection.ok) {
+    label =
+      dbConnection.kind === 'schema_missing'
+        ? 'DB未設定'
+        : dbConnection.kind === 'bad_url'
+          ? 'URL誤り'
+          : 'DBエラー';
+    tone = 'kitchen-live-badge--bad';
+    dot = '🔴';
   } else if (!snap.isNavigatorOnline) {
     label = 'OFFLINE';
     tone = 'kitchen-live-badge--bad';
@@ -143,6 +155,10 @@ export function KitchenDiagnosticsFooter() {
           <dl className="kitchen-diag-footer__grid">
             <dt>Supabase</dt>
             <dd>{host}</dd>
+            <dt>キー（埋め込み）</dt>
+            <dd>
+              <code>{supabaseKeyPrefixHint()}</code>
+            </dd>
             <dt>Realtime</dt>
             <dd>
               orders=<code>{snap.channelStatus.orders}</code> · tables=<code>{snap.channelStatus.tables}</code>

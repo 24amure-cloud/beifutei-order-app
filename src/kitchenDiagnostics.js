@@ -53,6 +53,15 @@ function classifySupabaseError(error) {
   if (!error) return { kind: 'unknown', hint: '' };
   const msg = String(error.message || error.details || '');
   const code = String(error.code || '');
+  if (code === 'PGRST125' || /Invalid path specified in request URL/i.test(msg)) {
+    return {
+      kind: 'URL',
+      hint: 'VITE_SUPABASE_URL に /rest/v1 を付けない（例: https://xxxx.supabase.co のみ）',
+    };
+  }
+  if (code === 'PGRST205' || /Could not find the table/i.test(msg)) {
+    return { kind: 'SCHEMA', hint: 'Vercel の Supabase URL が別プロジェクトの可能性' };
+  }
   if (/row-level security|RLS/i.test(msg) || code === '42501') {
     return { kind: 'RLS', hint: 'ポリシー・ログイン役割を確認' };
   }
@@ -84,7 +93,7 @@ export function pushKitchenDiag(severity, tag, message, detail) {
 export function pushKitchenDiagFromSupabase(tag, error, op = '') {
   if (!error) return;
   const { kind, hint } = classifySupabaseError(error);
-  const sev = kind === 'RLS' || kind === 'AUTH' ? 'err' : 'warn';
+  const sev = kind === 'RLS' || kind === 'AUTH' || kind === 'SCHEMA' || kind === 'URL' ? 'err' : 'warn';
   const msg = `${op ? `${op}: ` : ''}${error.message || 'エラー'} (${kind})`;
   const detail = [hint, error.code, error.details].filter(Boolean).join(' · ');
   pushKitchenDiag(sev, tag, msg, detail);
