@@ -1,7 +1,7 @@
-import { StrictMode, useEffect } from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import { tryAutoBackupYesterdayLedger } from './dailyLedgerCsvExport.js';
+import LedgerScheduledBackup from './LedgerScheduledBackup.jsx';
 import { MenuMasterProvider } from './MenuMasterContext.jsx';
 import { NomihodaiCatalogProvider } from './NomihodaiCatalogContext.jsx';
 import { TakeoutSweetsMenuProvider } from './TakeoutSweetsMenuContext.jsx';
@@ -13,19 +13,13 @@ import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 import RootErrorBoundary from './RootErrorBoundary.jsx';
 
 function MasterAppShell() {
-  useEffect(() => {
-    const r = tryAutoBackupYesterdayLedger();
-    if (r && 'ok' in r && r.ok) {
-      console.info('[beifutei] 日次CSV 自動バックアップ', r.dateKey, r.rowCount, '件');
-    }
-  }, []);
-
   if (!isSupabaseConfigured) {
     return <SupabaseConfigMissingScreen />;
   }
 
   return (
     <div className="master-app-root">
+      <LedgerScheduledBackup />
       <div className="master-app-banner" role="banner">
         <span className="master-app-banner__label">オーナー専用</span>
         <span className="master-app-banner__text">

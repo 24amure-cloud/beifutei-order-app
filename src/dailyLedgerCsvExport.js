@@ -5,8 +5,6 @@
 
 import { formatLedgerPaymentJa, getLocalDateKey, loadDailyLedger } from './dailyLedger.js';
 
-const AUTO_CSV_LAST_RUN_KEY = 'beifutei-auto-csv-backup-day-v1';
-
 export function ledgerEntriesForDate(entries, dateKey) {
   const dk = String(dateKey || '');
   return entries.filter((e) => e && e.dateKey === dk);
@@ -125,26 +123,4 @@ export function downloadDailyLedgerCsvForDate(dateKey) {
   const safe = String(dateKey || getLocalDateKey()).replace(/[^\d-]/g, '') || getLocalDateKey();
   downloadTextFile(`beifutei-ledger-${safe}.csv`, csv);
   return { rowCount };
-}
-
-/**
- * マスター画面を開いた日に1回、前日分の日計を CSV で自動保存。
- * @returns {{ ok?: true, dateKey: string, rowCount: number } | { skipped: true, reason: string } | { ok: false, error: string }}
- */
-export function tryAutoBackupYesterdayLedger() {
-  const today = getLocalDateKey();
-  try {
-    const last = localStorage.getItem(AUTO_CSV_LAST_RUN_KEY);
-    if (last === today) {
-      return { skipped: true, reason: 'already_ran_today' };
-    }
-    const yKey = getPreviousLocalDateKey();
-    const { csv, rowCount } = buildDailyLedgerCsvForDate(yKey);
-    const safe = yKey.replace(/[^\d-]/g, '') || yKey;
-    downloadTextFile(`beifutei-ledger-auto-${safe}.csv`, csv);
-    localStorage.setItem(AUTO_CSV_LAST_RUN_KEY, today);
-    return { ok: true, dateKey: yKey, rowCount };
-  } catch (e) {
-    return { ok: false, error: String(e?.message || e) };
-  }
 }

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { buildDailyReport } from './dailyLedgerAnalytics.js';
 import { downloadDailyLedgerCsvForDate } from './dailyLedgerCsvExport.js';
+import { isLedgerDriveUploadConfigured } from './ledgerDriveSettings.js';
+import LedgerDriveSetupPanel from './LedgerDriveSetupPanel.jsx';
 import {
   DAILY_LEDGER_STORAGE_KEY,
   LEDGER_SETTINGS_KEY,
@@ -66,6 +68,10 @@ export default function DailyLedgerDashboard() {
           <h2 className="master-card-title">日計管理</h2>
           <p className="master-page-lead master-page-lead--compact">
             厨房「各卓・伝票」で会計確定したデータを集計しています。同一ブラウザ・同一オリジンのみです。
+            毎朝7時以降、前日分の CSV を1日1回自動保存します（会計端末の厨房画面を開いたまま、または7時以降に開いたとき）。
+            {isLedgerDriveUploadConfigured()
+              ? ' Google Drive へのアップロード設定済みです。'
+              : ' 下の「Google Drive 自動保存の設定」から接続できます。'}
           </p>
         </div>
         <div className="master-ledger-head-tools">
@@ -86,6 +92,8 @@ export default function DailyLedgerDashboard() {
           </button>
         </div>
       </div>
+
+      <LedgerDriveSetupPanel />
 
       <div className="master-ledger-kpi-grid">
         <div className="master-ledger-kpi master-ledger-kpi--hero">

@@ -1,0 +1,9 @@
+Vercel ダッシュボード → beifutei-order-app → Settings → Environment Variables
+
+名前: VITE_LEDGER_DRIVE_WEBHOOK_SECRET
+値: （.env と同じ。setup:ledger-drive で生成した文字列）
+
+名前: VITE_LEDGER_DRIVE_WEBHOOK_URL
+値: https://script.google.com/macros/s/AKfycbyGiFV4QEI5MYTzFppotQggtsSYRkUSV8u-dt8_5IDV_3UnoZzmrOjAJoe-Oc7e3zzDOw/exec
+
+Production / Preview / Development すべてにチェック → Save → Deployments から Redeploy

@@ -5,6 +5,7 @@ import './index.css';
 
 recoverStaleServiceWorker();
 import KitchenApp from './KitchenApp.jsx';
+import LedgerScheduledBackup from './LedgerScheduledBackup.jsx';
 import { MenuMasterProvider } from './MenuMasterContext.jsx';
 import { NomihodaiCatalogProvider } from './NomihodaiCatalogContext.jsx';
 import { TakeoutSweetsMenuProvider } from './TakeoutSweetsMenuContext.jsx';
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')).render(
           <NomihodaiCatalogProvider>
             <TakeoutSweetsMenuProvider>
               <SideDishMenuProvider>
+                <LedgerScheduledBackup />
                 <KitchenApp />
               </SideDishMenuProvider>
             </TakeoutSweetsMenuProvider>

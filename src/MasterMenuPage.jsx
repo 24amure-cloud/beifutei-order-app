@@ -82,7 +82,7 @@ export default function MasterMenuPage() {
         <header className="master-page-header master-page-header--owner">
           <h1 className="master-page-title">オーナー専用コーナー</h1>
           <p className="master-page-lead">
-            左ナビ先頭の「3つの画面」で客席・厨房・オーナーのURLを開けます。メニュー編集はカテゴリから該当ブロックへジャンプ。オーダー・提供は厨房、卓まわりの数字は「卓・売上サマリー」からどうぞ。
+            左ナビ先頭のプルダウンで客席・厨房・オーナーのURLを開けます。メニュー編集はカテゴリから該当ブロックへジャンプ。オーダー・提供は厨房、卓まわりの数字は「卓・売上サマリー」からどうぞ。
           </p>
         </header>
 

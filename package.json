@@ -7,7 +7,8 @@
     "dev": "vite --host",
     "build": "node scripts/verify-supabase-env.mjs && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "setup:ledger-drive": "node scripts/setup-ledger-drive.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
