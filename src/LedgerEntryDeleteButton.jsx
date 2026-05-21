@@ -58,7 +58,7 @@ export default function LedgerEntryDeleteButton({ entry, onDeleted, className = 
       </button>
       {open ? (
         <div
-          className="ledger-delete-dialog"
+          className="ledger-owner-dialog"
           role="dialog"
           aria-modal="true"
           aria-labelledby="ledger-delete-dialog-title"
@@ -66,18 +66,18 @@ export default function LedgerEntryDeleteButton({ entry, onDeleted, className = 
             if (ev.target === ev.currentTarget) close();
           }}
         >
-          <form className="ledger-delete-dialog__panel" onSubmit={onSubmit}>
-            <h3 id="ledger-delete-dialog-title" className="ledger-delete-dialog__title">
+          <form className="ledger-owner-dialog__panel" onSubmit={onSubmit}>
+            <h3 id="ledger-delete-dialog-title" className="ledger-owner-dialog__title">
               伝票を削除
             </h3>
-            <p className="ledger-delete-dialog__lead">
+            <p className="ledger-owner-dialog__lead">
               {label}（￥{total}）を日計から削除します。オーナー用パスワードを入力してください。
             </p>
-            <label className="ledger-delete-dialog__field">
-              <span className="ledger-delete-dialog__lab">パスワード</span>
+            <label className="ledger-owner-dialog__field">
+              <span className="ledger-owner-dialog__lab">パスワード</span>
               <input
                 type="password"
-                className="ledger-delete-dialog__input"
+                className="ledger-owner-dialog__input"
                 value={pin}
                 onChange={(ev) => {
                   setPin(ev.target.value);
@@ -89,15 +89,15 @@ export default function LedgerEntryDeleteButton({ entry, onDeleted, className = 
               />
             </label>
             {err ? (
-              <p className="ledger-delete-dialog__err" role="alert">
+              <p className="ledger-owner-dialog__err" role="alert">
                 {err}
               </p>
             ) : null}
-            <div className="ledger-delete-dialog__actions">
-              <button type="button" className="ledger-delete-dialog__cancel" onClick={close}>
+            <div className="ledger-owner-dialog__actions">
+              <button type="button" className="ledger-owner-dialog__cancel" onClick={close}>
                 キャンセル
               </button>
-              <button type="submit" className="ledger-delete-dialog__submit">
+              <button type="submit" className="ledger-owner-dialog__submit">
                 削除する
               </button>
             </div>

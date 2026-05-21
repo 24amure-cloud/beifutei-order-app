@@ -5,6 +5,7 @@ import LedgerDriveSetupPanel from './LedgerDriveSetupPanel.jsx';
 import LedgerDataNotice from './LedgerDataNotice.jsx';
 import LedgerDemographicsCards from './LedgerDemographicsCards.jsx';
 import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
+import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
 import {
   DAILY_LEDGER_STORAGE_KEY,
   LEDGER_SETTINGS_KEY,
@@ -163,7 +164,7 @@ export default function DailyLedgerDashboard() {
         <h3 className="master-ledger-block__title">会計一覧（卓メモ）</h3>
         <p className="master-ledger-block__hint">
           テーブル状況で入力したメモが会計確定時に日計へ記録されます（テーブル番号の横に表示）。
-          テスト売上などを消すときは各行の「削除」→ オーナー用パスワード（初期値 1211）。
+          「日時」「削除」はオーナー用パスワード（初期値 1211）で修正・削除できます。
         </p>
         {report.checkoutRows.length === 0 ? (
           <p className="master-ledger-empty">データなし</p>
@@ -194,11 +195,18 @@ export default function DailyLedgerDashboard() {
                     <td>{formatLedgerPaymentJa(row.payment)}</td>
                     <td className="master-ledger-num">￥{row.total.toLocaleString()}</td>
                     <td className="master-ledger-act">
-                      <LedgerEntryDeleteButton
-                        entry={row}
-                        variant="master"
-                        onDeleted={() => setTick((x) => x + 1)}
-                      />
+                      <div className="master-ledger-act__btns">
+                        <LedgerEntryEditDateButton
+                          entry={row}
+                          variant="master"
+                          onUpdated={() => setTick((x) => x + 1)}
+                        />
+                        <LedgerEntryDeleteButton
+                          entry={row}
+                          variant="master"
+                          onDeleted={() => setTick((x) => x + 1)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

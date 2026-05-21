@@ -15919,7 +15919,27 @@ button.kitchen-guest-intent--nav {
   white-space: nowrap;
 }
 
-.ledger-delete-dialog {
+.kitchen-checkout-log__edit-date,
+.master-ledger-entry-edit {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1px solid #b8cce8;
+  background: #f6f9ff;
+  color: #2a4a6e;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.master-ledger-act__btns {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ledger-owner-dialog {
   position: fixed;
   inset: 0;
   z-index: 9600;
@@ -15930,7 +15950,7 @@ button.kitchen-guest-intent--nav {
   background: rgba(40, 32, 28, 0.45);
 }
 
-.ledger-delete-dialog__panel {
+.ledger-owner-dialog__panel {
   width: min(360px, 94vw);
   padding: 20px 18px;
   border-radius: 14px;
@@ -15938,26 +15958,26 @@ button.kitchen-guest-intent--nav {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
-.ledger-delete-dialog__title {
+.ledger-owner-dialog__title {
   margin: 0 0 8px;
   font-size: 18px;
   font-weight: 800;
   color: #2a221c;
 }
 
-.ledger-delete-dialog__lead {
+.ledger-owner-dialog__lead {
   margin: 0 0 14px;
   font-size: 13px;
   line-height: 1.45;
   color: #6b5a48;
 }
 
-.ledger-delete-dialog__field {
+.ledger-owner-dialog__field {
   display: block;
   margin-bottom: 10px;
 }
 
-.ledger-delete-dialog__lab {
+.ledger-owner-dialog__lab {
   display: block;
   margin-bottom: 4px;
   font-size: 12px;
@@ -15965,31 +15985,40 @@ button.kitchen-guest-intent--nav {
   color: #8a7560;
 }
 
-.ledger-delete-dialog__input {
+.ledger-owner-dialog__input {
   width: 100%;
   min-height: 44px;
   padding: 8px 12px;
   border: 1px solid #d8d0c4;
   border-radius: 8px;
-  font-size: 18px;
-  letter-spacing: 0.2em;
+  font-size: 16px;
   box-sizing: border-box;
 }
 
-.ledger-delete-dialog__err {
+.ledger-owner-dialog__input[type='password'] {
+  font-size: 18px;
+  letter-spacing: 0.2em;
+}
+
+.ledger-owner-dialog__input--datetime {
+  font-size: 15px;
+  letter-spacing: normal;
+}
+
+.ledger-owner-dialog__err {
   margin: 0 0 10px;
   font-size: 13px;
   font-weight: 700;
   color: #a33;
 }
 
-.ledger-delete-dialog__actions {
+.ledger-owner-dialog__actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.ledger-delete-dialog__cancel {
+.ledger-owner-dialog__cancel {
   min-height: 40px;
   padding: 8px 14px;
   border: 1px solid #d8d0c4;
@@ -15999,7 +16028,7 @@ button.kitchen-guest-intent--nav {
   cursor: pointer;
 }
 
-.ledger-delete-dialog__submit {
+.ledger-owner-dialog__submit {
   min-height: 40px;
   padding: 8px 16px;
   border: none;
@@ -16008,6 +16037,10 @@ button.kitchen-guest-intent--nav {
   color: #fff;
   font-weight: 800;
   cursor: pointer;
+}
+
+.ledger-owner-dialog__submit--primary {
+  background: #2a5a8a;
 }
 
 .kitchen-checkout-log__card-head {

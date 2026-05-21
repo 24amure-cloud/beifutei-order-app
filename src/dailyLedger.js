@@ -219,6 +219,26 @@ export function removeDailyLedgerEntry(entryId) {
   return true;
 }
 
+/** 会計済み伝票の日時を修正（dateKey も recordedAt に合わせて更新） */
+export function updateDailyLedgerEntryRecordedAt(entryId, recordedAt) {
+  const id = String(entryId || '').trim();
+  const ts = Number(recordedAt);
+  if (!id || !Number.isFinite(ts)) return null;
+  const prev = loadDailyLedger();
+  let updated = null;
+  const next = prev.entries.map((e) => {
+    if (e.id !== id) return e;
+    updated = { ...e, recordedAt: ts, dateKey: getLocalDateKey(ts) };
+    return updated;
+  });
+  if (!updated) return null;
+  persistDailyLedgerEntries(next);
+  import('./dailyLedgerSync.js').then(({ pushDailyLedgerEntryToSupabase }) => {
+    pushDailyLedgerEntryToSupabase(updated);
+  });
+  return updated;
+}
+
 export function summarizeLedgerDay(entries, dateKey) {
   const day = entries.filter((e) => e.dateKey === dateKey);
   let cash = 0;

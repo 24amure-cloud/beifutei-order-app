@@ -20,6 +20,7 @@ import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 import KitchenVerbalOrderSheet from './KitchenVerbalOrderSheet.jsx';
 import KitchenCheckoutModal from './KitchenCheckoutModal.jsx';
 import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
+import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
 import {
   buildLedgerReceiptPayload,
   buildSlipReceiptPayload,
@@ -1723,6 +1724,11 @@ export default function KitchenApp() {
                                 再印刷
                               </button>
                             ) : null}
+                            <LedgerEntryEditDateButton
+                              entry={e}
+                              variant="kitchen"
+                              onUpdated={() => setLedgerRevision((r) => r + 1)}
+                            />
                             <LedgerEntryDeleteButton
                               entry={e}
                               variant="kitchen"
