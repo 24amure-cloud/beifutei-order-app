@@ -761,7 +761,9 @@ export default function KitchenApp() {
   }
 
   return (
-    <div className="kitchen-v2">
+    <div
+      className={`kitchen-v2${staffTab === STAFF_TABS.retailTakeout ? ' kitchen-v2--retail-takeout' : ''}`}
+    >
       <SupabaseConnectionBanner variant="kitchen" />
       <header className="kitchen-v2-topbar">
         <div className="kitchen-v2-brand">
