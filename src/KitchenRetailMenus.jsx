@@ -159,7 +159,7 @@ export function KitchenStaffCafeMenu() {
   return (
     <main className="main-content kitchen-staff-retail-menu kitchen-staff-retail-menu--cafe">
       <div className="cafe-wrapper">
-        <div className="cafe-grid-2">
+        <div className="cafe-grid-2 kitchen-staff-hero-list">
           <div className="cafe-card cafe-card-bg-beige">
             <div className="cafe-card-top pizza-hero-top">
               <div className="cafe-card-content">
@@ -351,7 +351,7 @@ export function KitchenStaffFruitStudioMenu() {
       <div className="fruit-wrapper">
         <PageHeaderImage pageKey="fruit" alt="ソフトクリーム" />
 
-        <div className="kitchen-staff-fruit-carousel" role="region" aria-label="ソフトクリーム（一覧）">
+        <div className="kitchen-staff-fruit-carousel kitchen-staff-hero-list" role="region" aria-label="ソフトクリーム（一覧）">
           <div className="fruit-top-row">
           <div className="fruit-hero fruit-hero--cafe">
             <div className="fruit-hero-body">

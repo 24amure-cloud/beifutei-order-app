@@ -11529,33 +11529,49 @@ button.kitchen-guest-intent--nav {
   display: none;
 }
 
-/* --- カフェドリンク：2×2・カード型 --- */
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-wrapper {
-  padding: 8px 10px 12px;
+/* --- 1列ヒーロー一覧（カフェ4・ソフト3）コンパクト --- */
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-wrapper,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-wrapper {
+  padding: 6px 8px 8px;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding: 0;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card {
-  margin: 0;
-  padding: 10px 10px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(61, 43, 31, 0.08);
-  box-shadow: 0 1px 4px rgba(61, 43, 31, 0.06);
+.kitchen-retail-hub__scroll .kitchen-staff-hero-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card > .cafe-card-top.pizza-hero-top {
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-top-row,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-grid-2 {
+  display: contents;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero.fruit-hero--cafe,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(61, 43, 31, 0.08);
+  box-shadow: 0 1px 3px rgba(61, 43, 31, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-body {
+  gap: 4px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card > .cafe-card-top.pizza-hero-top,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-top.cafe-card-top,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-top.cafe-card-top {
   flex-direction: row;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
   margin: 0;
 }
 
@@ -11565,253 +11581,178 @@ button.kitchen-guest-intent--nav {
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-subtitle,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-desc {
-  display: none;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-title {
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0 0 4px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-price-info-spaced {
-  font-size: 12px;
-  line-height: 1.35;
-  margin: 0;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card-top .cafe-img-area.cafe-img-area-promo {
-  width: 64px;
-  min-width: 64px;
-  max-width: 64px;
-  min-height: 64px;
-  flex-shrink: 0;
-  margin: 0;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-img-area-promo-lg .cafe-img-placeholder.cafe-img-promo-lg {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background-size: cover;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-img-area-promo .cafe-badge.cafe-badge-promo-lg {
-  width: 36px;
-  height: 36px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-actions-row {
-  margin: 0;
-  padding: 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(61, 43, 31, 0.06);
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-toggles {
-  width: 100%;
-  justify-content: flex-start;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-toggle-btn,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-size-btn {
-  min-height: 40px;
-  min-width: 40px;
-  padding: 6px 14px;
-  font-size: 13px;
-  font-weight: 700;
-  border-radius: 999px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-actions-order {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-price-display__num {
-  font-size: 17px;
-  font-weight: 800;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-order-btn {
-  min-height: 42px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 800;
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-/* --- ソフトクリーム：上段1枚＋下段2列 --- */
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-wrapper {
-  padding: 8px 10px 12px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .kitchen-staff-fruit-carousel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-top-row {
-  display: block;
-  margin: 0;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-side {
-  display: none;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-grid-2 {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero.fruit-hero--cafe,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card {
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(61, 43, 31, 0.08);
-  box-shadow: 0 1px 4px rgba(61, 43, 31, 0.06);
-}
-
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-desc,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-lead,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-desc,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-note,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-desc,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-subtitle,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-tagline,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hokkaido-icon--fruit {
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hokkaido-icon--fruit,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-badge-round {
   display: none;
 }
 
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-title,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-title,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-title {
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.25;
-  margin: 0 0 4px;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-price-band {
   font-size: 13px;
-  margin: 0 0 6px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 2px;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-top.cafe-card-top,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-top.cafe-card-top {
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-price-info-spaced,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-price-info-spaced,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-price-band {
+  font-size: 11px;
+  line-height: 1.3;
+  margin: 0;
 }
 
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-price-num {
+  font-size: 12px;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card--gelato .fruit-card-top.cafe-card-top {
+  margin-top: 0;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-ribbon-orange {
+  font-size: 9px;
+  padding: 2px 6px;
+  margin: 0 0 4px;
+  display: inline-block;
+  position: static;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-card-top .cafe-img-area.cafe-img-area-promo,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-top .fruit-card-media--fruit-hero,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-top .fruit-card-media {
-  width: 80px;
-  min-width: 80px;
-  min-height: 80px;
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  min-height: 52px;
   flex-shrink: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-img-area-promo-lg .cafe-img-placeholder.cafe-img-promo-lg {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-size: cover;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-img-area-promo .cafe-badge.cafe-badge-promo-lg {
+  width: 28px;
+  height: 28px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-fruitsoft-visual {
-  width: 80px;
-  height: 80px;
+  width: 52px;
+  height: 52px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-fruitsoft-regular {
-  width: 58px;
-  height: 58px;
+  width: 40px;
+  height: 40px;
   left: 50%;
-  bottom: 4px;
+  bottom: 2px;
   transform: translateX(-58%);
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-fruitsoft-mini {
-  width: 36px;
-  height: 36px;
-  right: 4px;
-  bottom: 4px;
+  width: 26px;
+  height: 26px;
+  right: 2px;
+  bottom: 2px;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-gelato-visual,
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-img--affogato {
-  min-height: 64px;
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-gelato-visual {
+  height: 48px;
+  min-height: 48px;
 }
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-media--gelato {
-  min-height: 64px;
+  min-height: 48px;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-badge-round {
-  transform: scale(0.65);
-  transform-origin: top right;
-  right: 6px;
-  top: 6px;
-  left: auto;
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-img--affogato {
+  height: 48px;
+  min-height: 48px;
+  margin: 0;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-ribbon-orange {
-  font-size: 10px;
-  padding: 3px 8px;
-  position: static;
-  margin-bottom: 6px;
-  display: inline-block;
-}
-
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-price-info-spaced {
-  font-size: 12px;
-  line-height: 1.35;
-}
-
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-actions-row,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-actions.cafe-actions-row,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions.cafe-actions-row {
-  margin-top: 8px;
-  padding: 8px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(61, 43, 31, 0.06);
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px 6px;
 }
 
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-toggles,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-actions .cafe-toggles,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions .cafe-toggles {
+  width: auto;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-toggle-btn,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-size-btn,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-toggle-btn,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-size-btn {
-  min-height: 40px;
-  min-width: 40px;
-  padding: 6px 14px;
-  font-size: 13px;
+  min-height: 34px;
+  min-width: 34px;
+  padding: 4px 10px;
+  font-size: 12px;
   font-weight: 700;
   border-radius: 999px;
 }
 
-.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-order-btn {
-  min-height: 42px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 800;
-  border-radius: 10px;
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-actions-order,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-actions .cafe-actions-order,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions .cafe-actions-order,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-card-actions--single .cafe-actions-order {
+  width: auto;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
 }
 
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-price-display__num,
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-price-display {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-order-btn,
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .cafe-order-btn {
+  min-height: 34px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-hero-side {
+  display: none;
 }
 
 /* --- テイクアウトスイーツ（スタッフ）：カテゴリ内グリッド・小型カード --- */
@@ -11907,13 +11848,6 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--takeout .ts-rank-badge {
   font-size: 9px;
-}
-
-@media (max-width: 720px) {
-  .kitchen-v2--retail-takeout .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--soft .fruit-grid-2,
-  .kitchen-v2--retail-takeout .kitchen-retail-hub__scroll .kitchen-staff-retail-menu--cafe .cafe-grid-2 {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 520px) {
