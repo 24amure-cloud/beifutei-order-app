@@ -25,8 +25,8 @@ export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
     items: [
       { id: 'ts-kk-hani', name: 'ハニーポッド\nクッキーサンド', price: 460, image: 'kukki-hani-poddo.png' },
       { id: 'ts-kk-matcha', name: '抹茶\nクッキーサンド', price: 460, image: 'kukki-mattya.png' },
-      { id: 'ts-kk-hasukappu', name: '苫小牧ハスカップチョコ\nクッキーサンド', price: 480, image: 'kukki-nattutyoko.png' },
-      { id: 'ts-kk-nuts-choco', name: 'ナッツチョコ\nクッキーサンド', price: 460, image: 'kukki-nattutyoko.png' },
+      { id: 'ts-kk-hasukappu', name: '苫小牧ハスカップチョコ\nクッキーサンド', price: 480, image: '' },
+      { id: 'ts-kk-nuts-choco', name: 'ナッツチョコ\nクッキーサンド', price: 460, image: 'kukkisanndo-choko.png' },
       { id: 'ts-kk-pine', name: 'パイン\nクッキーサンド', price: 460, image: 'kukki-pain.png' },
       { id: 'ts-kk-peach', name: 'ピーチ\nクッキーサンド', price: 460, image: 'kukki-pi-ti.png' },
       { id: 'ts-kk-vanilla', name: 'ロイヤルバニラ\nクッキーサンド', price: 420, image: 'kukki-roiyarubanira.png' },
