@@ -287,9 +287,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 120px;
-  padding: 20px 16px;
+  min-height: 112px;
+  padding: 24px 16px;
   border: 2px solid #e0d4c4;
   border-radius: 16px;
   background: #fff;
@@ -313,9 +312,10 @@ body {
 }
 
 .iou-locale-pill__char {
-  font-size: 42px;
+  font-size: clamp(2rem, 7vw, 2.625rem);
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.15;
+  letter-spacing: 0.12em;
   color: #3d3028;
 }
 

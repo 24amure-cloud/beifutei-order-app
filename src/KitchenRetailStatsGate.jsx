@@ -50,12 +50,8 @@ export default function KitchenRetailStatsGate({ onConfirm }) {
       onSubmit={finish}
       errorMessage={err}
       labels={{
-        ja: '日',
-        en: '外',
-        jaAria: '日本人',
-        enAria: '外国人',
-        jaSub: '日本人',
-        enSub: '外国人',
+        ja: '日本',
+        en: '外国',
         men: '男性',
         women: '女性',
         children: '子供',
