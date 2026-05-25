@@ -11,20 +11,12 @@ import { loadNomihodaiCatalog } from './nomihodaiCatalogStorage.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getGuestIntentForTable, getNomihodaiForTable } from './nomihodaiSession.js';
 import NomihodaiGuestDrinkMenu from './NomihodaiGuestDrinkMenu.jsx';
-function fmtRequested(ms, locale) {
-  try {
-    return new Date(ms).toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP', {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return '';
-  }
+
+function fmtYen(n, locale) {
+  return n.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP');
 }
 
-/** 検討ページ（開始後 FF と同系のダーク×ゴールド） */
+/** 検討ページ（シンプル・高級感） */
 export function NomihodaiConsiderPage() {
   const { t, locale } = useGuestUiLocale();
   const { requestNomihodaiGuestIntent, prices } = useNomihodaiSession();
@@ -35,107 +27,77 @@ export function NomihodaiConsiderPage() {
   }, [setNomihodaiCatalog]);
 
   return (
-    <main className="main-content nh-prospect nh-prospect--ff nh-active nh-active--ff">
-      <div className="nh-active__shell">
-        <header className="nh-prospect__header nh-prospect__header--ref">
-          <div className="nh-prospect-hero nh-prospect-hero--ref">
-            <div className="nh-prospect-hero__text">
-              <p className="nh-prospect-hero__eyebrow">FREE FLOW</p>
-              <h1 className="nh-prospect-hero__title">{t('nh_prospect_title')}</h1>
-              <p className="nh-prospect-hero__subtitle">
-                {t('nh_prospect_lead')}
-              </p>
-            </div>
-            <div className="nh-prospect__plan-badge" aria-hidden="true">
-              <span className="nh-prospect__plan-badge__line1">{t('nh_auto_extend_line1', { base: NOMIHODAI_BASE_MINUTES })}</span>
-              <span className="nh-prospect__plan-badge__line2">{t('nh_auto_extend_line2')}</span>
-              <span className="nh-prospect__plan-badge__line3">{t('nh_auto_extend_line3')}</span>
-            </div>
-          </div>
+    <main className="main-content nh-pre nh-pre--lux">
+      <div className="nh-pre__inner">
+        <header className="nh-pre-hero">
+          <p className="nh-pre-hero__course" aria-label={t('nh_prospect_time_aria', { base: NOMIHODAI_BASE_MINUTES })}>
+            <span className="nh-pre-hero__course-num">{NOMIHODAI_BASE_MINUTES}</span>
+            <span className="nh-pre-hero__course-unit">{t('nh_prospect_time_unit')}</span>
+          </p>
+          <h1 className="nh-pre-hero__title">{t('nh_prospect_title')}</h1>
         </header>
 
-        <section className="nh-prospect__ref-pricing" aria-labelledby="nh-sum-h">
-          <h2 id="nh-sum-h" className="sr-only">
-            {t('nh_prospect_plan')}
-          </h2>
-          <div className="nh-prospect__gender-cards">
-            <div className="nh-prospect__gender-card nh-prospect__gender-card--women">
-              <span className="nh-prospect__gender-card__ico" aria-hidden="true">
-                🚺
-              </span>
-              <span className="nh-prospect__gender-card__lab">{t('nh_prospect_female')}</span>
-              <strong className="nh-prospect__gender-card__price">
-                ￥{prices.women.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
-              </strong>
+        <section className="nh-pre-board" aria-label={t('nh_prospect_plan')}>
+          <div className="nh-pre-board__prices">
+            <div className="nh-pre-board__price nh-pre-board__price--women">
+              <span className="nh-pre-board__who">{t('nh_prospect_female')}</span>
+              <p className="nh-pre-board__amount">
+                <span className="nh-pre-board__yen">￥</span>
+                {fmtYen(prices.women, locale)}
+              </p>
+              <span className="nh-pre-board__tax">{t('nh_prospect_tax')}</span>
             </div>
-            <div className="nh-prospect__gender-card nh-prospect__gender-card--men">
-              <span className="nh-prospect__gender-card__ico" aria-hidden="true">
-                🚹
-              </span>
-              <span className="nh-prospect__gender-card__lab">{t('nh_prospect_male')}</span>
-              <strong className="nh-prospect__gender-card__price">
-                ￥{prices.men.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
-              </strong>
+            <div className="nh-pre-board__divider" aria-hidden="true" />
+            <div className="nh-pre-board__price nh-pre-board__price--men">
+              <span className="nh-pre-board__who">{t('nh_prospect_male')}</span>
+              <p className="nh-pre-board__amount">
+                <span className="nh-pre-board__yen">￥</span>
+                {fmtYen(prices.men, locale)}
+              </p>
+              <span className="nh-pre-board__tax">{t('nh_prospect_tax')}</span>
             </div>
           </div>
-        </section>
-
-        <div className="nh-prospect__auto-strip" role="region" aria-label={t('nh_prospect_auto_title')}>
-          <p className="nh-prospect__auto-strip__title">{t('nh_prospect_auto_title')}</p>
-          <p className="nh-prospect__auto-strip__body">
-            {t('nh_prospect_auto_body', {
-              extMin: NOMIHODAI_EXTENSION_MINUTES,
-              extYen: NOMIHODAI_EXTENSION_PRICE_YEN.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP'),
-            })}
-          </p>
-        </div>
-
-        <section
-          className="nh-prospect__cta-block nh-prospect__cta-block--early"
-          aria-label={t('nh_prospect_cta_aria')}
-        >
-          <div className="nh-prospect__cta-inner">
-            <button
-              type="button"
-              className="nh-prospect__cta-btn"
-              onClick={() => requestNomihodaiGuestIntent()}
-            >
-              <span className="nh-prospect__cta-btn-ico" aria-hidden="true">
-                🍺
-              </span>
-              <span className="nh-prospect__cta-btn-label">{t('nh_prospect_cta')}</span>
-              <span className="nh-prospect__cta-btn-arrow" aria-hidden="true">
-                →
-              </span>
-            </button>
-          </div>
-        </section>
-
-        <section
-          className="nh-prospect__terms nh-prospect__terms--after-summary nh-prospect__terms--ref"
-          aria-labelledby="nh-terms-h"
-        >
-          <h2 id="nh-terms-h" className="nh-prospect__terms-title">
-            <span className="nh-prospect__terms-title-ico" aria-hidden="true">
-              📋
+          <div className="nh-pre-board__extend" aria-label={t('nh_prospect_auto_title')}>
+            <span className="nh-pre-board__extend-label">{t('nh_prospect_auto_title')}</span>
+            <span className="nh-pre-board__extend-min">
+              {NOMIHODAI_EXTENSION_MINUTES}
+              {t('nh_prospect_extend_min_unit')}
             </span>
+            <span className="nh-pre-board__extend-yen">
+              ￥{fmtYen(NOMIHODAI_EXTENSION_PRICE_YEN, locale)}
+            </span>
+          </div>
+        </section>
+
+        <button
+          type="button"
+          className="nh-pre-cta"
+          aria-label={t('nh_prospect_cta_aria')}
+          onClick={() => requestNomihodaiGuestIntent()}
+        >
+          {t('nh_prospect_cta')}
+        </button>
+
+        <section className="nh-pre-terms" aria-labelledby="nh-pre-terms-h">
+          <h2 id="nh-pre-terms-h" className="nh-pre-terms__title">
             {t('nh_prospect_terms_title')}
           </h2>
-          <ul className="nh-prospect__terms-list nh-prospect__terms-list--checks">
+          <ul className="nh-pre-terms__list">
             <li>{t('nh_prospect_terms_1')}</li>
             <li>{t('nh_prospect_terms_2')}</li>
             <li>{t('nh_prospect_terms_3')}</li>
           </ul>
         </section>
 
-        <section className="nh-prospect__menu-area nh-prospect__menu-area--guest" aria-labelledby="nh-prospect-menu-h">
-          <h2 id="nh-prospect-menu-h" className="nh-prospect__menu-area-title">
-            {t('nh_prospect_menu_link')}
+        <section className="nh-pre-menu" aria-labelledby="nh-pre-menu-h">
+          <h2 id="nh-pre-menu-h" className="nh-pre-menu__label">
+            {t('nh_prospect_menu_label')}
           </h2>
           <NomihodaiGuestMenuPanel
             catalog={nomihodaiCatalog}
             locale={locale}
             mode="browse"
+            browseLayout="tabs"
             emptyLabel={t('nh_prospect_menu_empty')}
           />
         </section>
@@ -144,33 +106,22 @@ export function NomihodaiConsiderPage() {
   );
 }
 
-/** ステップ2：厨房開始待ち（FF 同系） */
+/** 厨房開始待ち */
 export function NomihodaiIntentWaitingPage() {
-  const { t, locale } = useGuestUiLocale();
+  const { t } = useGuestUiLocale();
   const { session, clearNomihodaiGuestIntent } = useNomihodaiSession();
-  const at = getGuestIntentForTable(session, session.tableLabel)?.requestedAt;
 
   return (
-    <main className="main-content nh-wait nh-wait--ff nh-active nh-active--ff">
-      <div className="nh-active__shell nh-wait__outer">
-        <div className="nh-wait__shell">
-          <p className="nh-wait__eyebrow">{t('nh_wait_eyebrow')}</p>
-          <p className="nh-wait__subeyebrow">{t('nh_wait_sub')}</p>
-          <p className="nh-wait__text">
-            {t('nh_wait_sending', { table: session.tableLabel })}
-            {at != null && (
-              <>
-                <br />
-                <span className="nh-wait__time">{t('nh_wait_sent', { time: fmtRequested(at, locale) })}</span>
-              </>
-            )}
-          </p>
-          <p className="nh-wait__hint">
-            {t('nh_wait_hint')}
-          </p>
+    <main className="main-content nh-pre-wait nh-pre-wait--lux">
+      <div className="nh-pre-wait__inner">
+        <div className="nh-pre-wait__card" role="status" aria-live="polite">
+          <div className="nh-pre-wait__ring" aria-hidden="true" />
+          <p className="nh-pre-wait__status">{t('nh_wait_title')}</p>
+          <p className="nh-pre-wait__table-num">{session.tableLabel}</p>
+          <p className="nh-pre-wait__table-unit">{t('nh_wait_table_unit')}</p>
           <button
             type="button"
-            className="nh-wait__cancel"
+            className="nh-pre-wait__cancel"
             onClick={() => clearNomihodaiGuestIntent(session.tableLabel)}
           >
             {t('nh_wait_cancel')}
@@ -185,7 +136,6 @@ export function NomihodaiIntentWaitingPage() {
 export function NomihodaiTabRouter({ onOpenNomihodaiBill }) {
   const { nomihodaiActive, session } = useNomihodaiSession();
   const nh = getNomihodaiForTable(session, session.tableLabel);
-  /** 会計後フローは App 全体オーバーレイで表示。ここでは重複描画しない */
   if (session.nomihodaiFarewell) return null;
   if (session.checkoutRequestAt) return null;
   if (nomihodaiActive && nh?.guestCheckoutRequestedAt) return null;

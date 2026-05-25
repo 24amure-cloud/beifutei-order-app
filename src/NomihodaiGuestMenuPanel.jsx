@@ -63,10 +63,35 @@ function tabLabel(tab, locale) {
  * 客席向け飲み放題メニュー（導入＝一覧閲覧 / 開始後＝タップ注文）
  * @param {'browse'|'order'} mode
  */
+function GuestMenuTabBar({ tabs, activeId, setActiveId, locale, ariaLabel }) {
+  return (
+    <div className="nh-guest-menu__tabs" role="tablist" aria-label={ariaLabel}>
+      {tabs.map((tab) => {
+        const selected = tab.id === activeId;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            data-cat={tab.id}
+            className={`nh-guest-menu__tab${selected ? ' is-active' : ''}${tab.isShots ? ' nh-guest-menu__tab--shots' : ''}`}
+            onClick={() => setActiveId(tab.id)}
+          >
+            <span className="nh-guest-menu__tab-main">{tabLabel(tab, locale)}</span>
+            {locale !== 'en' ? <span className="nh-guest-menu__tab-sub">{tab.titleEn}</span> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function NomihodaiGuestMenuPanel({
   catalog = [],
   locale = 'ja',
   mode = 'browse',
+  browseLayout = 'stack',
   onOrder,
   orderLabel = '注文',
   addCartLabel = 'カートへ',
@@ -94,6 +119,49 @@ export default function NomihodaiGuestMenuPanel({
 
   if (!tabs.length) {
     return <p className="nh-guest-menu__empty">{emptyLabel}</p>;
+  }
+
+  if (mode === 'browse' && browseLayout === 'tabs') {
+    const isShotsActive = activeTab?.id === NOMIHODAI_GUEST_SHOTS_TAB_ID;
+    const tabListLabel = locale === 'en' ? 'Drink categories' : 'ドリンク区分';
+    return (
+      <div className="nh-guest-menu nh-guest-menu--browse nh-guest-menu--browse-tabs">
+        <GuestMenuTabBar
+          tabs={tabs}
+          activeId={activeId}
+          setActiveId={setActiveId}
+          locale={locale}
+          ariaLabel={tabListLabel}
+        />
+        {isShotsActive ? (
+          <div className="nh-guest-menu__browse-panel" role="tabpanel">
+            <p className="nh-guest-menu__browse-panel-note">
+              {locale === 'en' ? 'Paid separately (not included)' : '別料金（飲み放題プラン外）'}
+            </p>
+            <ul className="nh-guest-menu__browse-grid">
+              {extraShots.map((s) => (
+                <li key={s.id} className="nh-guest-menu__browse-item nh-guest-menu__browse-item--priced">
+                  <span>{nomihodaiExtraShotRowLabel(s, locale)}</span>
+                  <span className="nh-guest-menu__browse-price">
+                    ￥{s.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : activeTab ? (
+          <div className="nh-guest-menu__browse-panel" role="tabpanel">
+            <ul className="nh-guest-menu__browse-grid">
+              {(activeTab.items || []).map((it) => (
+                <li key={it.id} className="nh-guest-menu__browse-item">
+                  {nomihodaiGuestItemLabelFromItem(it, locale)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    );
   }
 
   if (mode === 'browse') {
@@ -138,27 +206,17 @@ export default function NomihodaiGuestMenuPanel({
     );
   }
 
+  const tabListLabel = locale === 'en' ? 'Drink categories' : 'ドリンク区分';
+
   return (
     <div className="nh-guest-menu nh-guest-menu--order">
-      <div className="nh-guest-menu__tabs" role="tablist" aria-label={locale === 'en' ? 'Drink categories' : 'ドリンク区分'}>
-        {tabs.map((tab) => {
-          const selected = tab.id === activeTab?.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              data-cat={tab.id}
-              className={`nh-guest-menu__tab${selected ? ' is-active' : ''}${tab.isShots ? ' nh-guest-menu__tab--shots' : ''}`}
-              onClick={() => setActiveId(tab.id)}
-            >
-              <span className="nh-guest-menu__tab-main">{tabLabel(tab, locale)}</span>
-              {locale !== 'en' ? <span className="nh-guest-menu__tab-sub">{tab.titleEn}</span> : null}
-            </button>
-          );
-        })}
-      </div>
+      <GuestMenuTabBar
+        tabs={tabs}
+        activeId={activeId}
+        setActiveId={setActiveId}
+        locale={locale}
+        ariaLabel={tabListLabel}
+      />
 
       {isShotsActive ? (
         <div className="nh-guest-menu__panel nh-guest-menu__panel--shots" role="tabpanel">
