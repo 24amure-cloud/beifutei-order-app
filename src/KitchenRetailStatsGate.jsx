@@ -34,9 +34,11 @@ export default function KitchenRetailStatsGate({ onConfirm }) {
 
   return (
     <PartyOnboardingVisual
+      layout="steps"
       step={step}
       stepIndex={step === 'locale' ? 1 : 2}
       stepTotal={2}
+      localeSelected={locale === 'en' ? 'en' : 'ja'}
       onBack={step === 'party' ? () => setStep('locale') : undefined}
       onPickLocale={(v) => {
         setLocale(v);

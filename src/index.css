@@ -330,6 +330,32 @@ body {
   letter-spacing: 0.06em;
 }
 
+.iou-locale-pill--active {
+  border-width: 3px;
+  box-shadow: 0 6px 20px rgba(74, 59, 52, 0.14);
+}
+
+.iou-locale-pill--ja.iou-locale-pill--active {
+  border-color: #c45c3e;
+  background: linear-gradient(180deg, #fff 0%, #fff0ec 100%);
+}
+
+.iou-locale-pill--en.iou-locale-pill--active {
+  border-color: #4a7ab8;
+  background: linear-gradient(180deg, #fff 0%, #eef4ff 100%);
+}
+
+.iou-gate--combined .iou-gate__body--combined {
+  gap: 18px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.iou-gate__steps-spacer {
+  width: 44px;
+  height: 44px;
+}
+
 .iou-count-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

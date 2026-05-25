@@ -1909,6 +1909,7 @@ function App() {
 
       <GuestPromoScreensaver
         paused={
+          needsGuestOnboarding ||
           guestPostCheckoutFullscreen ||
           showBillPanel ||
           cartDrawerOpen ||

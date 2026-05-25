@@ -1191,16 +1191,47 @@ export function NomihodaiSessionProvider({ children }) {
     refetchTablesFromDb,
   ]);
 
-  /** バッシング完了：卓タブレットの退席メッセージを消し、飲み放題タブを再利用可能にする */
+  /** バッシング完了：退席表示を消し、次のお客様用に言語・人数入力をやり直せるようリセット */
   const clearGuestFarewellForReuse = useCallback(
     async (tableLabel) => {
       const tl = String(tableLabel != null ? tableLabel : session.tableLabel).trim();
+      if (!tl) return;
+
       await patchGuestFarewellColumns(supabase, tl, null);
+
+      const partyReset = {
+        table_label: tl,
+        guest_party_men: 0,
+        guest_party_women: 0,
+        guest_party_children: 0,
+        guest_party_captured_at: null,
+        guest_party_locale: null,
+      };
+      const { error: partyErr } = await supabase.from('beifutei_table_states').upsert(partyReset, {
+        onConflict: 'table_label',
+        defaultToNull: false,
+      });
+      if (partyErr) {
+        pushKitchenDiagFromSupabase('beifutei_table_states:upsert', partyErr, 'バッシング時の客席人数リセット');
+      }
+
+      clearGuestPartyLocal(tl);
+      setDbTables((prev) => {
+        const idx = prev.findIndex((r) => normalizeTableLabelKey(r.table_label ?? '') === tl);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], ...partyReset };
+          return normalizeTableStatesRows(next);
+        }
+        return normalizeTableStatesRows([...prev, partyReset]);
+      });
+      void refetchTablesFromDb();
+
       if (tl === String(session.tableLabel ?? '').trim()) {
         saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
       }
     },
-    [session.tableLabel, localDeviceState.tableLabel, saveLocalDeviceState]
+    [session.tableLabel, localDeviceState.tableLabel, saveLocalDeviceState, setDbTables, refetchTablesFromDb]
   );
 
   /** 会計完了後も Realtime 遅れで NH が残るのを防ぐ（farewell 確定時は帯・ロックを消す） */
