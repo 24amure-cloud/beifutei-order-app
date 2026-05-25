@@ -12,6 +12,7 @@ import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import TableMemoRibbon from './TableMemoRibbon.jsx';
 import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
 import TakeoutSweetsStockPanel from './TakeoutSweetsStockPanel.jsx';
+import DrinkSpotPanel from './DrinkSpotPanel.jsx';
 import { KitchenDiagnosticsFooter, KitchenRealtimeBadge } from './KitchenStaffDiagnostics.jsx';
 import { isSupabaseConfigured } from './supabaseClient.js';
 import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
@@ -171,6 +172,8 @@ const STAFF_TABS = {
   retailTakeout: 'retail-takeout',
   /** テイクアウトスイーツ在庫（会計・注文と分離） */
   sweetsStock: 'sweets-stock',
+  /** ドリンク・スポット品の客席表示 ON/OFF */
+  drinkSpot: 'drink-spot',
 };
 
 /** 厨房：注文行の会計区分（客席の注文区分を反映。口頭等の訂正可） */
@@ -701,7 +704,9 @@ export default function KitchenApp() {
           ? 'お会計済み'
           : staffTab === STAFF_TABS.sweetsStock
             ? 'スイーツ在庫'
-            : 'カフェ・テイクアウト';
+            : staffTab === STAFF_TABS.drinkSpot
+              ? 'スポット品'
+              : 'カフェ・テイクアウト';
 
   const todayDateKey = getLocalDateKey(now);
   const todayCheckoutEntries = useMemo(() => {
@@ -822,6 +827,13 @@ export default function KitchenApp() {
             onClick={() => setStaffTab(STAFF_TABS.sweetsStock)}
           >
             スイーツ在庫
+          </button>
+          <button
+            type="button"
+            className={`kitchen-v2-tab kitchen-v2-tab--drink-spot${staffTab === STAFF_TABS.drinkSpot ? ' is-active' : ''}`}
+            onClick={() => setStaffTab(STAFF_TABS.drinkSpot)}
+          >
+            スポット品
           </button>
         </nav>
         <KitchenRealtimeBadge />
@@ -1778,6 +1790,8 @@ export default function KitchenApp() {
             )}
 
             {staffTab === STAFF_TABS.sweetsStock && <TakeoutSweetsStockPanel />}
+
+            {staffTab === STAFF_TABS.drinkSpot && <DrinkSpotPanel />}
 
             {staffTab === STAFF_TABS.retailTakeout && (
               <KitchenStaffRetailHub onRetailCheckoutComplete={() => setStaffTab(STAFF_TABS.checkoutDone)} />

@@ -8,7 +8,8 @@
     "build": "node scripts/verify-supabase-env.mjs && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "setup:ledger-drive": "node scripts/setup-ledger-drive.mjs"
+    "setup:ledger-drive": "node scripts/setup-ledger-drive.mjs",
+    "sync:staff-retail-assets": "node scripts/sync-staff-retail-assets.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

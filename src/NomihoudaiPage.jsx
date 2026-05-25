@@ -51,6 +51,9 @@ export const NOMIHODAI_EXTRA_SHOTS = [
 function categoryBlockClass(cat) {
   const en = (cat.titleEn || '').toUpperCase();
   const ja = cat.titleJa || '';
+  if (en.includes('NON-ALCOHOLIC') || en.includes('NON ALCOHOLIC') || ja.includes('ノンアル')) {
+    return 'nomihoudai-block nomihoudai-block--soft';
+  }
   if (en.includes('SOFT') || ja.includes('ソフト')) return 'nomihoudai-block nomihoudai-block--soft';
   if (en.includes('SOUR') || ja.includes('サワー')) return 'nomihoudai-block nomihoudai-block--sour';
   return 'nomihoudai-block';

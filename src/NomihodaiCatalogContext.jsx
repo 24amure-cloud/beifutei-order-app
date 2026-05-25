@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from 'react';
 import { DEFAULT_NOMIHODAI_CATALOG } from './data/defaultNomihodaiCatalog.js';
 import { loadNomihodaiCatalog, saveNomihodaiCatalog, NOMIHODAI_CATALOG_STORAGE_KEY } from './nomihodaiCatalogStorage.js';
 import { useMenuPublishedSync } from './useMenuPublishedSync.js';
@@ -7,6 +7,11 @@ const NomihodaiCatalogContext = createContext(null);
 
 export function NomihodaiCatalogProvider({ children }) {
   const [catalog, setCatalogState] = useState(() => loadNomihodaiCatalog());
+
+  /** 起動時に版・構成チェック（導入ページ・注文画面の一覧を最新既定へ） */
+  useLayoutEffect(() => {
+    setCatalogState(loadNomihodaiCatalog());
+  }, []);
 
   const setNomihodaiCatalog = useCallback((next) => {
     setCatalogState((prev) => {

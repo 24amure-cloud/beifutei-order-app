@@ -1,25 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { NOMIHODAI_EXTRA_SHOTS } from './NomihoudaiPage.jsx';
-import DrinkHeroImage from './DrinkHeroImage.jsx';
-import {
-  getNomihodaiHeroCandidatesForCategory,
-  resolveNomihodaiVisualSlot,
-} from './data/drinkHeroImages.js';
+import NomihodaiGuestMenuPanel from './NomihodaiGuestMenuPanel.jsx';
+import { resolveNomihodaiVisualSlot } from './data/drinkHeroImages.js';
 import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import { useNomihodaiCatalog } from './NomihodaiCatalogContext.jsx';
-import {
-  NOMIHODAI_SECTION_KEYS,
-  NOMIHODAI_SECTION_EMPTY_HINT_KEYS,
-  partitionNomihodaiCatalog,
-} from './nomihodaiMenuCorners.js';
+import { loadNomihodaiCatalog } from './nomihodaiCatalogStorage.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getNomihodaiForTable, NOMIHODAI_PENDING_QUEUE_LIMIT_ENABLED } from './nomihodaiSession.js';
 import { playNomihodaiSoftEndSound } from './nomihodaiSoftEndSound.js';
 import {
   buildNomihodaiGuestLabelIndex,
   nomihodaiGuestItemLabel,
-  nomihodaiGuestItemLabelFromItem,
-  nomihodaiExtraShotRowLabel,
 } from './nomihodaiGuestItemLabels.js';
 
 function fmtOrderClock(ms, locale) {
@@ -81,7 +72,12 @@ function WineGlassIcon({ className = '' }) {
 
 export default function NomihodaiGuestDrinkMenu({ onOpenBill }) {
   const { t, locale } = useGuestUiLocale();
-  const { nomihodaiCatalog } = useNomihodaiCatalog();
+  const { nomihodaiCatalog, setNomihodaiCatalog } = useNomihodaiCatalog();
+
+  /** 開始後メニュー表示時に最新カタログへ同期（導入ページと同一データ） */
+  useLayoutEffect(() => {
+    setNomihodaiCatalog(loadNomihodaiCatalog());
+  }, [setNomihodaiCatalog]);
   const {
     addNomihodaiOrder,
     canOrderMoreNomihodai,
@@ -141,8 +137,6 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill }) {
     return out;
   }, [nhOrders, nomihodaiCatalog]);
 
-  const sectionBuckets = useMemo(() => partitionNomihodaiCatalog(nomihodaiCatalog), [nomihodaiCatalog]);
-
   const nhGuestLabelIndex = useMemo(
     () => buildNomihodaiGuestLabelIndex(nomihodaiCatalog),
     [nomihodaiCatalog]
@@ -185,45 +179,6 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill }) {
   };
 
   if (!n?.active) return null;
-
-  const renderCategoryCard = (cat) => {
-    const slot = resolveNomihodaiVisualSlot(cat);
-    return (
-      <article key={cat.id} className={`nh-active__card nh-active__card--ff nh-active__card--slot-${slot}`}>
-        <div className="nh-active__card-ribbon nh-active__card-ribbon--hero-inline">
-          <div className="nh-active__card-ribbon-titles">
-            {locale === 'en' ? (
-              <span className="nh-active__card-ribbon-en">{cat.titleEn}</span>
-            ) : (
-              <>
-                <span className="nh-active__card-ribbon-en">{cat.titleEn}</span>
-                <span className="nh-active__card-ribbon-ja">{cat.titleJa}</span>
-              </>
-            )}
-          </div>
-          <DrinkHeroImage
-            candidates={getNomihodaiHeroCandidatesForCategory(cat)}
-            className="nh-active__card-ribbon-photo"
-            imgClassName="nh-active__card-ribbon-photo-img"
-          />
-        </div>
-        <div className="nh-active__card-inner">
-          <div className="nh-active__card-list-wrap">
-            <ul className="nh-active__card-list">
-              {cat.items.map((it) => (
-                <li key={it.id} className="nh-active__card-row">
-                  <span>{nomihodaiGuestItemLabelFromItem(it, locale)}</span>
-                  <button type="button" className="nh-active__order-btn" onClick={() => addDraftLine(it.id, it.name)}>
-                    {t('nh_drink_order')}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </article>
-    );
-  };
 
   const remainingMs = Math.max(0, n.endMs - now);
   const sessionClock = fmtSessionRemain(remainingMs);
@@ -318,44 +273,18 @@ export default function NomihodaiGuestDrinkMenu({ onOpenBill }) {
               <div className="nh-ff-menu-head__balance" aria-hidden="true" />
             </div>
 
-            <div className="nh-corner-stack">
-              {NOMIHODAI_SECTION_KEYS.map((sectionKey) => {
-                const cats = sectionBuckets[sectionKey] || [];
-                return (
-                  <section key={sectionKey} className={`nh-corner nh-corner--${sectionKey}`}>
-                    <div className="nh-corner__cards">
-                      {cats.length === 0 ? (
-                        <p className="nh-corner__empty">{t(NOMIHODAI_SECTION_EMPTY_HINT_KEYS[sectionKey])}</p>
-                      ) : (
-                        cats.map(renderCategoryCard)
-                      )}
-                    </div>
-                  </section>
-                );
-              })}
-
-              <section className="nh-corner nh-corner--shots">
-                <div className="nh-corner-shots">
-                  <ul className="nh-corner-shots__list">
-                    {NOMIHODAI_EXTRA_SHOTS.map((s) => (
-                      <li key={s.id} className="nh-corner-shots__row">
-                        <span className="nh-corner-shots__name">{nomihodaiExtraShotRowLabel(s, locale)}</span>
-                        <span className="nh-corner-shots__price">
-                          ￥{s.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
-                        </span>
-                        <button
-                          type="button"
-                          className="nh-corner-shots__add"
-                          onClick={() => addDraftLine(s.id, s.name, s.price)}
-                        >
-                          {t('nh_drink_add_cart')}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            </div>
+            <NomihodaiGuestMenuPanel
+              catalog={nomihodaiCatalog}
+              locale={locale}
+              mode="order"
+              orderLabel={t('nh_drink_order')}
+              addCartLabel={t('nh_drink_add_cart')}
+              emptyLabel={t('nh_prospect_menu_empty')}
+              showExtraShots
+              extraShots={NOMIHODAI_EXTRA_SHOTS}
+              onOrder={(it) => addDraftLine(it.id, it.name, it.price)}
+              onAddShot={(it) => addDraftLine(it.id, it.name, it.price)}
+            />
             <p className="nh-ff-menu-foot">{t('nh_drink_menu_foot')}</p>
           </div>
 

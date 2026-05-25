@@ -26,7 +26,10 @@ export function MenuMasterProvider({ children }) {
     setDrinkSectionsState(loadDrinkMenuSections());
   }, []);
 
-  useMenuPublishedSync(syncFromStorage, ['drink', 'all'], DRINK_MENU_STORAGE_KEY);
+  useMenuPublishedSync(syncFromStorage, ['drink', 'all'], [
+    DRINK_MENU_STORAGE_KEY,
+    'beifutei-drink-spot-enabled-v1',
+  ]);
 
   const value = useMemo(
     () => ({

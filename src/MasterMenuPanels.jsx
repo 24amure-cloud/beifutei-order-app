@@ -113,6 +113,11 @@ export function MasterDrinkMenuPanel({
         <div className="master-sections">
           {drinkSections.map((sec) => (
             <div key={sec.id} id={`${catIdPrefix}-${sec.id}`} className="master-sec master-sec--anchor">
+              {sec.id === 'spot' ? (
+                <p className="master-sec-spot-note">
+                  スポット品は客席に常時出しません。厨房の「スポット品」タブで ON にした品だけドリンクページに表示されます。
+                </p>
+              ) : null}
               <div className="master-sec-top">
                 <label className="master-field">
                   <span className="master-field-label">英表記</span>

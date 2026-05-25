@@ -1813,19 +1813,21 @@ body.guest-screensaver-active .cart-drawer-panel {
 }
 
 .drink-page__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 1行3カテゴリ（ハイボール・ビール・日本酒 ／ 焼酎・カクテル・サワー ／ ソフト） */
+.drink-page__row {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 18px 24px;
+  gap: 18px 20px;
+  align-items: start;
 }
 
 @media (min-width: 720px) {
-  .drink-page__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1100px) {
-  .drink-page__grid {
+  .drink-page__row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
@@ -1835,6 +1837,7 @@ body.guest-screensaver-active .cart-drawer-panel {
   border: 1px solid #e8e2d2;
   border-radius: 10px;
   padding: 12px 12px 10px;
+  min-width: 0;
 }
 
 .drink-page-cat__head {
@@ -1921,19 +1924,6 @@ body.guest-screensaver-active .cart-drawer-panel {
   gap: 0;
 }
 
-.drink-page-list--2col {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0;
-}
-
-@media (min-width: 480px) {
-  .drink-page-list--2col {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 14px;
-  }
-}
-
 .drink-page-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -1943,14 +1933,12 @@ body.guest-screensaver-active .cart-drawer-panel {
   padding: 6px 0;
   border-bottom: 1px dotted rgba(226, 213, 196, 0.95);
   color: #3d2b1f;
-}
-
-.drink-page-list--2col .drink-page-row {
-  border-bottom: 1px dotted rgba(226, 213, 196, 0.95);
+  min-width: 0;
 }
 
 .drink-page-row__name {
   line-height: 1.35;
+  min-width: 0;
 }
 
 .drink-page-row__price {
@@ -2080,23 +2068,24 @@ body.guest-screensaver-active .cart-drawer-panel {
     grid-template-columns: 1fr;
   }
 
-  .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top {
+  /* 客席のみ：狭画面で縦積み（厨房スタッフ画面には適用しない） */
+  .guest-menu-surface .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top {
     flex-direction: column;
   }
 
-  .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area.cafe-img-area-promo {
+  .guest-menu-surface .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area.cafe-img-area-promo {
     width: min(100%, 268px);
     margin: 8px auto 0;
     justify-content: center;
   }
 
-  .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-img-placeholder.cafe-img-promo-lg,
-  .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-img-placeholder.cafe-img-promo-sm {
+  .guest-menu-surface .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-img-placeholder.cafe-img-promo-lg,
+  .guest-menu-surface .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-img-placeholder.cafe-img-promo-sm {
     background-position: center;
   }
 
-  .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-badge.cafe-badge-promo-lg,
-  .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-badge.cafe-badge-promo-sm {
+  .guest-menu-surface .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-badge.cafe-badge-promo-lg,
+  .guest-menu-surface .cafe-wrapper .cafe-card > .cafe-card-top.pizza-hero-top .cafe-img-area-promo .cafe-badge.cafe-badge-promo-sm {
     right: 4px;
     bottom: 4px;
   }
@@ -4611,14 +4600,14 @@ body.guest-screensaver-active .cart-drawer-panel {
 }
 
 @media (max-width: 900px) {
-  .fruit-card-top.cafe-card-top {
+  .guest-menu-surface.fruit-page .fruit-card-top.cafe-card-top {
     flex-direction: column;
   }
 
-  .fruit-card-media,
-  .fruit-card-media--gelato,
-  .fruit-card-media--fruit-hero,
-  .fruit-card-media--affogato {
+  .guest-menu-surface.fruit-page .fruit-card-media,
+  .guest-menu-surface.fruit-page .fruit-card-media--gelato,
+  .guest-menu-surface.fruit-page .fruit-card-media--fruit-hero,
+  .guest-menu-surface.fruit-page .fruit-card-media--affogato {
     width: 100%;
     max-width: 260px;
     margin: 12px auto 0;
@@ -8927,7 +8916,7 @@ button.fruit-toggle-btn {
 
 .nh-prospect--ff .nh-prospect__menu-grid--compact {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px 8px;
   max-width: 100%;
   overflow-x: hidden;
@@ -8989,8 +8978,40 @@ button.fruit-toggle-btn {
   font-size: 11px;
   line-height: 1.4;
   padding-left: 1.1em;
-  max-height: 4.2em;
-  overflow: hidden;
+  max-height: none;
+  overflow: visible;
+}
+
+.nh-prospect--ff .nh-prospect__menu-grid--compact .nh-prospect__menu-items--scroll {
+  max-height: 9.5em;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nh-prospect--ff .nh-prospect__menu-grid--compact .nh-prospect__menu-items--cols {
+  column-count: 2;
+  column-gap: 10px;
+  max-height: 11em;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nh-prospect--ff .nh-prospect__menu-grid--compact .nh-prospect__menu-items--cols li {
+  break-inside: avoid;
+}
+
+.nh-prospect__menu-accent--6 {
+  background: linear-gradient(90deg, #6a8f6e, #4a6b4e);
+}
+
+.nh-prospect__menu-accent--7 {
+  background: linear-gradient(90deg, #7a9ab8, #4a6a88);
+}
+
+@media (max-width: 900px) {
+  .nh-prospect--ff .nh-prospect__menu-grid--compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 420px) {
@@ -13170,6 +13191,62 @@ button.kitchen-guest-intent--nav {
   opacity: 1;
 }
 
+.kitchen-v2-tab--drink-spot {
+  opacity: 0.92;
+}
+
+.kitchen-v2-tab--drink-spot.is-active {
+  opacity: 1;
+}
+
+.drink-spot-panel__count {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eef4ff;
+  color: #355;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.drink-spot-panel__list {
+  margin-top: 4px;
+}
+
+.drink-spot-row--on {
+  border-color: #b8d4be;
+  background: #f4faf5;
+}
+
+.drink-spot-row__toggle {
+  flex-shrink: 0;
+  min-width: 7.5em;
+  padding: 8px 14px;
+  border: 1px solid #ccc4b8;
+  border-radius: 8px;
+  background: #f5f2ee;
+  color: #666;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.drink-spot-row__toggle.is-on {
+  border-color: #3d7a4a;
+  background: #3d7a4a;
+  color: #fff;
+}
+
+.master-sec-spot-note {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #6a5530;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .ts-stock-panel {
   max-width: 720px;
   margin: 0 auto;
@@ -13199,6 +13276,41 @@ button.kitchen-guest-intent--nav {
   line-height: 1.45;
   color: #6b5a48;
   max-width: 36em;
+}
+
+.ts-stock-panel__head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ts-stock-panel__apply {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #c94b5b;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ts-stock-panel__apply:hover:not(:disabled) {
+  background: #b33f4e;
+}
+
+.ts-stock-panel__apply:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.ts-stock-panel__apply-ok {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2d6a3e;
 }
 
 .ts-stock-panel__alert {
@@ -13645,18 +13757,40 @@ button.kitchen-guest-intent--nav {
   flex: 1 1 56%;
 }
 
+.guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-card-content {
+  flex: 1 1 42%;
+  min-width: 0;
+  z-index: 1;
+}
+
+.guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-card-top .cafe-img-area.cafe-img-area-promo {
+  flex: 1 1 52%;
+}
+
 .guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-img-area-promo-lg .cafe-img-placeholder.cafe-img-promo-lg {
-  width: min(96%, clamp(118px, 20vw, 236px));
-  height: clamp(132px, min(24vw, 30vh), 288px);
-  max-height: min(34vh, 52vw);
+  width: min(88%, clamp(100px, 18vw, 200px));
+  height: clamp(110px, min(22vw, 26vh), 240px);
+  max-height: min(30vh, 46vw);
   margin: 0;
   border-radius: 0;
 }
 
+.guest-menu-surface.main-content--cafe-heroes .cafe-wrapper .cafe-img-area-promo .cafe-badge.cafe-badge-promo-lg {
+  width: clamp(52px, 9vw, 72px);
+  height: clamp(52px, 9vw, 72px);
+}
+
 .guest-menu-surface.main-content--cafe-heroes .cafe-title {
-  font-size: 26px;
-  font-weight: bold;
+  font-size: clamp(18px, 2.2vw, 24px);
+  font-weight: 800;
+  line-height: 1.3;
   text-align: left;
+}
+
+.guest-menu-surface.main-content--cafe-heroes .cafe-subtitle,
+.guest-menu-surface.main-content--cafe-heroes .cafe-desc {
+  line-height: 1.45;
+  max-width: 100%;
 }
 
 .guest-menu-surface.fruit-page .fruit-top-row {
@@ -13678,31 +13812,38 @@ button.kitchen-guest-intent--nav {
 
 .guest-menu-surface.fruit-page .fruit-hero-top .fruit-card-media--fruit-hero,
 .guest-menu-surface.fruit-page .fruit-card-top .fruit-card-media {
-  width: 228px;
-  min-width: 228px;
-  max-width: none;
-  min-height: 228px;
+  width: clamp(150px, 26vw, 200px);
+  min-width: 0;
+  max-width: 40%;
+  min-height: clamp(150px, 26vw, 200px);
   overflow: visible;
 }
 
 .guest-menu-surface.fruit-page .fruit-fruitsoft-visual {
   width: 100%;
-  height: 228px;
+  height: clamp(150px, 26vw, 200px);
 }
 
 .guest-menu-surface.fruit-page .fruit-fruitsoft-regular {
-  width: 214px;
-  height: 214px;
+  width: clamp(128px, 22vw, 178px);
+  height: clamp(128px, 22vw, 178px);
   left: 46%;
-  bottom: -18px;
+  bottom: -14px;
   transform: translateX(-56%);
 }
 
 .guest-menu-surface.fruit-page .fruit-fruitsoft-mini {
-  width: 122px;
-  height: 122px;
-  right: 20px;
-  bottom: -12px;
+  width: clamp(88px, 14vw, 108px);
+  height: clamp(88px, 14vw, 108px);
+  right: 16px;
+  bottom: -10px;
+}
+
+.guest-menu-surface.fruit-page .fruit-hero-bear-img {
+  max-width: min(220px, 38vw);
+  max-height: min(220px, 32vh);
+  width: auto;
+  height: auto;
 }
 
 .guest-menu-surface.fruit-page .fruit-card-media--gelato {
@@ -13721,8 +13862,16 @@ button.kitchen-guest-intent--nav {
 
 .guest-menu-surface.fruit-page .fruit-hero-title,
 .guest-menu-surface.fruit-page .fruit-card-title {
-  font-size: 26px;
+  font-size: clamp(20px, 2.4vw, 26px);
+  line-height: 1.3;
   text-align: left;
+}
+
+.guest-menu-surface.fruit-page .fruit-hero-lead,
+.guest-menu-surface.fruit-page .fruit-hero-desc,
+.guest-menu-surface.fruit-page .fruit-card-desc,
+.guest-menu-surface.fruit-page .fruit-card-subtitle {
+  line-height: 1.45;
 }
 
 .guest-menu-surface.fruit-page .fruit-hero-lead,
@@ -17913,6 +18062,295 @@ button.kitchen-guest-intent--nav {
   color: rgba(160, 154, 148, 0.85);
 }
 
+/* ----- 客席向け飲み放題メニュー（導入・注文共通） ----- */
+.nh-prospect__menu-area--guest {
+  margin: 0 12px 20px;
+  padding: 14px 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(201, 169, 98, 0.28);
+  background: rgba(24, 24, 28, 0.92);
+}
+
+.nh-prospect__menu-area-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #e8d5a3;
+  text-align: center;
+}
+
+.nh-guest-menu__empty {
+  margin: 0;
+  padding: 20px 14px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(200, 194, 188, 0.9);
+}
+
+/* 導入ページ：区分ごと縦一覧（読みやすさ優先） */
+.nh-guest-menu--browse {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+
+.nh-guest-menu__section {
+  padding: 12px 12px 10px;
+  border-radius: 12px;
+  background: rgba(40, 40, 44, 0.75);
+  border: 1px solid rgba(201, 169, 98, 0.18);
+}
+
+.nh-guest-menu__section-head {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(201, 169, 98, 0.22);
+}
+
+.nh-guest-menu__section-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #f0e8dc;
+  line-height: 1.3;
+}
+
+.nh-guest-menu__section-sub {
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: rgba(210, 200, 184, 0.75);
+}
+
+.nh-guest-menu__browse-list {
+  margin: 0;
+  padding: 0 0 0 1.15em;
+  list-style: disc;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #f5f0e8;
+}
+
+.nh-guest-menu__browse-list li {
+  margin: 0 0 4px;
+}
+
+.nh-guest-menu__browse-list li:has(.nh-guest-menu__browse-price) {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.nh-guest-menu__browse-price {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(200, 190, 170, 0.85);
+  white-space: nowrap;
+}
+
+.nh-guest-menu__section-note {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: rgba(180, 174, 168, 0.8);
+}
+
+/* 開始後：区分タブ + 大きな注文ボタン */
+.nh-guest-menu--order {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.nh-guest-menu__tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding: 4px 2px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 169, 98, 0.45) transparent;
+}
+
+.nh-guest-menu__tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.nh-guest-menu__tabs::-webkit-scrollbar-thumb {
+  background: rgba(201, 169, 98, 0.45);
+  border-radius: 4px;
+}
+
+.nh-guest-menu__tab--shots .nh-guest-menu__tab-sub {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
+.nh-guest-menu__tab {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-height: 42px;
+  min-width: 72px;
+  max-width: 120px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(201, 169, 98, 0.35);
+  background: rgba(40, 40, 44, 0.85);
+  color: #ece8e2;
+  cursor: pointer;
+  text-align: left;
+}
+
+.nh-guest-menu__tab.is-active {
+  border-color: #c9a962;
+  background: linear-gradient(165deg, #3a3830 0%, #252520 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.nh-guest-menu__tab-main {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.nh-guest-menu__tab-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  opacity: 0.78;
+}
+
+.nh-guest-menu__panel {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 12px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(201, 169, 98, 0.28);
+  background: rgba(30, 30, 34, 0.95);
+}
+
+.nh-guest-menu__panel-head {
+  margin-bottom: 10px;
+}
+
+.nh-guest-menu__panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #f0e8dc;
+}
+
+.nh-guest-menu__panel-hint {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: rgba(200, 194, 188, 0.72);
+}
+
+.nh-guest-menu__order-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(48vh, 420px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nh-guest-menu__order-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 10px;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.nh-guest-menu__order-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.nh-guest-menu__order-name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #f5f0e8;
+}
+
+.nh-guest-menu__order-btn {
+  min-height: 38px;
+  min-width: 64px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #c9a962;
+  background: linear-gradient(180deg, #faf3e0 0%, #c9a962 55%, #8a7038 100%);
+  color: #1a1410;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.nh-guest-menu__order-btn:active {
+  transform: scale(0.98);
+}
+
+.nh-guest-menu__panel-hint--shots {
+  color: rgba(190, 180, 165, 0.78);
+}
+
+.nh-guest-menu__order-row--shots {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.nh-guest-menu__order-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(200, 190, 170, 0.9);
+  white-space: nowrap;
+  align-self: center;
+}
+
+.nh-guest-menu__order-btn--shots {
+  background: transparent;
+  color: rgba(220, 210, 190, 0.95);
+  border-color: rgba(201, 169, 98, 0.4);
+  font-size: 12px;
+  min-width: 56px;
+}
+
+.nh-active--ff .nh-active__menu-col {
+  min-width: 0;
+}
+
+.nh-active--ff .nh-active__grid--ff {
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .nh-guest-menu--browse {
+    max-height: none;
+  }
+
+  .nh-luxe-bar__segment--extend-info {
+    display: none;
+  }
+}
+
 /* メニューカード：ダークパネル */
 .nh-active--ff .nh-active__card--ff {
   background: linear-gradient(165deg, #2e2e34 0%, #18181c 48%, #121214 100%);
@@ -17939,6 +18377,24 @@ button.kitchen-guest-intent--nav {
 
 .nh-active--ff .nh-active__card-list {
   color: rgba(236, 232, 226, 0.92);
+}
+
+.nh-active--ff .nh-active__card-list--scroll {
+  max-height: 10.5em;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nh-active--ff .nh-active__card-list--dense {
+  column-count: 2;
+  column-gap: 10px;
+  max-height: 12em;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.nh-active--ff .nh-active__card-list--dense .nh-active__card-row {
+  break-inside: avoid;
 }
 
 .nh-active--ff .nh-active__card-row {
@@ -18711,7 +19167,7 @@ button.kitchen-guest-intent--nav {
   .pizza-grid, .ts-grid {
     grid-template-columns: 1fr !important;
   }
-  .drink-page__grid {
+  .drink-page__row {
     grid-template-columns: 1fr !important;
   }
   .cafe-grid-2 {

@@ -1,8 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { SWEETS_SOLD_COUNTS_STORAGE_KEY } from './takeoutSweetsInventory.js';
+import {
+  SWEETS_SOLD_COUNTS_STORAGE_KEY,
+  fetchSweetsInventoryFromEnv,
+  mergeInventoryMap,
+  loadSweetsSoldCounts,
+} from './takeoutSweetsInventory.js';
 import { useTakeoutSweetsMenu } from './TakeoutSweetsMenuContext.jsx';
 import { useTakeoutSweetsDisplay } from './useTakeoutSweetsDisplay.js';
-import { loadSweetsSoldCounts } from './takeoutSweetsInventory.js';
+import { publishTakeoutInventoryToTabs } from './takeoutSweetsInventoryStorage.js';
 import {
   patchInventoryDisplayDelta,
   patchInventoryForDisplayRemainder,
@@ -20,6 +25,8 @@ export default function TakeoutSweetsStockPanel() {
   const { sectionsForDisplay } = useTakeoutSweetsDisplay();
   const [filter, setFilter] = useState('');
   const [soldTick, setSoldTick] = useState(0);
+  const [applyNotice, setApplyNotice] = useState(null);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     const bump = () => setSoldTick((t) => t + 1);
@@ -52,6 +59,20 @@ export default function TakeoutSweetsStockPanel() {
     [setTakeoutInventoryMap, soldCounts],
   );
 
+  const onPublishToGuest = useCallback(async () => {
+    setPublishing(true);
+    try {
+      const remote = await fetchSweetsInventoryFromEnv();
+      const map = remote ? mergeInventoryMap(remote) : takeoutInventoryMap;
+      if (remote) setTakeoutInventoryMap(map);
+      publishTakeoutInventoryToTabs(map);
+      setApplyNotice('ok');
+      window.setTimeout(() => setApplyNotice(null), 4000);
+    } finally {
+      setPublishing(false);
+    }
+  }, [takeoutInventoryMap, setTakeoutInventoryMap]);
+
   const q = filter.trim().toLowerCase();
   const sections = useMemo(() => {
     if (!q) return sectionsForDisplay;
@@ -78,15 +99,30 @@ export default function TakeoutSweetsStockPanel() {
         <div>
           <h2 className="ts-stock-panel__title">テイクアウトスイーツ在庫</h2>
           <p className="ts-stock-panel__lead">
-            ＋／−／切を押すと<strong>すぐ保存</strong>され、客席のテイクアウトスイーツと厨房の「カフェ・テイクアウト」に連動します（反映ボタンは不要）。
+            ＋／−／切で在庫を編集し、<strong>「客席に反映」</strong>で客席タブレットと厨房の「カフェ・テイクアウト」へ送ります。
             注文一覧・各卓の会計には影響しません。
           </p>
         </div>
-        {lowCount > 0 ? (
-          <span className="ts-stock-panel__alert" role="status">
-            品切れ {lowCount}
-          </span>
-        ) : null}
+        <div className="ts-stock-panel__head-actions">
+          <button
+            type="button"
+            className="ts-stock-panel__apply"
+            disabled={publishing}
+            onClick={onPublishToGuest}
+          >
+            {publishing ? '反映中…' : '客席に反映'}
+          </button>
+          {applyNotice === 'ok' ? (
+            <span className="ts-stock-panel__apply-ok" role="status">
+              反映しました
+            </span>
+          ) : null}
+          {lowCount > 0 ? (
+            <span className="ts-stock-panel__alert" role="status">
+              品切れ {lowCount}
+            </span>
+          ) : null}
+        </div>
       </header>
 
       <label className="ts-stock-panel__search">

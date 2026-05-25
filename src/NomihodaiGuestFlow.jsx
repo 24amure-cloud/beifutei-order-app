@@ -1,16 +1,15 @@
-import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import {
   NOMIHODAI_BASE_MINUTES,
   NOMIHODAI_EXTENSION_MINUTES,
   NOMIHODAI_EXTENSION_PRICE_YEN,
 } from './nomihodaiConstants.js';
-import DrinkHeroImage from './DrinkHeroImage.jsx';
-import { getNomihodaiHeroCandidatesForCategory } from './data/drinkHeroImages.js';
+import NomihodaiGuestMenuPanel from './NomihodaiGuestMenuPanel.jsx';
 import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import { useNomihodaiCatalog } from './NomihodaiCatalogContext.jsx';
+import { loadNomihodaiCatalog } from './nomihodaiCatalogStorage.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getGuestIntentForTable, getNomihodaiForTable } from './nomihodaiSession.js';
-import { nomihodaiGuestItemLabelFromItem } from './nomihodaiGuestItemLabels.js';
 import NomihodaiGuestDrinkMenu from './NomihodaiGuestDrinkMenu.jsx';
 function fmtRequested(ms, locale) {
   try {
@@ -29,7 +28,11 @@ function fmtRequested(ms, locale) {
 export function NomihodaiConsiderPage() {
   const { t, locale } = useGuestUiLocale();
   const { requestNomihodaiGuestIntent, prices } = useNomihodaiSession();
-  const { nomihodaiCatalog } = useNomihodaiCatalog();
+  const { nomihodaiCatalog, setNomihodaiCatalog } = useNomihodaiCatalog();
+
+  useLayoutEffect(() => {
+    setNomihodaiCatalog(loadNomihodaiCatalog());
+  }, [setNomihodaiCatalog]);
 
   return (
     <main className="main-content nh-prospect nh-prospect--ff nh-active nh-active--ff">
@@ -125,58 +128,17 @@ export function NomihodaiConsiderPage() {
           </ul>
         </section>
 
-        <div className="nh-prospect__staff-foot" role="note">
-          <span className="nh-prospect__staff-foot__ico" aria-hidden="true">
-            🍷
-          </span>
-          <p className="nh-prospect__staff-foot__text">{t('nh_prospect_menu_link')}</p>
-        </div>
-        <div className="nh-prospect__main-grid nh-prospect__main-grid--stack">
-          <div className="nh-prospect__menu-area">
-            {nomihodaiCatalog.length === 0 ? (
-              <p className="nh-prospect__menu-empty">{t('nh_prospect_menu_empty')}</p>
-            ) : (
-              <div className="nh-prospect__menu-grid nh-prospect__menu-grid--compact">
-                {nomihodaiCatalog.map((cat, idx) => (
-                  <article
-                    key={cat.id}
-                    className="nh-prospect__menu-card"
-                    style={{ '--nh-card-i': idx }}
-                  >
-                    <div className="nh-prospect__menu-card-head nh-prospect__menu-card-head--hero-inline">
-                      <div className="nh-prospect__menu-card-head-titles">
-                        {locale === 'en' ? (
-                          <span className="nh-prospect__menu-en">{cat.titleEn}</span>
-                        ) : (
-                          <>
-                            <span className="nh-prospect__menu-ja">{cat.titleJa}</span>
-                            <span className="nh-prospect__menu-en">{cat.titleEn}</span>
-                          </>
-                        )}
-                      </div>
-                      <DrinkHeroImage
-                        candidates={getNomihodaiHeroCandidatesForCategory(cat)}
-                        className="nh-prospect__menu-card-hero"
-                        imgClassName="nh-prospect__menu-card-hero-img"
-                      />
-                    </div>
-                    <div className="nh-prospect__menu-card-body">
-                      <ul className="nh-prospect__menu-items">
-                        {(cat.items || []).map((it) => (
-                          <li key={it.id}>{nomihodaiGuestItemLabelFromItem(it, locale)}</li>
-                        ))}
-                      </ul>
-                      <div
-                        className={`nh-prospect__menu-accent nh-prospect__menu-accent--${idx % 6}`}
-                        aria-hidden="true"
-                      />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <section className="nh-prospect__menu-area nh-prospect__menu-area--guest" aria-labelledby="nh-prospect-menu-h">
+          <h2 id="nh-prospect-menu-h" className="nh-prospect__menu-area-title">
+            {t('nh_prospect_menu_link')}
+          </h2>
+          <NomihodaiGuestMenuPanel
+            catalog={nomihodaiCatalog}
+            locale={locale}
+            mode="browse"
+            emptyLabel={t('nh_prospect_menu_empty')}
+          />
+        </section>
       </div>
     </main>
   );

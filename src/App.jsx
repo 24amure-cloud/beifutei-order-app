@@ -4,10 +4,11 @@ import { NomihodaiGuestCheckoutThankYou, NomihodaiGuestFarewellFlow } from './No
 import { NomihodaiTabRouter } from './NomihodaiGuestFlow.jsx';
 import DrinkHeroImage from './DrinkHeroImage.jsx';
 import { getDrinkSectionHeroCandidates } from './data/drinkHeroImages.js';
+import { DRINK_MENU_GUEST_ROWS } from './data/defaultDrinkMenu.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getAlcoholTableCharge, formatAlcoholChargeLineForGuest } from './alcoholTableCharge.js';
 import { getNomihodaiForTable } from './nomihodaiSession.js';
-import { useMenuMaster } from './MenuMasterContext.jsx';
+import { useDrinkMenuForGuest } from './useDrinkMenuForGuest.js';
 import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import {
   guestCartLineDisplay,
@@ -23,6 +24,13 @@ import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 import GuestOnboardingGate from './GuestOnboardingGate.jsx';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
+import {
+  retailAssetUrl,
+  retailCssBgUrl,
+  GUEST_CAFE_IMAGES,
+  GUEST_FRUIT_IMAGES,
+  GUEST_PAGE_HEADERS,
+} from './retailMenuAssets.js';
 
 const NOMIHODAI_PLAN_CART_ID = 'nomihodai-plan-charge';
 import { assertTakeoutSweetsOrderItems, applyTakeoutSweetsSales } from './takeoutSweetsInventory.js';
@@ -51,10 +59,12 @@ const ABURASOBA_HERO_PHOTO_FILES = ['油そば坦々-メニュー完_0008_レイ
 const PAGE_HEADER_FILES = {
   aburasoba: ['aburasobahedda-.png'],
   sidedish: ['名称未設定-5_0004_saidomenyu-hedda-.png', 'saidomenyu-hedda-.png'],
-  cafe: ['名称未設定-5_0006_kafedorinnkuhedda-.png', 'kafedorinnkuhedda-.png'],
-  fruit: ['名称未設定-5_0002_sofutohedda-.png', 'sofutohedda-.png'],
-  takeout: ['名称未設定-5_0000_sui-tuhedda-.png', 'sui-tuhedda-.png'],
+  cafe: GUEST_PAGE_HEADERS.cafe,
+  fruit: GUEST_PAGE_HEADERS.fruit,
+  takeout: GUEST_PAGE_HEADERS.takeout,
 };
+
+const guestBg = (key) => retailCssBgUrl('guest', GUEST_CAFE_IMAGES[key]);
 
 function PageHeaderImage({ pageKey, alt, lift }) {
   const candidates = PAGE_HEADER_FILES[pageKey];
@@ -578,10 +588,80 @@ function SideDishMenu({ addToCart }) {
 }
 
 
+function DrinkMenuCategory({ sec, addToCart, nomihodaiActive, ut, locale }) {
+  return (
+    <div className="drink-page-cat">
+      <div className="drink-page-cat__head drink-page-cat__head--hero-inline">
+        <div className="drink-page-cat__head-titles">
+          {locale === 'en' ? (
+            <span className="drink-page-cat__en">{sec.titleEn}</span>
+          ) : (
+            <>
+              <span className="drink-page-cat__en">{sec.titleEn}</span>
+              <span className="drink-page-cat__ja">{sec.titleJa}</span>
+            </>
+          )}
+        </div>
+        <DrinkHeroImage
+          candidates={getDrinkSectionHeroCandidates(sec.id)}
+          className="drink-page-cat__hero"
+          imgClassName="drink-page-cat__hero-img"
+        />
+      </div>
+      {guestDrinkSectionHint(sec, locale) ? (
+        <p className="drink-page-cat__hint">{guestDrinkSectionHint(sec, locale)}</p>
+      ) : null}
+      <ul className="drink-page-list">
+        {sec.items.map((it) => (
+          <li key={it.id} className="drink-page-row">
+            <span className="drink-page-row__name">{guestDrinkRowName(it, locale)}</span>
+            <span className="drink-page-row__price">
+              {it.price != null
+                ? `￥${it.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}`
+                : ut('drink_price_ask')}
+            </span>
+            {it.price != null ? (
+              <button
+                type="button"
+                className="drink-page-row__add"
+                disabled={nomihodaiActive}
+                onClick={() =>
+                  addToCart({
+                    id: it.id,
+                    name: it.name,
+                    nameEn: it.nameEn,
+                    price: it.price,
+                  })
+                }
+                title={nomihodaiActive ? ut('drink_lock_title') : undefined}
+              >
+                {ut('drink_add')}
+              </button>
+            ) : (
+              <span className="drink-page-row__na" title={ut('drink_row_na_title')}>
+                —
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function DrinkMenu({ addToCart }) {
-  const { drinkSections } = useMenuMaster();
+  const drinkSections = useDrinkMenuForGuest();
   const { nomihodaiActive } = useNomihodaiSession();
   const { t: ut, locale } = useGuestUiLocale();
+
+  const drinkRows = useMemo(() => {
+    const byId = Object.fromEntries((drinkSections || []).map((s) => [s.id, s]));
+    const rows = DRINK_MENU_GUEST_ROWS.map((ids) => ids.map((id) => byId[id]).filter(Boolean)).filter(
+      (row) => row.length > 0,
+    );
+    if (byId.spot?.items?.length) rows.push([byId.spot]);
+    return rows;
+  }, [drinkSections]);
 
   return (
     <main
@@ -603,62 +683,18 @@ function DrinkMenu({ addToCart }) {
           <p className="drink-page__sub">{ut('drink_page_sub')}</p>
 
           <div className="drink-page__grid">
-            {drinkSections.map((sec) => (
-              <div key={sec.id} className="drink-page-cat">
-                <div className="drink-page-cat__head drink-page-cat__head--hero-inline">
-                  <div className="drink-page-cat__head-titles">
-                    {locale === 'en' ? (
-                      <span className="drink-page-cat__en">{sec.titleEn}</span>
-                    ) : (
-                      <>
-                        <span className="drink-page-cat__en">{sec.titleEn}</span>
-                        <span className="drink-page-cat__ja">{sec.titleJa}</span>
-                      </>
-                    )}
-                  </div>
-                  <DrinkHeroImage
-                    candidates={getDrinkSectionHeroCandidates(sec.id)}
-                    className="drink-page-cat__hero"
-                    imgClassName="drink-page-cat__hero-img"
+            {drinkRows.map((row, rowIndex) => (
+              <div key={`drink-row-${rowIndex}`} className="drink-page__row">
+                {row.map((sec) => (
+                  <DrinkMenuCategory
+                    key={sec.id}
+                    sec={sec}
+                    addToCart={addToCart}
+                    nomihodaiActive={nomihodaiActive}
+                    ut={ut}
+                    locale={locale}
                   />
-                </div>
-                {guestDrinkSectionHint(sec, locale) ? (
-                  <p className="drink-page-cat__hint">{guestDrinkSectionHint(sec, locale)}</p>
-                ) : null}
-                <ul className={`drink-page-list${sec.twoCols ? ' drink-page-list--2col' : ''}`}>
-                  {sec.items.map((it) => (
-                    <li key={it.id} className="drink-page-row">
-                      <span className="drink-page-row__name">{guestDrinkRowName(it, locale)}</span>
-                      <span className="drink-page-row__price">
-                        {it.price != null
-                          ? `￥${it.price.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}`
-                          : ut('drink_price_ask')}
-                      </span>
-                      {it.price != null ? (
-                        <button
-                          type="button"
-                          className="drink-page-row__add"
-                          disabled={nomihodaiActive}
-                          onClick={() =>
-                            addToCart({
-                              id: it.id,
-                              name: it.name,
-                              nameEn: it.nameEn,
-                              price: it.price,
-                            })
-                          }
-                          title={nomihodaiActive ? ut('drink_lock_title') : undefined}
-                        >
-                          {ut('drink_add')}
-                        </button>
-                      ) : (
-                        <span className="drink-page-row__na" title={ut('drink_row_na_title')}>
-                          —
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                ))}
               </div>
             ))}
           </div>
@@ -887,12 +923,9 @@ function CafeMenu({ addToCart }) {
                 variant="lg"
                 badgeTone="badge-green"
                 productStyle={{
-                  backgroundImage:
-                    opts.americano.temp === 'hot'
-                      ? cssBgUrl('名称未設定-1_0002_hotcoffe.png')
-                      : cssBgUrl('名称未設定-1_0004_icecoffe.png'),
+                  backgroundImage: opts.americano.temp === 'hot' ? guestBg('hotCoffee') : guestBg('iceCoffee'),
                 }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0005_coffesetumei.png') }}
+                badgeStyle={{ backgroundImage: guestBg('coffeeBadge') }}
               />
             </div>
 
@@ -937,8 +970,8 @@ function CafeMenu({ addToCart }) {
               <CafePromoMedia
                 variant="lg"
                 badgeTone="badge-green"
-                productStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0003_Icelate.png') }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0008_latesetumei.png') }}
+                productStyle={{ backgroundImage: guestBg('iceLatte') }}
+                badgeStyle={{ backgroundImage: guestBg('latteBadge') }}
               />
             </div>
             <div className="cafe-actions-row">
@@ -982,8 +1015,8 @@ function CafeMenu({ addToCart }) {
               <CafePromoMedia
                 variant="lg"
                 badgeTone="badge-pink"
-                productStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0001_ichigomiruku.png') }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0006_ichigosetumei.png') }}
+                productStyle={{ backgroundImage: guestBg('strawberry') }}
+                badgeStyle={{ backgroundImage: guestBg('strawberryBadge') }}
               />
             </div>
             <div className="cafe-actions-row">
@@ -1026,8 +1059,8 @@ function CafeMenu({ addToCart }) {
               <CafePromoMedia
                 variant="lg"
                 badgeTone="badge-brown"
-                productStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0000_chocolata.png') }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0007_chocosetumei.png') }}
+                productStyle={{ backgroundImage: guestBg('chocolata') }}
+                badgeStyle={{ backgroundImage: guestBg('chocolataBadge') }}
               />
             </div>
             <div className="cafe-actions-row">
@@ -1053,9 +1086,10 @@ function CafeMenu({ addToCart }) {
 }
 
 /** ヒーロー左：レギュラー／ミニ写真（public に置く） */
-const FRUIT_SOFT_IMG_REGULAR = assetUrl('名称未設定-1_0000_regyura-furusofu.png');
-const FRUIT_SOFT_IMG_MINI = assetUrl('名称未設定-2_0000_mini_furusofu.png');
-const FRUIT_BEAR_LOGO = assetUrl('fruit-bear-logo.png');
+const FRUIT_SOFT_IMG_REGULAR = retailAssetUrl('guest', GUEST_FRUIT_IMAGES.fruitSoftRegular);
+const FRUIT_SOFT_IMG_MINI = retailAssetUrl('guest', GUEST_FRUIT_IMAGES.fruitSoftMini);
+const FRUIT_BEAR_LOGO = retailAssetUrl('guest', GUEST_FRUIT_IMAGES.bearLogo);
+const guestFruitBg = (key) => retailCssBgUrl('guest', GUEST_FRUIT_IMAGES[key]);
 
 // === FRUIT STUDIO PAGE COMPONENT ===
 function FruitStudioMenu({ addToCart }) {
@@ -1189,8 +1223,8 @@ function FruitStudioMenu({ addToCart }) {
               </div>
               <div className="fruit-card-media fruit-card-media--gelato">
                 <div className="fruit-gelato-visual" aria-hidden="true">
-                  <div className="fruit-gelato-cone" style={{ backgroundImage: cssBgUrl('名称未設定-1_0001_jeranamako-nn.png') }} />
-                  <div className="fruit-gelato-cup" style={{ backgroundImage: cssBgUrl('名称未設定-1_0003_jeranamakappu.png') }} />
+                  <div className="fruit-gelato-cone" style={{ backgroundImage: guestFruitBg('gelatoCone') }} />
+                  <div className="fruit-gelato-cup" style={{ backgroundImage: guestFruitBg('gelatoCup') }} />
                 </div>
               </div>
             </div>
@@ -1251,7 +1285,7 @@ function FruitStudioMenu({ addToCart }) {
                 <p className="cafe-price-info cafe-price-info-spaced">{ut('fruit_affogato_price_line')}</p>
               </div>
               <div className="fruit-card-media fruit-card-media--affogato">
-                <div className="fruit-card-img fruit-card-img--affogato" style={{ backgroundImage: cssBgUrl('名称未設定-2_0001_afoga-do.png') }} />
+                <div className="fruit-card-img fruit-card-img--affogato" style={{ backgroundImage: guestFruitBg('affogato') }} />
               </div>
             </div>
             <div className="cafe-actions-row fruit-card-actions fruit-card-actions--single">

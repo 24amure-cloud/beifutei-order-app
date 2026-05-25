@@ -1,4 +1,5 @@
 import { SWEETS_INVENTORY_MASTER } from './takeoutSweetsInventory.js';
+import { notifyMenuPublished } from './menuMasterBroadcast.js';
 
 export const TAKEOUT_INVENTORY_STORAGE_KEY = 'beifutei-takeout-sweets-inventory-v1';
 
@@ -39,6 +40,12 @@ export function loadTakeoutInventoryMap() {
 export function saveTakeoutInventoryMap(map) {
   localStorage.setItem(TAKEOUT_INVENTORY_STORAGE_KEY, JSON.stringify(sanitizeMap(map)));
   broadcastTakeoutInventoryUpdated();
+}
+
+/** 厨房スイーツ在庫 → 客席・他タブへ明示反映（BroadcastChannel + storage） */
+export function publishTakeoutInventoryToTabs(map) {
+  saveTakeoutInventoryMap(map);
+  notifyMenuPublished('takeout');
 }
 
 export function inventoryMapFromSections(sections) {

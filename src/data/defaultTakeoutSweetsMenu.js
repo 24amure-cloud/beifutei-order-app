@@ -13,8 +13,8 @@ export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
       { id: 'ts-fr-itigopain', name: 'いちごパイン', price: 580, image: 'furusan-itigopain.png' },
       { id: 'ts-fr-ichigobanana', name: 'いちごバナナ', price: 680, image: 'furusan-tigobanana.png' },
       { id: 'ts-fr-chocobanana', name: 'バナナチョコ', price: 480, image: 'furusan-tyokobanana.png' },
-      { id: 'ts-fr-orange', name: 'オレンジ', price: 520, image: 'furusan-orange.png' },
-      { id: 'ts-fr-kiui-mix', name: 'キウイMIX', price: 480, image: 'furusan-kiui-mix.png' },
+      { id: 'ts-fr-orange', name: 'オレンジ', price: 520, image: 'furusan-orange.jpg' },
+      { id: 'ts-fr-kiui-mix', name: 'キウイMIX', price: 480, image: 'furusan-kiui-mix.jpg' },
     ],
   },
   {
@@ -25,7 +25,7 @@ export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
     items: [
       { id: 'ts-kk-hani', name: 'ハニーポッド\nクッキーサンド', price: 460, image: 'kukki-hani-poddo.png' },
       { id: 'ts-kk-matcha', name: '抹茶\nクッキーサンド', price: 460, image: 'kukki-mattya.png' },
-      { id: 'ts-kk-hasukappu', name: '苫小牧ハスカップチョコ\nクッキーサンド', price: 480, image: '' },
+      { id: 'ts-kk-hasukappu', name: '苫小牧ハスカップチョコ\nクッキーサンド', price: 480, image: 'kukki-hasukappu.png' },
       { id: 'ts-kk-choco-sand', name: 'チョコレート\nクッキーサンド', price: 460, image: 'kukkisanndo-choko.png' },
       { id: 'ts-kk-nuts-choco', name: 'ナッツチョコ\nクッキーサンド', price: 460, image: 'kukkisanndo-choko.png' },
       { id: 'ts-kk-pine', name: 'パイン\nクッキーサンド', price: 460, image: 'kukki-pain.png' },

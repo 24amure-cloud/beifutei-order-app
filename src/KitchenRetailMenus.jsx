@@ -7,6 +7,7 @@ import { appendDailyLedgerEntry } from './dailyLedger.js';
 import { assertTakeoutSweetsCart, applyTakeoutSweetsSales } from './takeoutSweetsInventory.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import KitchenRetailStatsGate from './KitchenRetailStatsGate.jsx';
+import { retailAssetUrl, retailCssBgUrl, STAFF_CAFE_IMAGES } from './retailMenuAssets.js';
 
 const RetailStaffCartContext = createContext(null);
 
@@ -16,21 +17,7 @@ function useRetailStaffCart() {
   return v;
 }
 
-const ASSET_BASE = import.meta.env.BASE_URL;
-
-function assetUrl(path) {
-  const normalized = String(path).replace(/^\//, '');
-  const segments = normalized.split('/').filter(Boolean);
-  if (!segments.length) return ASSET_BASE || '/';
-  const encoded = segments.map((seg) => encodeURIComponent(seg)).join('/');
-  const base = ASSET_BASE || '/';
-  const prefix = base.endsWith('/') ? base : `${base}/`;
-  return `${prefix}${encoded}`;
-}
-
-function cssBgUrl(path) {
-  return `url("${assetUrl(path)}")`;
-}
+const staffBg = (key) => retailCssBgUrl('staff', STAFF_CAFE_IMAGES[key]);
 
 const PAGE_HEADER_FILES = {
   cafe: ['名称未設定-5_0006_kafedorinnkuhedda-.png', 'kafedorinnkuhedda-.png'],
@@ -49,7 +36,7 @@ function PageHeaderImage({ pageKey, alt, lift }) {
   if (!candidates?.length) return null;
 
   const exhausted = attempt >= candidates.length;
-  const src = !exhausted ? assetUrl(candidates[attempt]) : '';
+  const src = !exhausted ? retailAssetUrl('guest', candidates[attempt]) : '';
 
   if (exhausted) {
     return (
@@ -158,7 +145,7 @@ export function KitchenStaffCafeMenu() {
   };
 
   return (
-    <main className="main-content kitchen-staff-retail-menu kitchen-staff-retail-menu--cafe">
+    <main className="main-content kitchen-staff-retail-menu kitchen-staff-retail-menu--cafe kitchen-staff-retail-scope">
       <div className="cafe-wrapper">
         <div className="kitchen-staff-hero-list kitchen-staff-hero-list--cols-4">
           <div className="cafe-card cafe-card-bg-beige">
@@ -181,12 +168,9 @@ export function KitchenStaffCafeMenu() {
                 variant="lg"
                 badgeTone="badge-green"
                 productStyle={{
-                  backgroundImage:
-                    opts.americano.temp === 'hot'
-                      ? cssBgUrl('名称未設定-1_0002_hotcoffe.png')
-                      : cssBgUrl('名称未設定-1_0004_icecoffe.png'),
+                  backgroundImage: opts.americano.temp === 'hot' ? staffBg('hotCoffee') : staffBg('iceCoffee'),
                 }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0005_coffesetumei.png') }}
+                badgeStyle={{ backgroundImage: staffBg('coffeeBadge') }}
               />
             </div>
 
@@ -227,8 +211,8 @@ export function KitchenStaffCafeMenu() {
               <CafePromoMedia
                 variant="lg"
                 badgeTone="badge-green"
-                productStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0003_Icelate.png') }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0008_latesetumei.png') }}
+                productStyle={{ backgroundImage: staffBg('iceLatte') }}
+                badgeStyle={{ backgroundImage: staffBg('latteBadge') }}
               />
             </div>
             <div className="cafe-actions-row">
@@ -268,8 +252,8 @@ export function KitchenStaffCafeMenu() {
               <CafePromoMedia
                 variant="lg"
                 badgeTone="badge-pink"
-                productStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0001_ichigomiruku.png') }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0006_ichigosetumei.png') }}
+                productStyle={{ backgroundImage: staffBg('strawberry') }}
+                badgeStyle={{ backgroundImage: staffBg('strawberryBadge') }}
               />
             </div>
             <div className="cafe-actions-row">
@@ -308,8 +292,8 @@ export function KitchenStaffCafeMenu() {
               <CafePromoMedia
                 variant="lg"
                 badgeTone="badge-brown"
-                productStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0000_chocolata.png') }}
-                badgeStyle={{ backgroundImage: cssBgUrl('名称未設定-1_0007_chocosetumei.png') }}
+                productStyle={{ backgroundImage: staffBg('chocolata') }}
+                badgeStyle={{ backgroundImage: staffBg('chocolataBadge') }}
               />
             </div>
             <div className="cafe-actions-row">

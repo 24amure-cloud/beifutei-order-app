@@ -17,15 +17,18 @@ export const DRINK_SECTION_HERO_FILES = {
     'sd-drink-highball.png'
   ),
   beer: candidates('名称未設定-7_0001_beer.png', 'gurasubi-ru.webp', 'sd-drink-glass-beer.png'),
-  wine: candidates('名称未設定-7_0002_wine.png'),
+  sake: candidates('名称未設定-7_0002_wine.png'),
   shochu: candidates('名称未設定-7_0002_wine.png'),
+  cocktail: candidates('名称未設定-7_0003_coctel1.png', '名称未設定-7_0002_wine.png'),
+  spirits: candidates('名称未設定-7_0003_coctel1.png', '名称未設定-7_0002_wine.png'),
   sour: candidates(
     '名称未設定-7_0006_sawa-.png',
     'sd-drink-lemon-sour.png',
     'remonsawa-.jpg'
   ),
-  cocktail: candidates('名称未設定-7_0003_coctel1.png'),
   soft: candidates('名称未設定-7_0005_ko-ra.png', 'sofutohedda-.png'),
+  spot: candidates('名称未設定-7_0003_coctel1.png', '名称未設定-7_0000_haibo-ru.png'),
+  wine: candidates('名称未設定-7_0002_wine.png'),
 };
 
 /** 飲み放題カード用スロット（UIメモリ／配色・画像の対応） */
@@ -64,7 +67,8 @@ const LEGACY_CAT_SLOT = {
   'nh-cat-shochu': 'shochu',
   'nh-cat-cocktail': 'cocktail',
   'nh-cat-sour': 'sour',
-  'nh-cat-chuhai': 'cocktail',
+  'nh-cat-chuhai': 'shochu',
+  'nh-cat-nonalcoholic': 'soft',
   'nh-cat-soft': 'soft',
 };
 
@@ -78,9 +82,10 @@ export function resolveNomihodaiVisualSlot(cat) {
   if (/WINE|ワイン/.test(blob)) return 'wine';
   if (/BEER|ビール/.test(blob)) return 'beer';
   if (/JIN\s*TONIC|GIN|ジントニック|ジン/.test(blob)) return 'gintonic';
-  if (/SHOCHU|焼酎/.test(blob)) return 'shochu';
+  if (/SHOCHU|焼酎|OCHAHAI|お茶ハイ|茶ハイ/.test(blob)) return 'shochu';
   if (/SOUR|サワー/.test(blob)) return 'sour';
-  if (/COCKTAIL|カクテル|チューハイ|現在チューハイ|ウーロン茶ハイ|緑茶ハイ/.test(blob)) return 'cocktail';
+  if (/COCKTAIL|カクテル/.test(blob)) return 'cocktail';
+  if (/NON.?ALCOHOLIC|ノンアル|ノンアルコール/.test(blob)) return 'soft';
   if (/SOFT|ソフト|コーラ|ジュース|ウーロン茶|緑茶|オレンジ/.test(blob)) return 'soft';
   return NOMIHODAI_VISUAL_SLOTS[Math.abs(String(cat.id).length + (cat.titleJa || '').length) % NOMIHODAI_VISUAL_SLOTS.length];
 }
