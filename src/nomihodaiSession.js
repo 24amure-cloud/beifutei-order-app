@@ -219,6 +219,45 @@ export function mergeTableLabelLists(...labelLists) {
   return sortTableLabelStrings([...s]);
 }
 
+/**
+ * 同一卓の重複行をマージ（Realtime 遅延で nomihodai_active=false が true を上書きしない）
+ * @param {Record<string, unknown> | null | undefined} prev
+ * @param {Record<string, unknown> | null | undefined} row
+ */
+export function mergeTableStateRow(prev, row) {
+  const k = normalizeTableLabelKey(row?.table_label ?? '');
+  if (!k) return prev ?? null;
+  if (!prev) return { ...row, table_label: k };
+
+  const merged = { ...prev, ...row, table_label: k };
+  const prevNh = isDbNomihodaiActiveFlag(prev.nomihodai_active);
+  const rowNh = isDbNomihodaiActiveFlag(row.nomihodai_active);
+  const nhSource = rowNh ? row : prevNh ? prev : null;
+
+  if (nhSource) {
+    merged.nomihodai_active = nhSource.nomihodai_active;
+    merged.nomihodai_start_ms = nhSource.nomihodai_start_ms;
+    merged.nomihodai_end_ms = nhSource.nomihodai_end_ms;
+    merged.nomihodai_people = nhSource.nomihodai_people;
+    merged.nomihodai_men = nhSource.nomihodai_men;
+    merged.nomihodai_women = nhSource.nomihodai_women;
+    merged.nomihodai_bill_total = nhSource.nomihodai_bill_total;
+    merged.nomihodai_extension_count = nhSource.nomihodai_extension_count;
+  }
+
+  const prevCap = Number(prev.guest_party_captured_at);
+  const rowCap = Number(row.guest_party_captured_at);
+  if (Number.isFinite(prevCap) && prevCap > 0 && (!Number.isFinite(rowCap) || rowCap <= 0 || prevCap >= rowCap)) {
+    merged.guest_party_men = prev.guest_party_men;
+    merged.guest_party_women = prev.guest_party_women;
+    merged.guest_party_children = prev.guest_party_children;
+    merged.guest_party_captured_at = prev.guest_party_captured_at;
+    merged.guest_party_locale = prev.guest_party_locale;
+  }
+
+  return merged;
+}
+
 /** 注文・卓状態・メモ等から、いまデータに現れている卓番の一覧（重複なし・ソート済み） */
 export function collectKnownTableLabels(session) {
   const s = new Set();

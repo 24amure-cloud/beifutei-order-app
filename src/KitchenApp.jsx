@@ -579,11 +579,14 @@ export default function KitchenApp() {
         menCount: menC,
         womenCount: womenC,
       });
-      if (res && res.ok === false) {
-        window.alert(`飲み放題の開始に失敗しました。\n${res.errorMessage || '通信またはDBを確認してください。'}`);
+      if (!res || res.ok === false) {
+        window.alert(`飲み放題の開始に失敗しました。\n${res?.errorMessage || '通信またはDBを確認してください。'}`);
+        return;
       }
+      void clearNomihodaiGuestIntent(label);
+      setTableNhOpsOpen(null);
     },
-    [nhForm, prices, startNomihodai]
+    [nhForm, prices, startNomihodai, clearNomihodaiGuestIntent]
   );
 
   /** 客席オンボーディングで入力された人数を、飲み放題開始フォームへ反映 */
@@ -595,8 +598,10 @@ export default function KitchenApp() {
         const party = session.guestPartyByLabel?.[label];
         if (!(party?.capturedAt > 0)) continue;
         if (getNomihodaiForTable(session, label)?.active) continue;
-        const men = Math.max(0, Number(party.men) || 0);
-        const women = Math.max(0, Number(party.women) || 0);
+        let men = Math.max(0, Number(party.men) || 0);
+        let women = Math.max(0, Number(party.women) || 0);
+        const children = Math.max(0, Number(party.children) || 0);
+        if (men + women < 1 && children > 0) women = children;
         if (men + women < 1) continue;
         const cur = prev[label] || { men: 1, women: 1 };
         if (cur.men === men && cur.women === women) continue;
