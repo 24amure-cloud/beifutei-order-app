@@ -1,5 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  GUEST_PROMO_DEFAULT_IMAGE_PATHS,
+  GUEST_PROMO_MIN_VALID_VIDEO_BYTES,
+} from './guestPromoScreensaverConfig.js';
 
 const VIDEO_RE = /\.(mp4|webm|ogg|mov)(\?|#|$)/i;
 
@@ -12,7 +16,7 @@ function parsePromoUrls(raw) {
 }
 
 /** public 配下や相対パスを Vite の base（サブパス配信）でも正しく解決 */
-function resolveGuestPromoMediaUrl(path) {
+export function resolveGuestPromoMediaUrl(path) {
   const p = String(path).trim();
   if (!p) return p;
   if (/^https?:\/\//i.test(p)) return p;
@@ -22,25 +26,35 @@ function resolveGuestPromoMediaUrl(path) {
   return `${normalizedBase}${rel}`;
 }
 
+function defaultImageUrls() {
+  return GUEST_PROMO_DEFAULT_IMAGE_PATHS.map(resolveGuestPromoMediaUrl);
+}
+
+async function isVideoUrlReachable(url) {
+  try {
+    const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+    if (!res.ok) return false;
+    const len = Number(res.headers.get('content-length'));
+    if (Number.isFinite(len) && len > 0 && len < GUEST_PROMO_MIN_VALID_VIDEO_BYTES) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * 客席（index）用: 無操作が続いたら全画面で宣伝画像／動画を表示。
  *
- * 注文優先: App 側で「カートに注文対象が入っている間」は paused にし、宣伝を出しません。
- *
- * .env 例:
- *   VITE_GUEST_IDLE_SCREENSAVER_MS=120000
- *   VITE_GUEST_PROMO_MEDIA=/screensaver3.mp4
- *   VITE_GUEST_PROMO_POSTER=/promo/video-thumb.jpg
- *   VITE_GUEST_PROMO_SLIDE_MS=8000
- *
- * 動画は自動再生のため muted 固定。複数 URL は指定間隔でローテーション。
- * 未設定時の既定: public/screensaver3.mp4・無操作 120 秒（無効化は VITE_GUEST_IDLE_SCREENSAVER_MS=0）。
+ * 既定は public 内の画像スライド（Vercel で Git LFS 動画が壊れないため）。
+ * 動画を使う場合は VITE_GUEST_PROMO_MEDIA に URL を指定（外部 CDN 推奨）。
  */
 export function readGuestPromoScreensaverEnv() {
   const envMedia = import.meta.env.VITE_GUEST_PROMO_MEDIA;
   const fromEnv = parsePromoUrls(envMedia);
   const urls =
-    fromEnv.length > 0 ? fromEnv.map(resolveGuestPromoMediaUrl) : [resolveGuestPromoMediaUrl('screensaver3.mp4')];
+    fromEnv.length > 0
+      ? fromEnv.map(resolveGuestPromoMediaUrl)
+      : defaultImageUrls();
 
   const envIdleRaw = import.meta.env.VITE_GUEST_IDLE_SCREENSAVER_MS;
   const idleMs =
@@ -55,17 +69,50 @@ export function readGuestPromoScreensaverEnv() {
 }
 
 export default function GuestPromoScreensaver({ paused }) {
-  const { urls, idleMs, slideMs, posterUrl, enabled } = useMemo(() => readGuestPromoScreensaverEnv(), []);
+  const { urls: configuredUrls, idleMs, slideMs, posterUrl, enabled } = useMemo(
+    () => readGuestPromoScreensaverEnv(),
+    [],
+  );
+  const fallbackUrls = useMemo(() => defaultImageUrls(), []);
+  const [playUrls, setPlayUrls] = useState(configuredUrls);
   const [visible, setVisible] = useState(false);
   const [slide, setSlide] = useState(0);
-  const [mediaError, setMediaError] = useState(false);
   const idleTimerRef = useRef(null);
   const slideTimerRef = useRef(null);
   const videoRef = useRef(null);
-  const preloadVideoRef = useRef(null);
 
-  const primaryUrl = urls[0] || '';
+  const primaryUrl = playUrls[0] || '';
   const primaryIsVideo = primaryUrl && VIDEO_RE.test(primaryUrl);
+
+  useEffect(() => {
+    setPlayUrls(configuredUrls);
+    setSlide(0);
+  }, [configuredUrls]);
+
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const first = configuredUrls[0];
+    if (!first || !VIDEO_RE.test(first)) return undefined;
+
+    let cancelled = false;
+    void (async () => {
+      const ok = await isVideoUrlReachable(first);
+      if (cancelled) return;
+      if (!ok) setPlayUrls(fallbackUrls);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, configuredUrls, fallbackUrls]);
+
+  const switchToFallback = useCallback(() => {
+    setPlayUrls((prev) => {
+      if (prev === fallbackUrls || prev[0] === fallbackUrls[0]) return prev;
+      return fallbackUrls;
+    });
+    setSlide(0);
+  }, [fallbackUrls]);
 
   const setVideoEl = useCallback((el) => {
     videoRef.current = el;
@@ -86,7 +133,6 @@ export default function GuestPromoScreensaver({ paused }) {
     idleTimerRef.current = window.setTimeout(() => {
       setVisible(true);
       setSlide(0);
-      setMediaError(false);
     }, idleMs);
   }, [enabled, idleMs, paused]);
 
@@ -120,33 +166,20 @@ export default function GuestPromoScreensaver({ paused }) {
   }, [enabled, paused, bumpActivity]);
 
   useEffect(() => {
-    if (!enabled || !visible || urls.length <= 1) return undefined;
+    if (!enabled || !visible || playUrls.length <= 1) return undefined;
     if (slideTimerRef.current) window.clearInterval(slideTimerRef.current);
     slideTimerRef.current = window.setInterval(() => {
-      setSlide((s) => (s + 1) % urls.length);
+      setSlide((s) => (s + 1) % playUrls.length);
     }, slideMs);
     return () => {
       if (slideTimerRef.current) window.clearInterval(slideTimerRef.current);
     };
-  }, [enabled, visible, urls, slideMs]);
-
-  useEffect(() => {
-    if (!enabled || !primaryIsVideo || !primaryUrl) return undefined;
-    const v = preloadVideoRef.current;
-    if (!v) return undefined;
-    v.src = primaryUrl;
-    v.load();
-    return undefined;
-  }, [enabled, primaryIsVideo, primaryUrl]);
-
-  useEffect(() => {
-    setMediaError(false);
-  }, [slide, urls]);
+  }, [enabled, visible, playUrls, slideMs]);
 
   useEffect(() => {
     if (!visible || !videoRef.current) return;
     const v = videoRef.current;
-    const u = urls[slide];
+    const u = playUrls[slide];
     if (!u || !VIDEO_RE.test(u)) return;
     v.muted = true;
     if (v.getAttribute('src') !== u) v.src = u;
@@ -162,15 +195,13 @@ export default function GuestPromoScreensaver({ paused }) {
     const onReady = () => tryPlay();
     v.addEventListener('loadeddata', onReady);
     v.addEventListener('canplay', onReady);
-    v.addEventListener('canplaythrough', onReady);
     document.addEventListener('visibilitychange', onVis);
     return () => {
       v.removeEventListener('loadeddata', onReady);
       v.removeEventListener('canplay', onReady);
-      v.removeEventListener('canplaythrough', onReady);
       document.removeEventListener('visibilitychange', onVis);
     };
-  }, [visible, slide, urls]);
+  }, [visible, slide, playUrls]);
 
   useEffect(() => {
     document.body.classList.toggle('guest-screensaver-active', visible);
@@ -179,7 +210,7 @@ export default function GuestPromoScreensaver({ paused }) {
 
   if (!enabled) return null;
 
-  const currentUrl = urls[slide] || urls[0];
+  const currentUrl = playUrls[slide] || playUrls[0];
   const isVideo = currentUrl && VIDEO_RE.test(currentUrl);
 
   const onOverlayTap = () => {
@@ -193,53 +224,34 @@ export default function GuestPromoScreensaver({ paused }) {
       aria-hidden={!visible}
       onPointerDown={visible ? onOverlayTap : undefined}
     >
-      {primaryIsVideo ? (
-        <video
-          ref={preloadVideoRef}
-          className="guest-promo-screensaver__preload"
-          src={primaryUrl}
-          preload="auto"
-          muted
-          playsInline
-          aria-hidden
-          tabIndex={-1}
-        />
-      ) : null}
       {visible ? (
         <>
           <div className="guest-promo-screensaver__media" aria-hidden="true">
             {isVideo ? (
-              mediaError ? (
-                <p className="guest-promo-screensaver__media-error">
-                  動画を読み込めませんでした。
-                  <br />
-                  <small>{currentUrl}</small>
-                </p>
-              ) : (
-                <video
-                  key={currentUrl}
-                  ref={setVideoEl}
-                  className="guest-promo-screensaver__video"
-                  src={currentUrl}
-                  poster={posterUrl || undefined}
-                  preload="auto"
-                  muted
-                  playsInline
-                  autoPlay
-                  loop
-                  controls={false}
-                  disablePictureInPicture
-                  onError={() => setMediaError(true)}
-                />
-              )
+              <video
+                key={currentUrl}
+                ref={setVideoEl}
+                className="guest-promo-screensaver__video"
+                src={currentUrl}
+                poster={posterUrl || undefined}
+                preload="auto"
+                muted
+                playsInline
+                autoPlay
+                loop
+                controls={false}
+                disablePictureInPicture
+                onError={switchToFallback}
+              />
             ) : (
               <img
+                key={currentUrl}
                 className="guest-promo-screensaver__img"
                 src={currentUrl}
                 alt=""
                 decoding="async"
                 loading="eager"
-                onError={() => setMediaError(true)}
+                onError={switchToFallback}
               />
             )}
           </div>
