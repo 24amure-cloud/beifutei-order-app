@@ -208,6 +208,8 @@ export function NomihodaiSessionProvider({ children }) {
 
   const [dbOrders, setDbOrders] = useState([]);
   const [dbTables, setDbTables] = useState([]);
+  /** 初回の卓状態取得が終わるまで客席オンボーディングを出さない（一瞬表示→消えるのを防ぐ） */
+  const [guestTablesHydrated, setGuestTablesHydrated] = useState(false);
   const [dbConnection, setDbConnection] = useState({ ok: true, kind: 'pending', host: '', message: '' });
   const [now, setNow] = useState(() => Date.now());
   /** 楽観追加直後に SELECT が空（RLS 等）で全消ししないよう refetch で参照する */
@@ -369,25 +371,32 @@ export function NomihodaiSessionProvider({ children }) {
 
   // Supabase 初回取得 + Realtime（再同期ボタンで購読だけ張り直せる）
   useEffect(() => {
+    let cancelled = false;
     const fetchInitial = async () => {
-      const [ordersRes, tablesRes] = await Promise.all([
-        supabase.from('beifutei_orders').select('*').order('created_at', { ascending: true }),
-        supabase.from('beifutei_table_states').select('*'),
-      ]);
-      if (ordersRes.error) {
-        markKitchenRestSyncError('beifutei_orders:initial', ordersRes.error);
-        applyDbConnectionFromError(ordersRes.error);
-      } else if (Array.isArray(ordersRes.data)) setDbOrders(ordersRes.data);
-      if (tablesRes.error) markKitchenRestSyncError('beifutei_table_states:initial', tablesRes.error);
-      else if (Array.isArray(tablesRes.data)) setDbTables(normalizeTableStatesRows(tablesRes.data));
-      if (!ordersRes.error && !tablesRes.error) {
-        markKitchenRestSyncOk();
-        setDbConnection((prev) => ({ ok: true, kind: 'ok', host: prev.host || '', message: '' }));
+      try {
+        const [ordersRes, tablesRes] = await Promise.all([
+          supabase.from('beifutei_orders').select('*').order('created_at', { ascending: true }),
+          supabase.from('beifutei_table_states').select('*'),
+        ]);
+        if (cancelled) return;
+        if (ordersRes.error) {
+          markKitchenRestSyncError('beifutei_orders:initial', ordersRes.error);
+          applyDbConnectionFromError(ordersRes.error);
+        } else if (Array.isArray(ordersRes.data)) setDbOrders(ordersRes.data);
+        if (tablesRes.error) markKitchenRestSyncError('beifutei_table_states:initial', tablesRes.error);
+        else if (Array.isArray(tablesRes.data)) setDbTables(normalizeTableStatesRows(tablesRes.data));
+        if (!ordersRes.error && !tablesRes.error) {
+          markKitchenRestSyncOk();
+          setDbConnection((prev) => ({ ok: true, kind: 'ok', host: prev.host || '', message: '' }));
+        }
+      } finally {
+        if (!cancelled) setGuestTablesHydrated(true);
       }
     };
     void fetchInitial();
     startRealtimeChannels();
     return () => {
+      cancelled = true;
       if (realtimeReconnectTimerRef.current) {
         window.clearTimeout(realtimeReconnectTimerRef.current);
         realtimeReconnectTimerRef.current = 0;
@@ -627,6 +636,19 @@ export function NomihodaiSessionProvider({ children }) {
       updatedAt: Date.now()
     };
   }, [dbOrders, dbTables, localDeviceState]);
+
+  /** 表示卓の人数（DBのみ。localStorage の古い値でオンボーディングをスキップしない） */
+  const deviceGuestPartyFromDb = useMemo(() => {
+    const lbl = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
+    const row = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === lbl);
+    return guestPartyFromTableRow(row);
+  }, [dbTables, localDeviceState.tableLabel]);
+
+  useEffect(() => {
+    if (!guestTablesHydrated) return;
+    const lbl = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
+    if (!deviceGuestPartyFromDb) clearGuestPartyLocal(lbl);
+  }, [guestTablesHydrated, localDeviceState.tableLabel, deviceGuestPartyFromDb]);
 
   const setSessionTableLabel = useCallback((label) => {
     const next = normalizeTableLabelKey(label ?? '');
@@ -1315,6 +1337,8 @@ export function NomihodaiSessionProvider({ children }) {
     () => ({
       session,
       now,
+      guestTablesHydrated,
+      deviceGuestPartyFromDb,
       dbConnection,
       setSession: () => {}, // Deprecated but kept for surface compatibility
       refresh: () => {}, // Handled by realtime
@@ -1358,6 +1382,8 @@ export function NomihodaiSessionProvider({ children }) {
     [
       session,
       now,
+      guestTablesHydrated,
+      deviceGuestPartyFromDb,
       dbConnection,
       fullResyncDbFromSupabase,
       startNomihodai,

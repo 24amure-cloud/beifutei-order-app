@@ -1346,6 +1346,8 @@ function App() {
     addGuestOrders,
     requestTableCheckout,
     setSessionTableLabel,
+    guestTablesHydrated,
+    deviceGuestPartyFromDb,
   } = useNomihodaiSession();
 
   const { t: ut, locale, toggleLocale } = useGuestUiLocale();
@@ -1355,14 +1357,18 @@ function App() {
   const guestPostCheckoutFullscreen =
     !!farewell || !!session.checkoutRequestAt;
 
-  const myParty = session.guestPartyByLabel?.[session.tableLabel];
+  const showGuestPartyGateLoading =
+    !guestTablesHydrated && !guestPostCheckoutFullscreen && !!session.tableLabel;
+
   const needsGuestOnboarding =
+    guestTablesHydrated &&
     !guestPostCheckoutFullscreen &&
     !!session.tableLabel &&
-    !(myParty?.capturedAt > 0);
+    !(deviceGuestPartyFromDb?.capturedAt > 0);
 
   /** オーバーレイより上に z-index 固定のカート・上部バナーを隠す（会計フローと重複しない） */
-  const hideGuestOrderingChrome = guestPostCheckoutFullscreen || needsGuestOnboarding;
+  const hideGuestOrderingChrome =
+    guestPostCheckoutFullscreen || needsGuestOnboarding || showGuestPartyGateLoading;
 
   useEffect(() => {
     if (!guestPostCheckoutFullscreen) return;
@@ -1645,8 +1651,20 @@ function App() {
   }
 
   return (
-    <div className={`app-container${needsGuestOnboarding ? ' app-container--onboarding' : ''}`}>
-      {needsGuestOnboarding ? <GuestOnboardingGate /> : null}
+    <div
+      className={`app-container${
+        needsGuestOnboarding || showGuestPartyGateLoading ? ' app-container--onboarding' : ''
+      }`}
+    >
+      {showGuestPartyGateLoading ? (
+        <div className="iou-gate iou-gate--boot" role="status" aria-live="polite" aria-busy="true">
+          <div className="iou-gate__shell">
+            <p className="iou-gate__boot-msg">読み込み中…</p>
+          </div>
+        </div>
+      ) : needsGuestOnboarding ? (
+        <GuestOnboardingGate />
+      ) : null}
       <SupabaseConnectionBanner variant="guest" />
       {/* SIDEBAR */}
       <aside className="sidebar">

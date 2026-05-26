@@ -345,6 +345,20 @@ body {
   background: linear-gradient(180deg, #fff 0%, #eef4ff 100%);
 }
 
+.iou-gate--boot {
+  pointer-events: auto;
+}
+
+.iou-gate__boot-msg {
+  margin: 0;
+  padding: 48px 24px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #5c4a3a;
+  letter-spacing: 0.08em;
+}
+
 .iou-gate--combined .iou-gate__body--combined {
   gap: 18px;
   width: 100%;
