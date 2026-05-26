@@ -45,6 +45,7 @@ import {
   clearGuestPartyLocal,
   guestPartyFromTableRow,
   loadGuestPartyLocalAll,
+  markGuestPartyAcknowledged,
   saveGuestPartyLocal,
 } from './guestPartyDemographics.js';
 import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
@@ -746,6 +747,7 @@ export function NomihodaiSessionProvider({ children }) {
       });
 
       saveGuestPartyLocal(lbl, party);
+      markGuestPartyAcknowledged(lbl, capturedAt);
 
       const { error } = await supabase.from('beifutei_table_states').upsert(
         {
@@ -1244,30 +1246,40 @@ export function NomihodaiSessionProvider({ children }) {
       await patchGuestFarewellColumns(supabase, tl, null);
 
       const partyReset = {
-        table_label: tl,
         guest_party_men: 0,
         guest_party_women: 0,
         guest_party_children: 0,
         guest_party_captured_at: null,
         guest_party_locale: null,
+        checkout_requested_at: null,
+        guest_intent_requested_at: null,
       };
-      const { error: partyErr } = await supabase.from('beifutei_table_states').upsert(partyReset, {
-        onConflict: 'table_label',
-        defaultToNull: false,
-      });
+      let partyErr = (
+        await supabase.from('beifutei_table_states').update(partyReset).eq('table_label', tl)
+      ).error;
       if (partyErr) {
-        pushKitchenDiagFromSupabase('beifutei_table_states:upsert', partyErr, 'バッシング時の客席人数リセット');
+        partyErr = (
+          await supabase.from('beifutei_table_states').upsert(
+            { table_label: tl, ...partyReset },
+            { onConflict: 'table_label' },
+          )
+        ).error;
+      }
+      if (partyErr) {
+        pushKitchenDiagFromSupabase('beifutei_table_states:update', partyErr, 'バッシング時の客席人数リセット');
       }
 
       clearGuestPartyLocal(tl);
       setDbTables((prev) => {
-        const idx = prev.findIndex((r) => normalizeTableLabelKey(r.table_label ?? '') === tl);
+        const key = normalizeTableLabelKey(tl);
+        const idx = prev.findIndex((r) => normalizeTableLabelKey(r.table_label ?? '') === key);
+        const patch = { table_label: key, ...partyReset };
         if (idx >= 0) {
           const next = [...prev];
-          next[idx] = { ...next[idx], ...partyReset };
+          next[idx] = { ...next[idx], ...patch };
           return normalizeTableStatesRows(next);
         }
-        return normalizeTableStatesRows([...prev, partyReset]);
+        return normalizeTableStatesRows([...prev, patch]);
       });
       void refetchTablesFromDb();
 

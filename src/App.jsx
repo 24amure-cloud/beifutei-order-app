@@ -23,6 +23,7 @@ import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 import GuestOnboardingGate from './GuestOnboardingGate.jsx';
 import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
+import { isGuestPartyAcknowledgedOnDevice } from './guestPartyDemographics.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
 import {
@@ -1354,18 +1355,24 @@ function App() {
   const { t: ut, locale, toggleLocale } = useGuestUiLocale();
 
   const farewell = session.nomihodaiFarewell;
-  /** DB の checkout_requested_at（飲み放題の有無に依存しない）。厨房連携・THANK YOU の単一ソース */
-  const guestPostCheckoutFullscreen =
-    !!farewell || !!session.checkoutRequestAt;
 
-  const showGuestPartyGateLoading =
-    !guestTablesHydrated && !guestPostCheckoutFullscreen && !!session.tableLabel;
+  const partyCapturedAt = deviceGuestPartyFromDb?.capturedAt;
+  const partyDoneOnDevice =
+    partyCapturedAt > 0 &&
+    isGuestPartyAcknowledgedOnDevice(session.tableLabel, partyCapturedAt);
 
+  /** 人数未登録、または DB に古い人数だけ残っている場合はオンボーディングを最優先 */
   const needsGuestOnboarding =
     guestTablesHydrated &&
-    !guestPostCheckoutFullscreen &&
     !!session.tableLabel &&
-    !(deviceGuestPartyFromDb?.capturedAt > 0);
+    !partyDoneOnDevice;
+
+  /** 人数登録済みのときだけ会計後フルスクリーン（farewell / 会計依頼） */
+  const guestPostCheckoutFullscreen =
+    !needsGuestOnboarding && (!!farewell || !!session.checkoutRequestAt);
+
+  const showGuestPartyGateLoading =
+    !guestTablesHydrated && !!session.tableLabel;
 
   /** オーバーレイより上に z-index 固定のカート・上部バナーを隠す（会計フローと重複しない） */
   const hideGuestOrderingChrome =

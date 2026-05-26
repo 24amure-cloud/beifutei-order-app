@@ -1,6 +1,55 @@
 /** 客席：男女児人数（DB未マイグレーション時の localStorage フォールバック含む） */
 
 export const GUEST_PARTY_LOCAL_KEY = 'beifutei-guest-party-v1';
+/** この端末のブラウザで人数入力を完了した卓（DB の capturedAt と照合） */
+const GUEST_PARTY_ACK_KEY = 'beifutei-guest-party-ack-v1';
+
+function readAckMap() {
+  try {
+    const raw = sessionStorage.getItem(GUEST_PARTY_ACK_KEY);
+    if (!raw) return {};
+    const p = JSON.parse(raw);
+    return p && typeof p.byLabel === 'object' ? p.byLabel : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAckMap(byLabel) {
+  sessionStorage.setItem(GUEST_PARTY_ACK_KEY, JSON.stringify({ version: 1, byLabel }));
+}
+
+/** @param {string} tableLabel @param {number} capturedAt */
+export function markGuestPartyAcknowledged(tableLabel, capturedAt) {
+  const key = String(tableLabel ?? '').trim();
+  const cap = Number(capturedAt);
+  if (!key || !Number.isFinite(cap) || cap <= 0) return;
+  const map = readAckMap();
+  map[key] = cap;
+  writeAckMap(map);
+}
+
+/** @param {string} tableLabel */
+export function clearGuestPartyAcknowledged(tableLabel) {
+  const key = String(tableLabel ?? '').trim();
+  if (!key) return;
+  const map = readAckMap();
+  delete map[key];
+  writeAckMap(map);
+}
+
+/**
+ * DB に人数があっても、この端末で同じ capturedAt を確認していなければ未完了扱い
+ * @param {string} tableLabel
+ * @param {number | undefined} capturedAt
+ */
+export function isGuestPartyAcknowledgedOnDevice(tableLabel, capturedAt) {
+  const cap = Number(capturedAt);
+  if (!Number.isFinite(cap) || cap <= 0) return false;
+  const key = String(tableLabel ?? '').trim();
+  if (!key) return false;
+  return Number(readAckMap()[key]) === cap;
+}
 
 /**
  * @param {{ men?: number, women?: number, children?: number }} p
@@ -64,6 +113,7 @@ export function clearGuestPartyLocal(tableLabel) {
   const map = readLocalMap();
   delete map[key];
   writeLocalMap(map);
+  clearGuestPartyAcknowledged(key);
 }
 
 /**
