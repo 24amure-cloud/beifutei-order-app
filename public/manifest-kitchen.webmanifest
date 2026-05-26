@@ -1,0 +1,19 @@
+{
+  "name": "米風亭 厨房スタッフ",
+  "short_name": "厨房",
+  "description": "スタッフ・オーダー管理（厨房）",
+  "start_url": "/kitchen.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#FDF9F1",
+  "background_color": "#FDF9F1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

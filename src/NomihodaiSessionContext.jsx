@@ -57,6 +57,9 @@ import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
 
 const Ctx = createContext(null);
 
+/** 客席 PWA が start_url / だけで開いたとき、最後に使った卓番を復元（Android 等） */
+const PWA_LAST_GUEST_TABLE_KEY = 'beifutei-pwa-last-guest-table-v1';
+
 /** 会計依頼：checkout_requested_at のみ書き込み（upsert → 失敗時は update→件数確認→insert） */
 async function setCheckoutRequestedAtForTable(supabaseClient, tableLabel, atMs) {
   const lbl = String(tableLabel ?? '').trim();
@@ -213,21 +216,47 @@ function normalizeItemPriceYen(raw) {
   return 0;
 }
 
+function rememberPwaGuestTable(label) {
+  const k = normalizeTableLabelKey(label ?? '');
+  if (!k || typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.setItem(PWA_LAST_GUEST_TABLE_KEY, k);
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadPwaLastGuestTable() {
+  if (typeof sessionStorage === 'undefined') return '';
+  try {
+    return normalizeTableLabelKey(sessionStorage.getItem(PWA_LAST_GUEST_TABLE_KEY) ?? '');
+  } catch {
+    return '';
+  }
+}
+
 function loadGuestDeviceStateFromStorage() {
   try {
     const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
     if (raw) {
       const p = JSON.parse(raw);
+      const lbl = normalizeTableLabelKey(p.tableLabel ?? '') || loadPwaLastGuestTable() || '3';
+      rememberPwaGuestTable(lbl);
       return {
         tableId: p.tableId || 'default',
-        tableLabel: normalizeTableLabelKey(p.tableLabel ?? '') || '3',
+        tableLabel: lbl,
         nomihodaiFarewell: p.nomihodaiFarewell || null,
       };
     }
   } catch {
     /* ignore */
   }
-  return { tableId: 'default', tableLabel: '3', nomihodaiFarewell: null };
+  const fromPwa = loadPwaLastGuestTable();
+  return {
+    tableId: 'default',
+    tableLabel: fromPwa || '3',
+    nomihodaiFarewell: null,
+  };
 }
 
 function loadKitchenFocusFromStorage() {
@@ -258,6 +287,7 @@ export function NomihodaiSessionProvider({ children }) {
   const [localDeviceState, setLocalDeviceState] = useState(() => {
     const fromUrl = readGuestTableLabelFromUrl();
     if (fromUrl) {
+      rememberPwaGuestTable(fromUrl);
       const next = { tableId: 'default', tableLabel: fromUrl, nomihodaiFarewell: null };
       try {
         persistLocalDeviceState(next);

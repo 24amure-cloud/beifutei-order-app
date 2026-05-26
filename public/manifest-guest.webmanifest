@@ -1,0 +1,19 @@
+{
+  "name": "米風亭 客席オーダー",
+  "short_name": "客席",
+  "description": "お客様用オーダー（卓番はQRのURLをそのままホーム画面に追加してください）",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#FDF9F1",
+  "background_color": "#FDF9F1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

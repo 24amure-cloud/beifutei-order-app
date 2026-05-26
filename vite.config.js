@@ -57,19 +57,8 @@ export default defineConfig(({ mode }) => {
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
-      manifest: {
-        name: '米風亭 オーダー',
-        short_name: 'オーダー',
-        description: '店舗向けオーダー端末（PWA）',
-        theme_color: '#FDF9F1',
-        background_color: '#FDF9F1',
-        display: 'standalone',
-        orientation: 'landscape',
-        scope: '/',
-        start_url: '/',
-        /** public/favicon.svg（192/512 PNG は任意で後から追加可） */
-        icons: [{ src: 'favicon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any' }],
-      },
+      /** MPA: 客席/厨房/オーナーで start_url を分ける（public/manifest-*.webmanifest + 各 HTML の link） */
+      manifest: false,
       workbox: {
         /** MPA（index / master / kitchen）で document を index に吸わせない */
         navigateFallback: null,

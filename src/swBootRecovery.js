@@ -1,7 +1,7 @@
 /**
  * デプロイ後に PWA が古い JS を参照して真っ白になるのを防ぐ（1セッション1回まで）。
  */
-const RECOVERY_KEY = 'beifutei-sw-cleared-v4';
+const RECOVERY_KEY = 'beifutei-sw-cleared-v5';
 
 export function recoverStaleServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
