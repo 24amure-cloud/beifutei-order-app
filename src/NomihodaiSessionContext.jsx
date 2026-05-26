@@ -2,6 +2,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
   NOMIHODAI_CHANNEL_NAME,
   NOMIHODAI_SESSION_KEY,
+  KITCHEN_FOCUS_TABLE_KEY,
+  isKitchenAppPage,
   broadcastSession,
   getNomihodaiForTable,
   getGuestIntentForTable,
@@ -208,7 +210,7 @@ function normalizeItemPriceYen(raw) {
   return 0;
 }
 
-function loadLocalDeviceStateFromStorage() {
+function loadGuestDeviceStateFromStorage() {
   try {
     const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
     if (raw) {
@@ -225,27 +227,50 @@ function loadLocalDeviceStateFromStorage() {
   return { tableId: 'default', tableLabel: '3', nomihodaiFarewell: null };
 }
 
+function loadKitchenFocusFromStorage() {
+  try {
+    const raw = localStorage.getItem(KITCHEN_FOCUS_TABLE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      const lbl = normalizeTableLabelKey(p.tableLabel ?? '');
+      return {
+        tableId: 'default',
+        tableLabel: lbl,
+        nomihodaiFarewell: null,
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+  return { tableId: 'default', tableLabel: '', nomihodaiFarewell: null };
+}
+
+function persistLocalDeviceState(next) {
+  const key = isKitchenAppPage() ? KITCHEN_FOCUS_TABLE_KEY : NOMIHODAI_SESSION_KEY;
+  localStorage.setItem(key, JSON.stringify({ ...next, updatedAt: Date.now() }));
+  broadcastSession();
+}
+
 export function NomihodaiSessionProvider({ children }) {
   const [localDeviceState, setLocalDeviceState] = useState(() => {
     const fromUrl = readGuestTableLabelFromUrl();
     if (fromUrl) {
       const next = { tableId: 'default', tableLabel: fromUrl, nomihodaiFarewell: null };
       try {
-        localStorage.setItem(NOMIHODAI_SESSION_KEY, JSON.stringify({ ...next, updatedAt: Date.now() }));
+        persistLocalDeviceState(next);
       } catch {
         /* ignore */
       }
       return next;
     }
-    return loadLocalDeviceStateFromStorage();
+    return isKitchenAppPage() ? loadKitchenFocusFromStorage() : loadGuestDeviceStateFromStorage();
   });
 
   const saveLocalDeviceState = useCallback((updater) => {
     setLocalDeviceState(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       try {
-        localStorage.setItem(NOMIHODAI_SESSION_KEY, JSON.stringify({ ...next, updatedAt: Date.now() }));
-        broadcastSession();
+        persistLocalDeviceState(next);
       } catch {}
       return next;
     });
@@ -260,7 +285,9 @@ export function NomihodaiSessionProvider({ children }) {
       }));
       return;
     }
-    setLocalDeviceState(loadLocalDeviceStateFromStorage());
+    setLocalDeviceState(
+      isKitchenAppPage() ? loadKitchenFocusFromStorage() : loadGuestDeviceStateFromStorage(),
+    );
   }, []);
 
   const [dbOrders, setDbOrders] = useState([]);
@@ -274,7 +301,9 @@ export function NomihodaiSessionProvider({ children }) {
 
   useEffect(() => {
     const onStorage = (e) => {
-      if (e.key === NOMIHODAI_SESSION_KEY) reloadLocalDeviceFromStorage();
+      if (e.key === NOMIHODAI_SESSION_KEY || e.key === KITCHEN_FOCUS_TABLE_KEY) {
+        reloadLocalDeviceFromStorage();
+      }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
@@ -599,7 +628,9 @@ export function NomihodaiSessionProvider({ children }) {
     const checkoutRequestByLabel = {};
     let checkoutRequestAt = null;
 
-    const deviceLabel = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
+    const deviceLabel =
+      normalizeTableLabelKey(localDeviceState.tableLabel ?? '') ||
+      (isKitchenAppPage() ? '' : '3');
 
     dbTables.forEach((row) => {
       const lbl = normalizeTableLabelKey(row.table_label ?? '');
@@ -709,10 +740,20 @@ export function NomihodaiSessionProvider({ children }) {
 
   const setSessionTableLabel = useCallback((label) => {
     const next = normalizeTableLabelKey(label ?? '');
+    const fallback = isKitchenAppPage() ? '' : '3';
     saveLocalDeviceState((s) => ({
       ...s,
-      tableLabel: next !== '' ? next : normalizeTableLabelKey(s.tableLabel ?? '') || '3',
+      tableLabel: next !== '' ? next : normalizeTableLabelKey(s.tableLabel ?? '') || fallback,
     }));
+    if (isKitchenAppPage() && typeof window !== 'undefined' && next) {
+      try {
+        const u = new URL(window.location.href);
+        u.searchParams.set('table', next);
+        window.history.replaceState(null, '', `${u.pathname}${u.search}`);
+      } catch {
+        /* ignore */
+      }
+    }
   }, [saveLocalDeviceState]);
 
   // Actions translating to Supabase Updates
@@ -934,9 +975,13 @@ export function NomihodaiSessionProvider({ children }) {
   }, [clearCheckoutRequestForTable, session.tableLabel]);
 
   const setTableMemo = useCallback(async (tableLabel, memoText) => {
-    const lbl = String(tableLabel ?? session.tableLabel);
+    const lbl = normalizeTableLabelKey(tableLabel ?? session.tableLabel ?? '');
+    if (!lbl) return;
     const m = String(memoText ?? '').replace(/\s+/g, ' ').trim().slice(0, TABLE_MEMO_MAX_LEN);
-    await supabase.from('beifutei_table_states').upsert({ table_label: lbl, table_memo: m });
+    const { error } = await supabase
+      .from('beifutei_table_states')
+      .upsert({ table_label: lbl, table_memo: m }, { onConflict: 'table_label' });
+    if (error) pushKitchenDiagFromSupabase('beifutei_table_states:upsert', error, '卓メモ');
   }, [session.tableLabel]);
 
   /** 卓チャージ（人数×1名あたり円・税込）。金額は店舗任意。DB は upsert で反映 */
@@ -1061,7 +1106,19 @@ export function NomihodaiSessionProvider({ children }) {
 
   const clearNomihodaiGuestIntent = useCallback(async (tableLabel) => {
     if (tableLabel != null) {
-      await supabase.from('beifutei_table_states').upsert({ table_label: String(tableLabel), guest_intent_requested_at: null });
+      const lbl = normalizeTableLabelKey(String(tableLabel));
+      if (!lbl) return;
+      await supabase
+        .from('beifutei_table_states')
+        .update({ guest_intent_requested_at: null })
+        .eq('table_label', lbl);
+      setDbTables((prev) => {
+        const idx = prev.findIndex((t) => normalizeTableLabelKey(t.table_label ?? '') === lbl);
+        if (idx < 0) return prev;
+        const copy = [...prev];
+        copy[idx] = mergeTableStateRow(copy[idx], { table_label: lbl, guest_intent_requested_at: null });
+        return normalizeTableStatesRows(copy);
+      });
     } else {
       // Clear all - edge case, maybe we don't need this exactly
       dbTables.forEach(t => {
@@ -1070,7 +1127,7 @@ export function NomihodaiSessionProvider({ children }) {
         }
       });
     }
-  }, [dbTables]);
+  }, [dbTables, setDbTables]);
 
   const extendNomihodai = useCallback(async (extraMs = NOMIHODAI_EXTENSION_MS, tableLabel) => {
     const lbl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);

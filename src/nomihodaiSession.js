@@ -7,7 +7,14 @@
 import { NOMIHODAI_LO_BEFORE_END_MS } from './nomihodaiConstants.js';
 
 export const NOMIHODAI_SESSION_KEY = 'beifutei-table-session-v1';
+/** 厨房端末の「操作中卓」（客席タブレットの卓番 localStorage と混ぜない） */
+export const KITCHEN_FOCUS_TABLE_KEY = 'beifutei-kitchen-focus-table-v1';
 export const NOMIHODAI_CHANNEL_NAME = 'beifutei-nomihodai-sync';
+
+export function isKitchenAppPage() {
+  if (typeof window === 'undefined') return false;
+  return /kitchen(?:\.html)?/i.test(window.location.pathname || '');
+}
 
 /** 厨房卓メモ（氏名など）の最大文字数 */
 export const TABLE_MEMO_MAX_LEN = 40;

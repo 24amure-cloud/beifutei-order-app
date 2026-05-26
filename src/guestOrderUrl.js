@@ -17,8 +17,16 @@ export function buildSiteRootUrl() {
 }
 
 export function buildKitchenPageAbsoluteUrl() {
+  return buildKitchenPageUrl('');
+}
+
+/** 厨房スタッフ画面（卓番は ?table= で指定） */
+export function buildKitchenPageUrl(tableLabel) {
   if (typeof window === 'undefined') return '';
-  return new URL('kitchen.html', siteBaseAbsUrl()).href;
+  const u = new URL('kitchen.html', siteBaseAbsUrl());
+  const lbl = String(tableLabel ?? '').trim();
+  if (lbl) u.searchParams.set('table', lbl);
+  return u.href;
 }
 
 export function buildMasterPageAbsoluteUrl() {

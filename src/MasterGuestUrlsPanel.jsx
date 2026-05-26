@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { buildGuestOrderPageUrl } from './guestOrderUrl.js';
+import { buildGuestOrderPageUrl, buildKitchenPageUrl } from './guestOrderUrl.js';
 import { collectKnownTableLabels } from './nomihodaiSession.js';
 
 /** 客席オーダー用 URL（卓ごとコピー） */
@@ -24,7 +24,14 @@ export default function MasterGuestUrlsPanel({ session }) {
 
   const copyGuestUrlForTable = useCallback(
     async (label) => {
-      await copyText(buildGuestOrderPageUrl(label), `t:${label}`);
+      await copyText(buildGuestOrderPageUrl(label), `g:${label}`);
+    },
+    [copyText],
+  );
+
+  const copyKitchenUrlForTable = useCallback(
+    async (label) => {
+      await copyText(buildKitchenPageUrl(label), `k:${label}`);
     },
     [copyText],
   );
@@ -60,7 +67,14 @@ export default function MasterGuestUrlsPanel({ session }) {
                   className="master-btn master-btn--secondary master-btn--small"
                   onClick={() => copyGuestUrlForTable(lbl)}
                 >
-                  {copyFlash === `t:${lbl}` ? 'コピー済' : 'URLをコピー'}
+                  {copyFlash === `g:${lbl}` ? 'コピー済' : '客席URL'}
+                </button>
+                <button
+                  type="button"
+                  className="master-btn master-btn--secondary master-btn--small"
+                  onClick={() => copyKitchenUrlForTable(lbl)}
+                >
+                  {copyFlash === `k:${lbl}` ? 'コピー済' : '厨房URL'}
                 </button>
               </li>
             ))}

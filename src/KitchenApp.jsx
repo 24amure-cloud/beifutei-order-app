@@ -11,8 +11,10 @@ import {
   collectKnownTableLabels,
   getNomihodaiForTable,
   mergeTableLabelLists,
+  normalizeTableLabelKey,
   TABLE_MEMO_MAX_LEN,
 } from './nomihodaiSession.js';
+import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import TableMemoRibbon from './TableMemoRibbon.jsx';
 import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
@@ -482,12 +484,21 @@ export default function KitchenApp() {
     setStaffTab(STAFF_TABS.tableStatus);
   }, []);
 
+  useEffect(() => {
+    const fromUrl = readGuestTableLabelFromUrl();
+    if (fromUrl) setSessionTableLabel(fromUrl);
+  }, [setSessionTableLabel]);
+
   /** 飲み放題希望サイン等から「各卓・伝票」へ。label があれば該当卓の NH 操作パネルを開く */
-  const openSlipTabWithNhOps = useCallback((label) => {
-    const L = String(label ?? '').trim();
-    setStaffTab(STAFF_TABS.tableStatus);
-    setTableNhOpsOpen(L || null);
-  }, []);
+  const openSlipTabWithNhOps = useCallback(
+    (label) => {
+      const L = normalizeTableLabelKey(label ?? '');
+      setStaffTab(STAFF_TABS.tableStatus);
+      setTableNhOpsOpen(L || null);
+      if (L) setSessionTableLabel(L);
+    },
+    [setSessionTableLabel],
+  );
 
   const handleVerbalOrderSubmitted = useCallback(
     ({ flow }) => {
@@ -499,19 +510,6 @@ export default function KitchenApp() {
     [goToOrdersTab],
   );
 
-  useEffect(() => {
-    const nh = getNomihodaiForTable(session, session.tableLabel);
-    if (!nh?.active) return;
-    const lbl = String(session.tableLabel);
-    setNhForm((prev) => ({
-      ...prev,
-      [lbl]: {
-        men: Math.max(0, Number(nh.menCount) || 0),
-        women: Math.max(0, Number(nh.womenCount) || 0),
-      },
-    }));
-  }, [session.nomihodaiByLabel, session.tableLabel]);
-
   const allOrders = useMemo(() => session.orders, [session.orders]);
 
   /** 伝票ボードに出す卓：固定1〜8 ＋ 注文・人数・NH等が付いた卓（URL卓番もここに載る） */
@@ -519,6 +517,7 @@ export default function KitchenApp() {
     () => mergeTableLabelLists(TABLE_HERO_LABELS, collectKnownTableLabels(session)),
     [session],
   );
+
   /** 全卓共通：createdAt が古いほど先（上） */
   const pendingOrders = useMemo(
     () =>
@@ -528,10 +527,46 @@ export default function KitchenApp() {
     [allOrders]
   );
 
+  /** 厨房端末の「操作中卓」（URL / 手動選択 / 未提供キュー先頭） */
+  const staffFocusTableLabel = useMemo(() => {
+    const fromSession = normalizeTableLabelKey(session.tableLabel ?? '');
+    if (fromSession) return fromSession;
+    const oldestPending = pendingOrders[0];
+    if (oldestPending) return normalizeTableLabelKey(oldestPending.tableLabel) || '';
+    if (guestNomihodaiIntentLabels.length > 0) {
+      return normalizeTableLabelKey(guestNomihodaiIntentLabels[0]) || '';
+    }
+    return '';
+  }, [session.tableLabel, pendingOrders, guestNomihodaiIntentLabels]);
+
+  useEffect(() => {
+    if (normalizeTableLabelKey(session.tableLabel ?? '')) return;
+    if (!staffFocusTableLabel) return;
+    setSessionTableLabel(staffFocusTableLabel);
+  }, [session.tableLabel, staffFocusTableLabel, setSessionTableLabel]);
+
+  useEffect(() => {
+    setNhForm((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const label of slipBoardTableLabels) {
+        const nh = getNomihodaiForTable(session, label);
+        if (!nh?.active) continue;
+        const men = Math.max(0, Number(nh.menCount) || 0);
+        const women = Math.max(0, Number(nh.womenCount) || 0);
+        const cur = prev[label] || { men: 1, women: 1 };
+        if (cur.men === men && cur.women === women) continue;
+        next[label] = { men, women };
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [session.nomihodaiByLabel, slipBoardTableLabels, session]);
+
   /** 未提供キューに載っている卓に限り、注文一覧から飲み放題希望に応答する */
   const pendingTableLabelsSet = useMemo(
-    () => new Set(pendingOrders.map((o) => String(o.tableLabel ?? session.tableLabel ?? '3'))),
-    [pendingOrders, session.tableLabel]
+    () => new Set(pendingOrders.map((o) => normalizeTableLabelKey(o.tableLabel) || '3')),
+    [pendingOrders]
   );
   const nhIntentQuickFromQueueLabels = useMemo(() => {
     const oldestPendingMs = (lbl) => {
@@ -627,7 +662,7 @@ export default function KitchenApp() {
   const pendingBulkTables = useMemo(() => {
     const map = new Map();
     for (const o of pendingOrders) {
-      const lbl = String(o.tableLabel ?? session.tableLabel ?? '3');
+      const lbl = normalizeTableLabelKey(o.tableLabel) || '3';
       const tid = o.tableId ?? session.tableId ?? 'default';
       if (!map.has(lbl)) {
         map.set(lbl, { tableLabel: lbl, tableId: tid, oldest: Infinity, count: 0 });
@@ -659,7 +694,7 @@ export default function KitchenApp() {
       map.set(label, []);
     }
     for (const o of allOrders) {
-      const lbl = String(o.tableLabel || session.tableLabel || '3');
+      const lbl = normalizeTableLabelKey(o.tableLabel) || '3';
       if (!map.has(lbl)) map.set(lbl, []);
       map.get(lbl).push(o);
     }
@@ -679,7 +714,7 @@ export default function KitchenApp() {
     const map = new Map();
     servedOrders.forEach((o) => {
       const tableId = o.tableId || session.tableId || 'default';
-      const tableLabel = String(o.tableLabel || session.tableLabel || '3');
+      const tableLabel = normalizeTableLabelKey(o.tableLabel) || '3';
       const key = `${tableId}::${tableLabel}`;
       const current = map.get(key) || {
         key,
@@ -744,7 +779,7 @@ export default function KitchenApp() {
   const checkoutPendingCount = useMemo(() => {
     if (!checkoutPage?.tableLabel) return 0;
     const tl = String(checkoutPage.tableLabel);
-    return pendingOrders.filter((o) => String(o.tableLabel ?? session.tableLabel ?? '3') === tl).length;
+    return pendingOrders.filter((o) => normalizeTableLabelKey(o.tableLabel) === tl).length;
   }, [checkoutPage, pendingOrders, session.tableLabel]);
 
   const checkoutPageMemo = useMemo(() => {
@@ -942,6 +977,33 @@ export default function KitchenApp() {
       </header>
 
       <StoreEntryUrlsPanel variant="kitchen" />
+      <div className="kitchen-focus-bar" role="region" aria-label="操作中の卓">
+        <span className="kitchen-focus-bar__label">操作中の卓</span>
+        <select
+          className="kitchen-focus-bar__select"
+          value={staffFocusTableLabel || ''}
+          onChange={(e) => {
+            const v = normalizeTableLabelKey(e.target.value);
+            if (v) setSessionTableLabel(v);
+          }}
+        >
+          <option value="">（未選択・伝票の卓をタップ）</option>
+          {slipBoardTableLabels.map((lbl) => (
+            <option key={lbl} value={lbl}>
+              卓{lbl}
+            </option>
+          ))}
+        </select>
+        {staffFocusTableLabel ? (
+          <span className="kitchen-focus-bar__hint">
+            客席URLの卓番・注文・飲み放題希望はDBで同期されます
+          </span>
+        ) : (
+          <span className="kitchen-focus-bar__hint kitchen-focus-bar__hint--warn">
+            卓を選ぶか、各卓・伝票で操作してください
+          </span>
+        )}
+      </div>
 
       {guestNomihodaiIntentLabels.length > 0 ? (
         <div className="kitchen-nh-intent-sticky" role="alert" aria-live="assertive">
@@ -1036,7 +1098,13 @@ export default function KitchenApp() {
         <button
           type="button"
           className="kitchen-live-cell kitchen-live-cell--verbal kitchen-live-cell--tappable"
-          onClick={() => setVerbalOrderTable(String(session.tableLabel || '1'))}
+          onClick={() => {
+            if (staffFocusTableLabel) {
+              setVerbalOrderTable(staffFocusTableLabel);
+              return;
+            }
+            setStaffTab(STAFF_TABS.tableStatus);
+          }}
           aria-label="口頭で受けた注文を伝票に追加"
         >
           <span className="kitchen-live-cell__label">口頭注文</span>
@@ -1380,7 +1448,8 @@ export default function KitchenApp() {
                         const slip = resolveSlipBundleForTableLabel(servedByTable, session, label);
                         const nhLabel = getNomihodaiForTable(session, label);
                         const isNh = !!nhLabel?.active;
-                        const isSessionTable = String(session.tableLabel) === label;
+                        const isSessionTable =
+                          staffFocusTableLabel !== '' && staffFocusTableLabel === label;
                         const row = nhForm[label] || { men: 1, women: 1 };
                         const autoExtendMinLocal =
                           isNh && nhLabel
