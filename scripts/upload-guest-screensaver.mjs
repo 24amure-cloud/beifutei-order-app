@@ -9,7 +9,7 @@ import { normalizeSupabaseAnonKey, normalizeSupabaseProjectUrl } from '../src/su
 
 const BUCKET = 'guest-promo';
 const OBJECT_PATH = 'screensaver4.mp4';
-const LOCAL_CANDIDATES = ['public/screensaver4.mp4', 'public/screensaver3.mp4'];
+const LOCAL_CANDIDATES = ['public/screensaver4.mp4'];
 
 function loadEnv() {
   const merged = { ...process.env };
