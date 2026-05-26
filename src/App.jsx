@@ -7,7 +7,6 @@ import { getDrinkSectionHeroCandidates } from './data/drinkHeroImages.js';
 import { DRINK_MENU_GUEST_ROWS } from './data/defaultDrinkMenu.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getAlcoholTableCharge, formatAlcoholChargeLineForGuest } from './alcoholTableCharge.js';
-import { getNomihodaiForTable } from './nomihodaiSession.js';
 import { useDrinkMenuForGuest } from './useDrinkMenuForGuest.js';
 import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import {
@@ -23,6 +22,7 @@ import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 import GuestOnboardingGate from './GuestOnboardingGate.jsx';
 import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
+import { getGuestIntentForTable, getNomihodaiForTable, normalizeTableLabelKey } from './nomihodaiSession.js';
 import { isGuestPartyAcknowledgedOnDevice } from './guestPartyDemographics.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
@@ -1355,22 +1355,25 @@ function App() {
   const { t: ut, locale, toggleLocale } = useGuestUiLocale();
 
   const farewell = session.nomihodaiFarewell;
+  const guestTableLabel = normalizeTableLabelKey(session.tableLabel ?? '') || String(session.tableLabel ?? '').trim();
+  const guestIntentPending = !!getGuestIntentForTable(session, guestTableLabel);
 
   const partyCapturedAt = deviceGuestPartyFromDb?.capturedAt;
   const partyDoneOnDevice =
     partyCapturedAt > 0 &&
-    isGuestPartyAcknowledgedOnDevice(session.tableLabel, partyCapturedAt);
+    isGuestPartyAcknowledgedOnDevice(guestTableLabel, partyCapturedAt);
 
   /** 人数未登録、または DB に古い人数だけ残っている場合はオンボーディングを最優先 */
   const needsGuestOnboarding =
     guestTablesHydrated &&
-    !!session.tableLabel &&
+    !!guestTableLabel &&
     !partyDoneOnDevice;
 
-  /** 人数登録済みのときだけ会計後フルスクリーン（farewell / 会計依頼）。飲み放題中は厨房開始を優先 */
+  /** 人数登録済みのときだけ会計後フルスクリーン（farewell / 会計依頼）。飲み放題中・NH希望中は厨房操作を優先 */
   const guestPostCheckoutFullscreen =
     !needsGuestOnboarding &&
     !nomihodaiActive &&
+    !guestIntentPending &&
     (!!farewell || !!session.checkoutRequestAt);
 
   const showGuestPartyGateLoading =

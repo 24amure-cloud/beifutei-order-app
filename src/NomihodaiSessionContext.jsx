@@ -45,8 +45,10 @@ import {
   getAlcoholTableCharge,
 } from './alcoholTableCharge.js';
 import {
+  clearGuestPartyAcknowledged,
   clearGuestPartyLocal,
   guestPartyFromTableRow,
+  isGuestPartyAcknowledgedOnDevice,
   loadGuestPartyLocalAll,
   markGuestPartyAcknowledged,
   saveGuestPartyLocal,
@@ -684,8 +686,10 @@ export function NomihodaiSessionProvider({ children }) {
     const myTableRow = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === myLabel);
     const nhActiveOnDevice = isDbNomihodaiActiveFlag(myTableRow?.nomihodai_active);
     const farewellFromDb = nhActiveOnDevice ? null : farewellFromTableRow(myTableRow);
-    const nomihodaiFarewell =
-      nhActiveOnDevice ? null : farewellFromDb ?? localDeviceState.nomihodaiFarewell;
+    /** DB行があるのに farewell が無いときは local の古い会計完了を無視（オンボーディングが消えるのを防ぐ） */
+    const nomihodaiFarewell = nhActiveOnDevice
+      ? null
+      : farewellFromDb ?? (myTableRow ? null : localDeviceState.nomihodaiFarewell);
 
     /** 厨房：会計後の THANK YOU / SESSION CLOSED が卓タブレットに出ている卓 */
     const guestFarewellActiveByLabel = {};
@@ -739,8 +743,30 @@ export function NomihodaiSessionProvider({ children }) {
   useEffect(() => {
     if (!guestTablesHydrated) return;
     const lbl = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
-    if (!deviceGuestPartyFromDb) clearGuestPartyLocal(lbl);
+    if (!deviceGuestPartyFromDb) {
+      clearGuestPartyLocal(lbl);
+      return;
+    }
+    if (!isGuestPartyAcknowledgedOnDevice(lbl, deviceGuestPartyFromDb.capturedAt)) {
+      clearGuestPartyAcknowledged(lbl);
+    }
   }, [guestTablesHydrated, localDeviceState.tableLabel, deviceGuestPartyFromDb]);
+
+  /** DB上で会計完了が解消されているのに local farewell だけ残ると全画面がブロックされる */
+  useEffect(() => {
+    if (isKitchenAppPage()) return;
+    if (!guestTablesHydrated) return;
+    const lbl = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
+    const row = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === lbl);
+    if (farewellFromTableRow(row) || !localDeviceState.nomihodaiFarewell) return;
+    saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
+  }, [
+    guestTablesHydrated,
+    dbTables,
+    localDeviceState.tableLabel,
+    localDeviceState.nomihodaiFarewell,
+    saveLocalDeviceState,
+  ]);
 
   /** 厨房が飲み放題開始したら、客席端末の古い会計完了オーバーレイ（local farewell）を消す */
   useEffect(() => {
@@ -843,6 +869,10 @@ export function NomihodaiSessionProvider({ children }) {
           guest_party_children: c,
           guest_party_captured_at: capturedAt,
           guest_party_locale: loc,
+          checkout_requested_at: null,
+          guest_intent_requested_at: null,
+          guest_farewell_requested_at: null,
+          guest_farewell_completed_at: null,
         };
         if (idx >= 0) {
           const next = [...prev];
@@ -855,6 +885,8 @@ export function NomihodaiSessionProvider({ children }) {
       saveGuestPartyLocal(lbl, party);
       markGuestPartyAcknowledged(lbl, capturedAt);
 
+      saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
+
       const { error } = await supabase.from('beifutei_table_states').upsert(
         {
           table_label: lbl,
@@ -863,6 +895,10 @@ export function NomihodaiSessionProvider({ children }) {
           guest_party_children: c,
           guest_party_captured_at: capturedAt,
           guest_party_locale: loc,
+          checkout_requested_at: null,
+          guest_intent_requested_at: null,
+          guest_farewell_requested_at: null,
+          guest_farewell_completed_at: null,
         },
         { onConflict: 'table_label', defaultToNull: false },
       );
@@ -876,7 +912,7 @@ export function NomihodaiSessionProvider({ children }) {
       void refetchTablesFromDb();
       return { ok: true };
     },
-    [session.tableLabel, applyDbConnectionFromError, refetchTablesFromDb],
+    [session.tableLabel, applyDbConnectionFromError, refetchTablesFromDb, saveLocalDeviceState],
   );
 
   /** 厨房：口頭注文を任意の卓へ追加（status で未提供キュー／提供済伝票を選択） */

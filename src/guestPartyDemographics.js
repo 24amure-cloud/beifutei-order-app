@@ -1,6 +1,12 @@
 /** 客席：男女児人数（DB未マイグレーション時の localStorage フォールバック含む） */
 
+import { normalizeTableLabelKey } from './nomihodaiSession.js';
+
 export const GUEST_PARTY_LOCAL_KEY = 'beifutei-guest-party-v1';
+
+function partyKey(tableLabel) {
+  return normalizeTableLabelKey(tableLabel ?? '') || String(tableLabel ?? '').trim();
+}
 /** この端末のブラウザで人数入力を完了した卓（DB の capturedAt と照合） */
 const GUEST_PARTY_ACK_KEY = 'beifutei-guest-party-ack-v1';
 
@@ -21,7 +27,7 @@ function writeAckMap(byLabel) {
 
 /** @param {string} tableLabel @param {number} capturedAt */
 export function markGuestPartyAcknowledged(tableLabel, capturedAt) {
-  const key = String(tableLabel ?? '').trim();
+  const key = partyKey(tableLabel);
   const cap = Number(capturedAt);
   if (!key || !Number.isFinite(cap) || cap <= 0) return;
   const map = readAckMap();
@@ -31,7 +37,7 @@ export function markGuestPartyAcknowledged(tableLabel, capturedAt) {
 
 /** @param {string} tableLabel */
 export function clearGuestPartyAcknowledged(tableLabel) {
-  const key = String(tableLabel ?? '').trim();
+  const key = partyKey(tableLabel);
   if (!key) return;
   const map = readAckMap();
   delete map[key];
@@ -46,7 +52,7 @@ export function clearGuestPartyAcknowledged(tableLabel) {
 export function isGuestPartyAcknowledgedOnDevice(tableLabel, capturedAt) {
   const cap = Number(capturedAt);
   if (!Number.isFinite(cap) || cap <= 0) return false;
-  const key = String(tableLabel ?? '').trim();
+  const key = partyKey(tableLabel);
   if (!key) return false;
   return Number(readAckMap()[key]) === cap;
 }
@@ -108,7 +114,7 @@ export function loadGuestPartyLocalAll() {
 
 /** @param {string} tableLabel */
 export function clearGuestPartyLocal(tableLabel) {
-  const key = String(tableLabel ?? '').trim();
+  const key = partyKey(tableLabel);
   if (!key) return;
   const map = readLocalMap();
   delete map[key];
@@ -121,7 +127,7 @@ export function clearGuestPartyLocal(tableLabel) {
  * @param {{ men: number, women: number, children: number, capturedAt: number }} data
  */
 export function saveGuestPartyLocal(tableLabel, data) {
-  const key = String(tableLabel ?? '').trim();
+  const key = partyKey(tableLabel);
   if (!key) return;
   const map = readLocalMap();
   map[key] = data;

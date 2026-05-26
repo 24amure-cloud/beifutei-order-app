@@ -139,10 +139,10 @@ export function NomihodaiTabRouter({ onOpenNomihodaiBill }) {
   if (nomihodaiActive) {
     return <NomihodaiGuestDrinkMenu onOpenBill={onOpenNomihodaiBill} />;
   }
-  if (session.nomihodaiFarewell) return null;
-  if (session.checkoutRequestAt) return null;
 
   const guestIntent = getGuestIntentForTable(session, session.tableLabel);
+  if (session.nomihodaiFarewell && !guestIntent) return null;
+  if (session.checkoutRequestAt && !guestIntent) return null;
   if (guestIntent) {
     return <NomihodaiIntentWaitingPage />;
   }
