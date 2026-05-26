@@ -19,8 +19,10 @@ dist-ssr
 
 *.bak
 
-# 旧・巨大スクリーンセーバー（誤再コミット防止。運用は public/screensaver3.mp4 のみ）
+# 旧・巨大スクリーンセーバー（誤再コミット防止。配信は public/screensaver4.mp4）
 public/screensaver1.mp4
+public/screensaver3.mp4
+public/screensaver4-web.mp4
 
 # Editor directories and files
 .vscode/*

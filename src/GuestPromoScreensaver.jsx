@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  GUEST_PROMO_DEFAULT_IMAGE_PATHS,
+  GUEST_PROMO_DEFAULT_VIDEO_PATH,
+  GUEST_PROMO_FALLBACK_IMAGE_PATHS,
   GUEST_PROMO_MIN_VALID_VIDEO_BYTES,
 } from './guestPromoScreensaverConfig.js';
 
@@ -26,8 +27,12 @@ export function resolveGuestPromoMediaUrl(path) {
   return `${normalizedBase}${rel}`;
 }
 
-function defaultImageUrls() {
-  return GUEST_PROMO_DEFAULT_IMAGE_PATHS.map(resolveGuestPromoMediaUrl);
+function fallbackImageUrls() {
+  return GUEST_PROMO_FALLBACK_IMAGE_PATHS.map(resolveGuestPromoMediaUrl);
+}
+
+function defaultVideoUrl() {
+  return resolveGuestPromoMediaUrl(GUEST_PROMO_DEFAULT_VIDEO_PATH);
 }
 
 async function isVideoUrlReachable(url) {
@@ -43,18 +48,14 @@ async function isVideoUrlReachable(url) {
 }
 
 /**
- * 客席（index）用: 無操作が続いたら全画面で宣伝画像／動画を表示。
- *
- * 既定は public 内の画像スライド（Vercel で Git LFS 動画が壊れないため）。
- * 動画を使う場合は VITE_GUEST_PROMO_MEDIA に URL を指定（外部 CDN 推奨）。
+ * 客席（index）用: 無操作が続いたら全画面で宣伝動画を表示。
+ * 既定: public/screensaver4.mp4（Vercel 配信用に約 26MB に圧縮済み）
  */
 export function readGuestPromoScreensaverEnv() {
   const envMedia = import.meta.env.VITE_GUEST_PROMO_MEDIA;
   const fromEnv = parsePromoUrls(envMedia);
   const urls =
-    fromEnv.length > 0
-      ? fromEnv.map(resolveGuestPromoMediaUrl)
-      : defaultImageUrls();
+    fromEnv.length > 0 ? fromEnv.map(resolveGuestPromoMediaUrl) : [defaultVideoUrl()];
 
   const envIdleRaw = import.meta.env.VITE_GUEST_IDLE_SCREENSAVER_MS;
   const idleMs =
@@ -73,7 +74,7 @@ export default function GuestPromoScreensaver({ paused }) {
     () => readGuestPromoScreensaverEnv(),
     [],
   );
-  const fallbackUrls = useMemo(() => defaultImageUrls(), []);
+  const fallbackUrls = useMemo(() => fallbackImageUrls(), []);
   const [playUrls, setPlayUrls] = useState(configuredUrls);
   const [visible, setVisible] = useState(false);
   const [slide, setSlide] = useState(0);
@@ -108,7 +109,7 @@ export default function GuestPromoScreensaver({ paused }) {
 
   const switchToFallback = useCallback(() => {
     setPlayUrls((prev) => {
-      if (prev === fallbackUrls || prev[0] === fallbackUrls[0]) return prev;
+      if (prev[0] === fallbackUrls[0]) return prev;
       return fallbackUrls;
     });
     setSlide(0);

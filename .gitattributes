@@ -1,1 +1,2 @@
-public/*.mp4 filter=lfs diff=lfs merge=lfs -text
+public/screensaver1.mp4 filter=lfs diff=lfs merge=lfs -text
+public/screensaver3.mp4 filter=lfs diff=lfs merge=lfs -text

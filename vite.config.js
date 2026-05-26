@@ -39,11 +39,14 @@ function resolveSupabaseForClient(env) {
 export default defineConfig(({ mode }) => {
   const merged = { ...loadEnv(mode, process.cwd(), ''), ...process.env }
   const { url: sbUrl, key: sbKey } = resolveSupabaseForClient(merged)
+  let guestPromoMedia = String(merged.VITE_GUEST_PROMO_MEDIA ?? '').trim() || '/screensaver4.mp4'
+  if (/screensaver3\.mp4/i.test(guestPromoMedia)) guestPromoMedia = '/screensaver4.mp4'
 
   return {
   define: {
     'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(sbUrl),
     'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(sbKey),
+    'import.meta.env.VITE_GUEST_PROMO_MEDIA': JSON.stringify(guestPromoMedia),
   },
   plugins: [
     react(),
