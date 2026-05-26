@@ -101,7 +101,8 @@ function farewellFromTableRow(row) {
 
 /** 列未追加の Supabase でも他処理を壊さないよう、客席フロー列だけベストエフォート更新 */
 async function patchGuestFarewellColumns(supabaseClient, tableLabel, pair) {
-  const tl = String(tableLabel);
+  const tl = normalizeTableLabelKey(tableLabel ?? '');
+  if (!tl) return;
   const payload =
     pair && Number.isFinite(Number(pair.requestedAt)) && Number.isFinite(Number(pair.completedAt))
       ? {
@@ -681,7 +682,10 @@ export function NomihodaiSessionProvider({ children }) {
 
     const myLabel = deviceLabel;
     const myTableRow = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === myLabel);
-    const farewellFromDb = farewellFromTableRow(myTableRow);
+    const nhActiveOnDevice = isDbNomihodaiActiveFlag(myTableRow?.nomihodai_active);
+    const farewellFromDb = nhActiveOnDevice ? null : farewellFromTableRow(myTableRow);
+    const nomihodaiFarewell =
+      nhActiveOnDevice ? null : farewellFromDb ?? localDeviceState.nomihodaiFarewell;
 
     /** 厨房：会計後の THANK YOU / SESSION CLOSED が卓タブレットに出ている卓 */
     const guestFarewellActiveByLabel = {};
@@ -710,8 +714,8 @@ export function NomihodaiSessionProvider({ children }) {
     return {
       tableId: localDeviceState.tableId,
       tableLabel: deviceLabel,
-      /** DB（全端末共有）を優先。未マイグレーション時は従来どおり local のみ */
-      nomihodaiFarewell: farewellFromDb ?? localDeviceState.nomihodaiFarewell,
+      /** DB（全端末共有）を優先。飲み放題中は前回会計の local farewell を無視 */
+      nomihodaiFarewell,
       nomihodaiByLabel,
       nomihodaiGuestIntentByLabel,
       tableMemoByLabel,
@@ -737,6 +741,24 @@ export function NomihodaiSessionProvider({ children }) {
     const lbl = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
     if (!deviceGuestPartyFromDb) clearGuestPartyLocal(lbl);
   }, [guestTablesHydrated, localDeviceState.tableLabel, deviceGuestPartyFromDb]);
+
+  /** 厨房が飲み放題開始したら、客席端末の古い会計完了オーバーレイ（local farewell）を消す */
+  useEffect(() => {
+    if (isKitchenAppPage()) return;
+    if (!guestTablesHydrated) return;
+    const lbl = normalizeTableLabelKey(localDeviceState.tableLabel ?? '') || '3';
+    const row = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === lbl);
+    if (!isDbNomihodaiActiveFlag(row?.nomihodai_active)) return;
+    if (farewellFromTableRow(row)) return;
+    if (!localDeviceState.nomihodaiFarewell) return;
+    saveLocalDeviceState((s) => ({ ...s, nomihodaiFarewell: null }));
+  }, [
+    guestTablesHydrated,
+    dbTables,
+    localDeviceState.tableLabel,
+    localDeviceState.nomihodaiFarewell,
+    saveLocalDeviceState,
+  ]);
 
   const setSessionTableLabel = useCallback((label) => {
     const next = normalizeTableLabelKey(label ?? '');
@@ -921,6 +943,9 @@ export function NomihodaiSessionProvider({ children }) {
       nomihodai_bill_total: billTotal,
       nomihodai_extension_count: 0,
       guest_intent_requested_at: null,
+      checkout_requested_at: null,
+      guest_farewell_requested_at: null,
+      guest_farewell_completed_at: null,
     };
 
     setDbTables((prev) => {
@@ -1474,6 +1499,8 @@ export function NomihodaiSessionProvider({ children }) {
   /** 会計完了後も Realtime 遅れで NH が残るのを防ぐ（farewell 確定時は帯・ロックを消す） */
   const nomihodaiActive = useMemo(() => {
     const lbl = normalizeTableLabelKey(session.tableLabel ?? '') || '3';
+    const nh = getNomihodaiForTable(session, lbl);
+    if (nh?.active) return true;
     const myRow = dbTables.find((r) => normalizeTableLabelKey(r.table_label ?? '') === lbl);
     const farewellCompleted =
       !!farewellFromTableRow(myRow) ||
@@ -1481,7 +1508,7 @@ export function NomihodaiSessionProvider({ children }) {
         Number.isFinite(Number(session.nomihodaiFarewell.checkoutCompletedAt)) &&
         Number(session.nomihodaiFarewell.checkoutCompletedAt) > 0);
     if (farewellCompleted) return false;
-    return !!getNomihodaiForTable(session, lbl)?.active;
+    return false;
   }, [session, dbTables]);
 
   const n = getNomihodaiForTable(session, session.tableLabel);

@@ -1367,9 +1367,11 @@ function App() {
     !!session.tableLabel &&
     !partyDoneOnDevice;
 
-  /** 人数登録済みのときだけ会計後フルスクリーン（farewell / 会計依頼） */
+  /** 人数登録済みのときだけ会計後フルスクリーン（farewell / 会計依頼）。飲み放題中は厨房開始を優先 */
   const guestPostCheckoutFullscreen =
-    !needsGuestOnboarding && (!!farewell || !!session.checkoutRequestAt);
+    !needsGuestOnboarding &&
+    !nomihodaiActive &&
+    (!!farewell || !!session.checkoutRequestAt);
 
   const showGuestPartyGateLoading =
     !guestTablesHydrated && !!session.tableLabel;

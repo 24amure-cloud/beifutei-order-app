@@ -136,15 +136,13 @@ export function NomihodaiIntentWaitingPage() {
 export function NomihodaiTabRouter({ onOpenNomihodaiBill }) {
   const { nomihodaiActive, session } = useNomihodaiSession();
   const nh = getNomihodaiForTable(session, session.tableLabel);
-  if (session.nomihodaiFarewell) return null;
-  if (session.checkoutRequestAt) return null;
-  if (nomihodaiActive && nh?.guestCheckoutRequestedAt) return null;
-
-  const guestIntent = getGuestIntentForTable(session, session.tableLabel);
-
   if (nomihodaiActive) {
     return <NomihodaiGuestDrinkMenu onOpenBill={onOpenNomihodaiBill} />;
   }
+  if (session.nomihodaiFarewell) return null;
+  if (session.checkoutRequestAt) return null;
+
+  const guestIntent = getGuestIntentForTable(session, session.tableLabel);
   if (guestIntent) {
     return <NomihodaiIntentWaitingPage />;
   }
