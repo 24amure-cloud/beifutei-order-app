@@ -1171,9 +1171,38 @@ export function NomihodaiSessionProvider({ children }) {
     await supabase.from('beifutei_orders').delete().match({ id: orderId, is_nomihodai: true, status: 'pending' });
   }, []);
 
-  const markOrderServed = useCallback(async (orderId) => {
-    await supabase.from('beifutei_orders').update({ status: 'served' }).eq('id', orderId);
-  }, []);
+  const markOrderServed = useCallback(
+    async (orderId) => {
+      const id = String(orderId ?? '').trim();
+      if (!id) return { ok: false, errorMessage: 'ORDER_ID_MISSING' };
+
+      let prevStatus = 'pending';
+      setDbOrders((prev) => {
+        const hit = prev.find((o) => o.id === id);
+        if (hit?.status) prevStatus = hit.status;
+        return prev.map((o) => (o.id === id ? { ...o, status: 'served' } : o));
+      });
+
+      const { data, error } = await supabase
+        .from('beifutei_orders')
+        .update({ status: 'served' })
+        .eq('id', id)
+        .select('id');
+
+      if (error) {
+        pushKitchenDiagFromSupabase('beifutei_orders:update', error, '提供済');
+        applyDbConnectionFromError(error);
+        setDbOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: prevStatus } : o)));
+        return { ok: false, errorMessage: error.message || String(error) };
+      }
+      if (!data?.length) {
+        setDbOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status: prevStatus } : o)));
+        return { ok: false, errorMessage: 'ORDER_NOT_FOUND' };
+      }
+      return { ok: true };
+    },
+    [applyDbConnectionFromError],
+  );
 
   /** 厨房：口頭注文の訂正など。客席の isNomihodai もここで上書き可能 */
   const setOrderIsNomihodai = useCallback(async (orderId, isNomihodai) => {
@@ -1182,10 +1211,44 @@ export function NomihodaiSessionProvider({ children }) {
     await supabase.from('beifutei_orders').update({ is_nomihodai: v }).eq('id', orderId);
   }, []);
 
-  const markPendingServedForTable = useCallback(async (tableId, tableLabel) => {
-    const tl = String(tableLabel ?? session.tableLabel);
-    await supabase.from('beifutei_orders').update({ status: 'served' }).match({ table_label: tl, status: 'pending' });
-  }, [session.tableLabel]);
+  const markPendingServedForTable = useCallback(
+    async (tableId, tableLabel) => {
+      void tableId;
+      const tl = normalizeTableLabelKey(String(tableLabel ?? session.tableLabel ?? ''));
+      if (!tl) return { ok: false, errorMessage: 'TABLE_REQUIRED' };
+
+      const touched = new Set();
+      setDbOrders((prev) =>
+        prev.map((row) => {
+          const lbl = normalizeTableLabelKey(row.table_label ?? '');
+          if (lbl === tl && row.status === 'pending') {
+            touched.add(row.id);
+            return { ...row, status: 'served' };
+          }
+          return row;
+        }),
+      );
+      if (!touched.size) return { ok: true, count: 0 };
+
+      const { data, error } = await supabase
+        .from('beifutei_orders')
+        .update({ status: 'served' })
+        .eq('table_label', tl)
+        .eq('status', 'pending')
+        .select('id');
+
+      if (error) {
+        pushKitchenDiagFromSupabase('beifutei_orders:update', error, '卓一括提供済');
+        applyDbConnectionFromError(error);
+        setDbOrders((prev) =>
+          prev.map((row) => (touched.has(row.id) ? { ...row, status: 'pending' } : row)),
+        );
+        return { ok: false, errorMessage: error.message || String(error) };
+      }
+      return { ok: true, count: data?.length ?? touched.size };
+    },
+    [session.tableLabel, applyDbConnectionFromError],
+  );
 
   const finalizeSlipCheckout = useCallback(async ({ tableId, tableLabel, payment }) => {
     const tl = normalizeTableLabelKey(String(tableLabel ?? session.tableLabel)) || '3';

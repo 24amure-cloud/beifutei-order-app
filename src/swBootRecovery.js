@@ -1,7 +1,7 @@
 /**
  * デプロイ後に PWA が古い JS を参照して真っ白になるのを防ぐ（1セッション1回まで）。
  */
-const RECOVERY_KEY = 'beifutei-sw-cleared-v3';
+const RECOVERY_KEY = 'beifutei-sw-cleared-v4';
 
 export function recoverStaleServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -12,12 +12,14 @@ export function recoverStaleServiceWorker() {
     return;
   }
 
+  const isKitchen = /kitchen(?:\.html)?/i.test(window.location.pathname || '');
+  const waitMs = isKitchen ? 3500 : 4000;
   window.setTimeout(() => {
     const root = document.getElementById('root');
     if (!root || root.childElementCount > 0) return;
     if (sessionStorage.getItem(RECOVERY_KEY)) return;
     void clearAllServiceWorkersAndReload();
-  }, 4000);
+  }, waitMs);
 }
 
 async function clearAllServiceWorkersAndReload() {

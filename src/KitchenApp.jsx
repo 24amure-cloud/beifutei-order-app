@@ -647,13 +647,40 @@ export default function KitchenApp() {
     });
   }, [session.guestPartyByLabel, session.nomihodaiByLabel, slipBoardTableLabels]);
 
+  const alertServeFailed = useCallback((res) => {
+    if (!res || res.ok !== false) return;
+    window.alert(
+      `提供済にできませんでした。\n${res.errorMessage === 'ORDER_NOT_FOUND' ? '注文が見つかりません（再同期を試してください）' : res.errorMessage || '通信またはDBを確認してください'}`,
+    );
+  }, []);
+
+  const handleMarkServed = useCallback(
+    async (orderId) => {
+      const res = await markOrderServed(orderId);
+      alertServeFailed(res);
+    },
+    [markOrderServed, alertServeFailed],
+  );
+
+  const handleMarkTableServed = useCallback(
+    async (tableId, tableLabel) => {
+      const res = await markPendingServedForTable(tableId, tableLabel);
+      alertServeFailed(res);
+    },
+    [markPendingServedForTable, alertServeFailed],
+  );
+
   const serveOrderBatch = useCallback(
-    (orders) => {
+    async (orders) => {
       for (const o of orders) {
-        void markOrderServed(o.id);
+        const res = await markOrderServed(o.id);
+        if (res?.ok === false) {
+          alertServeFailed(res);
+          return;
+        }
       }
     },
-    [markOrderServed]
+    [markOrderServed, alertServeFailed],
   );
 
   const pendingOrderBatches = useMemo(() => groupPendingOrderBatches(pendingOrders), [pendingOrders]);
@@ -1353,7 +1380,7 @@ export default function KitchenApp() {
                                         <button
                                           type="button"
                                           className="kitchen-pending-batch__serve-all"
-                                          onClick={() => serveOrderBatch(batch.orders)}
+                                          onClick={() => void serveOrderBatch(batch.orders)}
                                         >
                                           この注文をまとめて提供済
                                         </button>
@@ -1379,7 +1406,7 @@ export default function KitchenApp() {
                                       <button
                                         type="button"
                                         className="kitchen-pending-batch__line-serve"
-                                        onClick={() => markOrderServed(o.id)}
+                                        onClick={() => void handleMarkServed(o.id)}
                                       >
                                         提供済
                                       </button>
@@ -1403,7 +1430,7 @@ export default function KitchenApp() {
                               key={t.tableLabel}
                               type="button"
                               className="kitchen-pending-fifo-bulk__btn"
-                              onClick={() => markPendingServedForTable(t.tableId, t.tableLabel)}
+                              onClick={() => void handleMarkTableServed(t.tableId, t.tableLabel)}
                             >
                               卓{t.tableLabel} 全{t.count}件
                             </button>
@@ -1748,7 +1775,7 @@ export default function KitchenApp() {
                                           <button
                                             type="button"
                                             className="kitchen-table-status__hist-serve"
-                                            onClick={() => markOrderServed(o.id)}
+                                            onClick={() => void handleMarkServed(o.id)}
                                           >
                                             提供済
                                           </button>
@@ -2105,7 +2132,7 @@ export default function KitchenApp() {
                           <button
                             type="button"
                             className="kitchen-detail-modal__serve"
-                            onClick={() => markOrderServed(o.id)}
+                            onClick={() => void handleMarkServed(o.id)}
                           >
                             提供済み
                           </button>

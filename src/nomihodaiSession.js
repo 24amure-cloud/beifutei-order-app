@@ -195,7 +195,7 @@ export function hasAnyGuestIntent(session) {
 }
 
 export function listGuestIntentTableLabels(session) {
-  const by = session.nomihodaiGuestIntentByLabel;
+  const by = session?.nomihodaiGuestIntentByLabel;
   if (!by || typeof by !== 'object') return [];
   return Object.keys(by).sort((a, b) => Number(a) - Number(b));
 }
@@ -232,7 +232,8 @@ export function mergeTableLabelLists(...labelLists) {
  * @param {Record<string, unknown> | null | undefined} row
  */
 export function mergeTableStateRow(prev, row) {
-  const k = normalizeTableLabelKey(row?.table_label ?? '');
+  if (!row || typeof row !== 'object') return prev ?? null;
+  const k = normalizeTableLabelKey(row.table_label ?? '');
   if (!k) return prev ?? null;
   if (!prev) return { ...row, table_label: k };
 
@@ -267,12 +268,13 @@ export function mergeTableStateRow(prev, row) {
 
 /** 注文・卓状態・メモ等から、いまデータに現れている卓番の一覧（重複なし・ソート済み） */
 export function collectKnownTableLabels(session) {
+  if (!session || typeof session !== 'object') return [];
   const s = new Set();
   const add = (k) => {
     const t = normalizeTableLabelKey(k);
     if (t) s.add(t);
   };
-  add(session?.tableLabel);
+  add(session.tableLabel);
   if (session.guestPartyByLabel && typeof session.guestPartyByLabel === 'object') {
     Object.keys(session.guestPartyByLabel).forEach(add);
   }

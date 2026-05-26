@@ -38,6 +38,16 @@ export default class RootErrorBoundary extends React.Component {
         <h1 style={{ fontSize: '1.15rem', marginBottom: 12 }}>画面の表示中にエラーが発生しました</h1>
         <p style={{ marginBottom: 10, opacity: 0.95 }}>
           再読み込みを試すか、ブラウザの開発者ツール（Console）の赤いメッセージを控えてください。
+          {typeof window !== 'undefined' && /kitchen(?:\.html)?/i.test(window.location.pathname || '') ? (
+            <>
+              {' '}
+              スタッフ画面では{' '}
+              <a href="?clearsw=1" style={{ color: '#e8a598' }}>
+                キャッシュを消して再読み込み（?clearsw=1）
+              </a>
+              も試してください。
+            </>
+          ) : null}
         </p>
         <pre
           style={{
