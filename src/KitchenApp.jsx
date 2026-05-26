@@ -384,108 +384,6 @@ function KitchenTableAlcoholChargePanel({ tableLabel, session, setTableAlcoholCh
   );
 }
 
-/** 飲み放題人数（常時表示・±で変更） */
-function KitchenTableNhQuickPanel({
-  tableLabel,
-  men,
-  women,
-  prices,
-  isNh,
-  intentPulse,
-  onBumpMen,
-  onBumpWomen,
-  onStart,
-  onStop,
-  isSessionTable,
-  onSyncTable,
-}) {
-  const planPreview = Math.max(0, men) * prices.men + Math.max(0, women) * prices.women;
-  return (
-    <div className="kitchen-table-status__nh-quick">
-      <div className="kitchen-table-status__nh-quick-head">
-        <span className="kitchen-table-status__nh-quick-title">飲み放題</span>
-        {!isNh ? (
-          <span className="kitchen-table-status__nh-quick-preview">目安 ￥{planPreview.toLocaleString()}</span>
-        ) : (
-          <span className="kitchen-table-status__nh-quick-preview kitchen-table-status__nh-quick-preview--on">稼働中</span>
-        )}
-      </div>
-      <div className="kitchen-table-status__nh-quick-grid">
-        <div className="kitchen-table-status__nh-quick-cell">
-          <span className="kitchen-table-status__nh-quick-label">男 ￥{prices.men.toLocaleString()}</span>
-          <span className="kitchen-table-status__nh-stepper">
-            <button
-              type="button"
-              className="kitchen-table-status__nh-stepbtn"
-              disabled={isNh}
-              onClick={() => onBumpMen(-1)}
-              aria-label="男性人数を1減らす"
-            >
-              −
-            </button>
-            <span className="kitchen-table-status__nh-count" aria-live="polite">
-              {men}
-            </span>
-            <button
-              type="button"
-              className="kitchen-table-status__nh-stepbtn"
-              disabled={isNh}
-              onClick={() => onBumpMen(1)}
-              aria-label="男性人数を1増やす"
-            >
-              ＋
-            </button>
-          </span>
-        </div>
-        <div className="kitchen-table-status__nh-quick-cell">
-          <span className="kitchen-table-status__nh-quick-label">女 ￥{prices.women.toLocaleString()}</span>
-          <span className="kitchen-table-status__nh-stepper">
-            <button
-              type="button"
-              className="kitchen-table-status__nh-stepbtn"
-              disabled={isNh}
-              onClick={() => onBumpWomen(-1)}
-              aria-label="女性人数を1減らす"
-            >
-              −
-            </button>
-            <span className="kitchen-table-status__nh-count" aria-live="polite">
-              {women}
-            </span>
-            <button
-              type="button"
-              className="kitchen-table-status__nh-stepbtn"
-              disabled={isNh}
-              onClick={() => onBumpWomen(1)}
-              aria-label="女性人数を1増やす"
-            >
-              ＋
-            </button>
-          </span>
-        </div>
-      </div>
-      <div className="kitchen-table-status__nh-quick-btns">
-        <button
-          type="button"
-          className={`kitchen-table-status__nh-start${intentPulse ? ' kitchen-table-status__nh-start--pulse' : ''}`}
-          disabled={isNh}
-          onClick={onStart}
-        >
-          開始
-        </button>
-        <button type="button" className="kitchen-table-status__nh-stop" disabled={!isNh} onClick={onStop}>
-          停止
-        </button>
-      </div>
-      {!isSessionTable ? (
-        <button type="button" className="kitchen-table-status__nh-sync-link" onClick={onSyncTable}>
-          表示卓を卓{tableLabel}に切替
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 const TABLE_HERO_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
 function buildInitialNhForm() {
@@ -656,40 +554,53 @@ export default function KitchenApp() {
   );
 
   const handleConfirmStartNomihodai = useCallback(
-    (label) => {
+    async (label) => {
       const menC = Math.max(0, Number(nhForm[label]?.men) || 0);
       const womenC = Math.max(0, Number(nhForm[label]?.women) || 0);
-      const people = Math.max(1, menC + womenC || 1);
-      const planYen = menC * prices.men + womenC * prices.women || people * prices.men;
+      if (menC + womenC < 1) {
+        window.alert('飲み放題を開始するには、男性または女性を1名以上入力してください。');
+        return;
+      }
+      const planYen = menC * prices.men + womenC * prices.women;
       if (
         !window.confirm(
-          `卓${label}で飲み放題（90分）を開始しますか？\n\n男性 ${menC} 名・女性 ${womenC} 名\n税込プラン料金の目安：￥${planYen.toLocaleString()}\n\n※間違った卓でないか確認してください。`
+          `卓${label}で飲み放題（90分）を開始しますか？\n\n男性 ${menC} 名・女性 ${womenC} 名\n税込プラン料金：￥${planYen.toLocaleString()}\n\n※間違った卓でないか確認してください。`
         )
       ) {
         return;
       }
-      startNomihodai({
+      const res = await startNomihodai({
         tableLabel: label,
         menCount: menC,
         womenCount: womenC,
       });
+      if (res && res.ok === false) {
+        window.alert(`飲み放題の開始に失敗しました。\n${res.errorMessage || '通信またはDBを確認してください。'}`);
+      }
     },
     [nhForm, prices, startNomihodai]
   );
 
-  const bumpNhFormCount = useCallback((label, field, delta) => {
-    const key = field === 'men' ? 'men' : 'women';
+  /** 客席オンボーディングで入力された人数を、飲み放題開始フォームへ反映 */
+  useEffect(() => {
     setNhForm((prev) => {
-      const row = prev[label] || { men: 1, women: 1 };
-      return {
-        ...prev,
-        [label]: {
-          ...row,
-          [key]: Math.max(0, (Number(row[key]) || 0) + delta),
-        },
-      };
+      let changed = false;
+      const next = { ...prev };
+      for (const label of TABLE_HERO_LABELS) {
+        const party = session.guestPartyByLabel?.[label];
+        if (!(party?.capturedAt > 0)) continue;
+        if (getNomihodaiForTable(session, label)?.active) continue;
+        const men = Math.max(0, Number(party.men) || 0);
+        const women = Math.max(0, Number(party.women) || 0);
+        if (men + women < 1) continue;
+        const cur = prev[label] || { men: 1, women: 1 };
+        if (cur.men === men && cur.women === women) continue;
+        next[label] = { men, women };
+        changed = true;
+      }
+      return changed ? next : prev;
     });
-  }, []);
+  }, [session.guestPartyByLabel, session.nomihodaiByLabel]);
 
   const serveOrderBatch = useCallback(
     (orders) => {
@@ -1282,7 +1193,7 @@ export default function KitchenApp() {
                                     type="button"
                                     className="kitchen-table-status__nh-start kitchen-table-status__nh-start--pulse"
                                     disabled={!!getNomihodaiForTable(session, label)?.active}
-                                    onClick={() => handleConfirmStartNomihodai(label)}
+                                    onClick={() => void handleConfirmStartNomihodai(label)}
                                   >
                                     飲み放題開始（90分）
                                   </button>
@@ -1452,14 +1363,6 @@ export default function KitchenApp() {
                         const isNh = !!nhLabel?.active;
                         const isSessionTable = String(session.tableLabel) === label;
                         const row = nhForm[label] || { men: 1, women: 1 };
-                        const nhMen =
-                          isNh && nhLabel
-                            ? Math.max(0, Number(nhLabel.menCount) || 0)
-                            : Math.max(0, Number(row.men) || 0);
-                        const nhWomen =
-                          isNh && nhLabel
-                            ? Math.max(0, Number(nhLabel.womenCount) || 0)
-                            : Math.max(0, Number(row.women) || 0);
                         const autoExtendMinLocal =
                           isNh && nhLabel
                             ? Math.max(0, Math.ceil((Number(nhLabel.nextAutoExtendMs || nhLabel.endMs) - now) / 60000))
@@ -1539,31 +1442,86 @@ export default function KitchenApp() {
                             </div>
 
                             <div className="kitchen-table-status__slip-controls">
-                              <KitchenTableNhQuickPanel
-                                tableLabel={label}
-                                men={nhMen}
-                                women={nhWomen}
-                                prices={prices}
-                                isNh={isNh}
-                                intentPulse={intentHereWithQueue || intentGuest}
-                                onBumpMen={(d) => bumpNhFormCount(label, 'men', d)}
-                                onBumpWomen={(d) => bumpNhFormCount(label, 'women', d)}
-                                onStart={() => handleConfirmStartNomihodai(label)}
-                                onStop={() => {
-                                  if (window.confirm('飲み放題を停止しますか？')) endNomihodai(label);
-                                }}
-                                isSessionTable={isSessionTable}
-                                onSyncTable={() => {
-                                  if (
-                                    !window.confirm(
-                                      `この端末の「表示卓・客席の注文卓番」を卓${label}に切り替えますか？\n\n※別卓の注文と混ざらないよう、卓番をよく確認してください。`
-                                    )
-                                  ) {
-                                    return;
-                                  }
-                                  setSessionTableLabel(label);
-                                }}
-                              />
+                              <div className="kitchen-table-status__nhops">
+                                <div className="kitchen-table-status__nh-row">
+                                  <label className="kitchen-table-status__nh-field">
+                                    <span>男性（￥{prices.men.toLocaleString()}）</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      className="kitchen-table-status__nh-input"
+                                      value={isNh && nhLabel ? nhLabel.menCount ?? 0 : row.men}
+                                      disabled={isNh}
+                                      onChange={(e) =>
+                                        setNhForm((prev) => ({
+                                          ...prev,
+                                          [label]: {
+                                            ...(prev[label] || { men: 1, women: 1 }),
+                                            men: Math.max(0, Number(e.target.value) || 0),
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                  <label className="kitchen-table-status__nh-field">
+                                    <span>女性（￥{prices.women.toLocaleString()}）</span>
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      className="kitchen-table-status__nh-input"
+                                      value={isNh && nhLabel ? nhLabel.womenCount ?? 0 : row.women}
+                                      disabled={isNh}
+                                      onChange={(e) =>
+                                        setNhForm((prev) => ({
+                                          ...prev,
+                                          [label]: {
+                                            ...(prev[label] || { men: 1, women: 1 }),
+                                            women: Math.max(0, Number(e.target.value) || 0),
+                                          },
+                                        }))
+                                      }
+                                    />
+                                  </label>
+                                </div>
+                                <div className="kitchen-table-status__nh-btns">
+                                  <button
+                                    type="button"
+                                    className={`kitchen-table-status__nh-start${intentHereWithQueue || intentGuest ? ' kitchen-table-status__nh-start--pulse' : ''}`}
+                                    disabled={isNh}
+                                    onClick={() => void handleConfirmStartNomihodai(label)}
+                                  >
+                                    飲み放題開始（90分）
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="kitchen-table-status__nh-stop"
+                                    disabled={!isNh}
+                                    onClick={() => {
+                                      if (window.confirm('飲み放題を停止しますか？')) endNomihodai(label);
+                                    }}
+                                  >
+                                    飲み放題停止
+                                  </button>
+                                </div>
+                                {!isSessionTable ? (
+                                  <button
+                                    type="button"
+                                    className="kitchen-table-status__sync kitchen-table-status__sync--compact"
+                                    onClick={() => {
+                                      if (
+                                        !window.confirm(
+                                          `この端末の「表示卓・客席の注文卓番」を卓${label}に切り替えますか？`
+                                        )
+                                      ) {
+                                        return;
+                                      }
+                                      setSessionTableLabel(label);
+                                    }}
+                                  >
+                                    表示卓を卓{label}に切替
+                                  </button>
+                                ) : null}
+                              </div>
                               <KitchenTableAlcoholChargePanel
                                 tableLabel={label}
                                 session={session}

@@ -807,20 +807,29 @@ export function NomihodaiSessionProvider({ children }) {
       return normalizeTableStatesRows(copy);
     });
 
-    await supabase.from('beifutei_table_states').upsert({
-      table_label: lbl,
-      nomihodai_active: true,
-      nomihodai_start_ms: startMs,
-      nomihodai_end_ms: endMs,
-      nomihodai_people: people,
-      nomihodai_men: men,
-      nomihodai_women: women,
-      nomihodai_bill_total: billTotal,
-      nomihodai_extension_count: 0,
-      guest_intent_requested_at: null, // clear intent
-    });
+    const { error } = await supabase.from('beifutei_table_states').upsert(
+      {
+        table_label: lbl,
+        nomihodai_active: true,
+        nomihodai_start_ms: startMs,
+        nomihodai_end_ms: endMs,
+        nomihodai_people: people,
+        nomihodai_men: men,
+        nomihodai_women: women,
+        nomihodai_bill_total: billTotal,
+        nomihodai_extension_count: 0,
+        guest_intent_requested_at: null,
+      },
+      { onConflict: 'table_label', defaultToNull: false },
+    );
+    if (error) {
+      pushKitchenDiagFromSupabase('beifutei_table_states:upsert', error, '飲み放題開始');
+      void refetchTablesFromDb();
+      return { ok: false, errorMessage: error.message || String(error) };
+    }
     await patchGuestFarewellColumns(supabase, lbl, null);
-  }, [session.tableLabel]);
+    return { ok: true };
+  }, [session.tableLabel, refetchTablesFromDb]);
 
   const endNomihodai = useCallback(async (tableLabel) => {
     const lbl = tableLabel != null ? String(tableLabel) : String(session.tableLabel);

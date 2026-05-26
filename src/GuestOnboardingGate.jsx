@@ -112,9 +112,21 @@ export default function GuestOnboardingGate() {
 
     table: ut('party_gate_table_short'),
 
+    localeTitle: ut('onboarding_locale_title'),
+
+    partyTitle: ut('party_gate_title'),
+
     ja: ut('onboarding_locale_ja_short'),
 
     en: ut('onboarding_locale_en_short'),
+
+    jaSub: ut('onboarding_locale_ja_sub'),
+
+    enSub: ut('onboarding_locale_en_sub'),
+
+    jaAria: ut('onboarding_locale_ja_aria'),
+
+    enAria: ut('onboarding_locale_en_aria'),
 
     men: ut('party_gate_men'),
 

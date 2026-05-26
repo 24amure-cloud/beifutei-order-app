@@ -70,13 +70,19 @@ function LocalePills({ localeSelected, onPickLocale, L }) {
 
         onClick={() => onPickLocale('ja')}
 
-        aria-label={L.ja}
+        aria-label={L.jaAria ?? L.ja}
 
         aria-pressed={localeSelected === 'ja'}
 
       >
 
-        <span className="iou-locale-pill__char">{L.ja}</span>
+        <span className="iou-locale-pill__char" aria-hidden="true">
+
+          {L.ja}
+
+        </span>
+
+        {L.jaSub ? <span className="iou-locale-pill__sub">{L.jaSub}</span> : null}
 
       </button>
 
@@ -88,13 +94,19 @@ function LocalePills({ localeSelected, onPickLocale, L }) {
 
         onClick={() => onPickLocale('en')}
 
-        aria-label={L.en}
+        aria-label={L.enAria ?? L.en}
 
         aria-pressed={localeSelected === 'en'}
 
       >
 
-        <span className="iou-locale-pill__char">{L.en}</span>
+        <span className="iou-locale-pill__char" aria-hidden="true">
+
+          {L.en}
+
+        </span>
+
+        {L.enSub ? <span className="iou-locale-pill__sub">{L.enSub}</span> : null}
 
       </button>
 
@@ -401,9 +413,13 @@ export default function PartyOnboardingVisual({
         ) : isCombined ? (
 
           <div className="iou-gate__body iou-gate__body--combined">
-
+            {L.localeTitle ? (
+              <p className="iou-gate__section-title">{L.localeTitle}</p>
+            ) : null}
             <LocalePills localeSelected={localeSelected} onPickLocale={onPickLocale} L={L} />
-
+            {L.partyTitle ? (
+              <p className="iou-gate__section-title iou-gate__section-title--party">{L.partyTitle}</p>
+            ) : null}
             <PartyCounts
 
               counts={counts}

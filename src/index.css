@@ -351,6 +351,22 @@ body {
   max-width: 480px;
 }
 
+.iou-gate__section-title {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: #5c4a3a;
+  letter-spacing: 0.04em;
+}
+
+.iou-gate__section-title--party {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #6b5a48;
+}
+
 .iou-gate__steps-spacer {
   width: 44px;
   height: 44px;
@@ -20832,6 +20848,38 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-table-status--slip-column .kitchen-table-status__slip-controls {
   flex-shrink: 0;
+}
+
+.kitchen-table-status--slip-column .kitchen-table-status__nhops {
+  flex-shrink: 0;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #d4d090;
+  background: linear-gradient(180deg, #fffef8 0%, #f8f4d8 100%);
+}
+
+.kitchen-table-status--slip-column .kitchen-table-status__nh-input {
+  min-height: 36px;
+  font-size: 15px;
+}
+
+.kitchen-table-status--slip-column .kitchen-table-status__nh-btns .kitchen-table-status__nh-start,
+.kitchen-table-status--slip-column .kitchen-table-status__nh-btns .kitchen-table-status__nh-stop {
+  padding: 10px 6px;
+  font-size: 12px;
+}
+
+.kitchen-table-status__sync--compact {
+  margin-top: 4px;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px dashed #c9bfb3;
+  background: #fffefb;
+  color: #6a625a;
+  cursor: pointer;
 }
 
 .kitchen-table-status--slip-column .kitchen-table-status__orders {
