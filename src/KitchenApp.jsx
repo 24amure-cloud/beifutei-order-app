@@ -75,6 +75,42 @@ function playKitchenNewOrderAlert() {
   }
 }
 
+/** 客席から飲み放題希望が届いたとき（新規卓のみ・初回ロードでは鳴らさない） */
+function playKitchenNomihodaiIntentAlert() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const beep = (when, freq, dur = 0.22) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, when);
+      g.gain.setValueAtTime(0.001, when);
+      g.gain.exponentialRampToValueAtTime(0.18, when + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, when + dur);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(when);
+      osc.stop(when + dur + 0.02);
+    };
+    const t0 = ctx.currentTime + 0.03;
+    beep(t0, 523);
+    beep(t0 + 0.16, 659);
+    beep(t0 + 0.32, 784);
+    beep(t0 + 0.48, 988);
+    setTimeout(() => {
+      try {
+        ctx.close();
+      } catch {
+        /* ignore */
+      }
+    }, 1200);
+  } catch {
+    /* ignore */
+  }
+}
+
 function orderKitchenEmoji(o) {
   return orderKindMeta(o).emoji;
 }
@@ -428,6 +464,7 @@ export default function KitchenApp() {
   const [verbalOrderTable, setVerbalOrderTable] = useState(null);
   const ordersHubRef = useRef(null);
   const pendingIdsForSoundRef = useRef(null);
+  const nhIntentLabelsForSoundRef = useRef(null);
 
   const goToOrdersTab = useCallback(() => {
     setStaffTab(STAFF_TABS.orders);
@@ -763,6 +800,23 @@ export default function KitchenApp() {
   }, [pendingOrders]);
 
   useEffect(() => {
+    const next = new Set(guestNomihodaiIntentLabels.map(String));
+    if (nhIntentLabelsForSoundRef.current === null) {
+      nhIntentLabelsForSoundRef.current = next;
+      return;
+    }
+    let hasNewIntent = false;
+    for (const lbl of next) {
+      if (!nhIntentLabelsForSoundRef.current.has(lbl)) {
+        hasNewIntent = true;
+        break;
+      }
+    }
+    nhIntentLabelsForSoundRef.current = next;
+    if (hasNewIntent) playKitchenNomihodaiIntentAlert();
+  }, [guestNomihodaiIntentLabels]);
+
+  useEffect(() => {
     const onLedger = () => setLedgerRevision((n) => n + 1);
     window.addEventListener('beifutei-daily-ledger-updated', onLedger);
     return () => window.removeEventListener('beifutei-daily-ledger-updated', onLedger);
@@ -801,6 +855,11 @@ export default function KitchenApp() {
             onClick={() => setStaffTab(STAFF_TABS.tableStatus)}
           >
             各卓・伝票
+            {guestNomihodaiIntentLabels.length > 0 ? (
+              <span className="kitchen-v2-tab__badge kitchen-v2-tab__badge--nh-intent" aria-hidden>
+                NH{guestNomihodaiIntentLabels.length}
+              </span>
+            ) : null}
             {hasCheckoutRequests ? (
               <span className="kitchen-v2-tab__badge kitchen-v2-tab__badge--checkout" aria-hidden>
                 会計{checkoutRequestLabels.length}
@@ -840,6 +899,30 @@ export default function KitchenApp() {
       </header>
 
       <StoreEntryUrlsPanel variant="kitchen" />
+
+      {guestNomihodaiIntentLabels.length > 0 ? (
+        <div className="kitchen-nh-intent-sticky" role="alert" aria-live="assertive">
+          <span className="kitchen-nh-intent-sticky__icon" aria-hidden>
+            🍻
+          </span>
+          <div className="kitchen-nh-intent-sticky__body">
+            <strong className="kitchen-nh-intent-sticky__title">飲み放題のご希望</strong>
+            <span className="kitchen-nh-intent-sticky__tables">
+              卓{guestNomihodaiIntentLabels.join('・')}
+            </span>
+            <span className="kitchen-nh-intent-sticky__hint">
+              人数を確認して「飲み放題開始」。未提供がある卓は注文一覧からも開始できます。
+            </span>
+          </div>
+          <button
+            type="button"
+            className="kitchen-nh-intent-sticky__cta"
+            onClick={() => openSlipTabWithNhOps(guestNomihodaiIntentLabels[0])}
+          >
+            各卓・伝票へ
+          </button>
+        </div>
+      ) : null}
 
       <div className="kitchen-live-strip" role="region" aria-label="未提供サマリー">
         <button
@@ -1226,12 +1309,18 @@ export default function KitchenApp() {
 
             {staffTab === STAFF_TABS.tableStatus && (
               <>
-                <section className="kitchen-orders kitchen-orders--in-hub kitchen-table-hub" aria-labelledby="kitchen-tables-heading">
+                <section
+                  className="kitchen-orders kitchen-orders--in-hub kitchen-table-hub kitchen-table-hub--slip-board"
+                  aria-labelledby="kitchen-tables-heading"
+                >
                     <div className="kitchen-orders__head">
                       <h2 id="kitchen-tables-heading" className="kitchen-orders__title">
                         各卓・伝票
                       </h2>
                       <span className="kitchen-orders__badge">{servedOrders.length}件 提供済</span>
+                      <span className="kitchen-orders__badge kitchen-orders__badge--slip-hint">
+                        5卓横並び・縦長伝票
+                      </span>
                     </div>
                     <details className="kitchen-orders__help">
                       <summary>使い方</summary>
@@ -1242,7 +1331,7 @@ export default function KitchenApp() {
                         円／回・税込）。
                       </p>
                     </details>
-                    <div className="kitchen-table-status-grid">
+                    <div className="kitchen-table-status-grid kitchen-table-status-grid--slip-board">
                       {TABLE_HERO_LABELS.map((label) => {
                         const list = ordersByTableLabel.get(label) || [];
                         const pendingList = list.filter((o) => o.status === 'pending');
@@ -1268,9 +1357,11 @@ export default function KitchenApp() {
                             key={label}
                             className={[
                               'kitchen-table-status',
+                              'kitchen-table-status--slip-column',
                               isNh ? 'kitchen-table-status--nh' : '',
                               isSessionTable ? 'kitchen-table-status--session' : '',
-                              intentHereWithQueue ? 'kitchen-table-status--nh-intent' : '',
+                              intentGuest ? 'kitchen-table-status--nh-intent' : '',
+                              intentHereWithQueue ? 'kitchen-table-status--nh-intent-queue' : '',
                               pendingN > 0 ? 'kitchen-table-status--has-pending' : '',
                               hasCheckoutReq ? 'kitchen-table-status--checkout-req' : '',
                             ]

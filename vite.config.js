@@ -41,6 +41,10 @@ export default defineConfig(({ mode }) => {
   const { url: sbUrl, key: sbKey } = resolveSupabaseForClient(merged)
   let guestPromoMedia = String(merged.VITE_GUEST_PROMO_MEDIA ?? '').trim() || '/screensaver4.mp4'
   if (/screensaver3\.mp4/i.test(guestPromoMedia)) guestPromoMedia = '/screensaver4.mp4'
+  /** 画像スライドショー指定は廃止し、常に screensaver4 動画へ */
+  if (/\.(png|jpe?g|webp|gif|svg)(\?|#|$)/i.test(guestPromoMedia) && !/\.(mp4|webm|ogg|mov)/i.test(guestPromoMedia)) {
+    guestPromoMedia = '/screensaver4.mp4'
+  }
 
   return {
   define: {

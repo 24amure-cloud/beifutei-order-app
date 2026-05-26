@@ -1,10 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  GUEST_PROMO_DEFAULT_VIDEO_PATH,
-  GUEST_PROMO_FALLBACK_IMAGE_PATHS,
-  GUEST_PROMO_MIN_VALID_VIDEO_BYTES,
-} from './guestPromoScreensaverConfig.js';
+import { GUEST_PROMO_DEFAULT_VIDEO_PATH } from './guestPromoScreensaverConfig.js';
 
 const VIDEO_RE = /\.(mp4|webm|ogg|mov)(\?|#|$)/i;
 
@@ -27,24 +23,17 @@ export function resolveGuestPromoMediaUrl(path) {
   return `${normalizedBase}${rel}`;
 }
 
-function fallbackImageUrls() {
-  return GUEST_PROMO_FALLBACK_IMAGE_PATHS.map(resolveGuestPromoMediaUrl);
-}
-
 function defaultVideoUrl() {
   return resolveGuestPromoMediaUrl(GUEST_PROMO_DEFAULT_VIDEO_PATH);
 }
 
-async function isVideoUrlReachable(url) {
-  try {
-    const res = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-    if (!res.ok) return false;
-    const len = Number(res.headers.get('content-length'));
-    if (Number.isFinite(len) && len > 0 && len < GUEST_PROMO_MIN_VALID_VIDEO_BYTES) return false;
-    return true;
-  } catch {
-    return false;
-  }
+function normalizeScreensaverUrls(urls) {
+  const list = urls.map((u) => String(u).trim()).filter(Boolean);
+  const videos = list.filter((u) => VIDEO_RE.test(u));
+  if (videos.length > 0) return videos;
+  const onlyVideo = list.filter((u) => !/\.(png|jpe?g|webp|gif|svg)(\?|#|$)/i.test(u));
+  if (onlyVideo.length > 0) return onlyVideo;
+  return [defaultVideoUrl()];
 }
 
 /**
@@ -54,8 +43,9 @@ async function isVideoUrlReachable(url) {
 export function readGuestPromoScreensaverEnv() {
   const envMedia = import.meta.env.VITE_GUEST_PROMO_MEDIA;
   const fromEnv = parsePromoUrls(envMedia);
-  const urls =
+  const rawUrls =
     fromEnv.length > 0 ? fromEnv.map(resolveGuestPromoMediaUrl) : [defaultVideoUrl()];
+  const urls = normalizeScreensaverUrls(rawUrls);
 
   const envIdleRaw = import.meta.env.VITE_GUEST_IDLE_SCREENSAVER_MS;
   const idleMs =
@@ -74,46 +64,17 @@ export default function GuestPromoScreensaver({ paused }) {
     () => readGuestPromoScreensaverEnv(),
     [],
   );
-  const fallbackUrls = useMemo(() => fallbackImageUrls(), []);
-  const [playUrls, setPlayUrls] = useState(configuredUrls);
+  const [playUrls] = useState(configuredUrls);
   const [visible, setVisible] = useState(false);
   const [slide, setSlide] = useState(0);
+  const [videoError, setVideoError] = useState(false);
   const idleTimerRef = useRef(null);
   const slideTimerRef = useRef(null);
   const videoRef = useRef(null);
+  const videoRetryRef = useRef(0);
 
   const primaryUrl = playUrls[0] || '';
   const primaryIsVideo = primaryUrl && VIDEO_RE.test(primaryUrl);
-
-  useEffect(() => {
-    setPlayUrls(configuredUrls);
-    setSlide(0);
-  }, [configuredUrls]);
-
-  useEffect(() => {
-    if (!enabled) return undefined;
-    const first = configuredUrls[0];
-    if (!first || !VIDEO_RE.test(first)) return undefined;
-
-    let cancelled = false;
-    void (async () => {
-      const ok = await isVideoUrlReachable(first);
-      if (cancelled) return;
-      if (!ok) setPlayUrls(fallbackUrls);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, configuredUrls, fallbackUrls]);
-
-  const switchToFallback = useCallback(() => {
-    setPlayUrls((prev) => {
-      if (prev[0] === fallbackUrls[0]) return prev;
-      return fallbackUrls;
-    });
-    setSlide(0);
-  }, [fallbackUrls]);
 
   const setVideoEl = useCallback((el) => {
     videoRef.current = el;
@@ -134,6 +95,8 @@ export default function GuestPromoScreensaver({ paused }) {
     idleTimerRef.current = window.setTimeout(() => {
       setVisible(true);
       setSlide(0);
+      setVideoError(false);
+      videoRetryRef.current = 0;
     }, idleMs);
   }, [enabled, idleMs, paused]);
 
@@ -209,6 +172,23 @@ export default function GuestPromoScreensaver({ paused }) {
     return () => document.body.classList.remove('guest-screensaver-active');
   }, [visible]);
 
+  const onVideoError = useCallback(() => {
+    const v = videoRef.current;
+    if (v && videoRetryRef.current < 2) {
+      videoRetryRef.current += 1;
+      const base = playUrls[slide] || playUrls[0];
+      if (base) {
+        const sep = base.includes('?') ? '&' : '?';
+        v.src = `${base}${sep}retry=${Date.now()}`;
+        v.load();
+        const p = v.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+        return;
+      }
+    }
+    setVideoError(true);
+  }, [playUrls, slide]);
+
   if (!enabled) return null;
 
   const currentUrl = playUrls[slide] || playUrls[0];
@@ -228,9 +208,9 @@ export default function GuestPromoScreensaver({ paused }) {
       {visible ? (
         <>
           <div className="guest-promo-screensaver__media" aria-hidden="true">
-            {isVideo ? (
+            {isVideo && !videoError ? (
               <video
-                key={currentUrl}
+                key={`${currentUrl}-${slide}`}
                 ref={setVideoEl}
                 className="guest-promo-screensaver__video"
                 src={currentUrl}
@@ -242,18 +222,12 @@ export default function GuestPromoScreensaver({ paused }) {
                 loop
                 controls={false}
                 disablePictureInPicture
-                onError={switchToFallback}
+                onError={onVideoError}
               />
             ) : (
-              <img
-                key={currentUrl}
-                className="guest-promo-screensaver__img"
-                src={currentUrl}
-                alt=""
-                decoding="async"
-                loading="eager"
-                onError={switchToFallback}
-              />
+              <p className="guest-promo-screensaver__video-fallback" role="status">
+                動画を読み込めませんでした。しばらくしてから画面をタッチして注文に戻ってください。
+              </p>
             )}
           </div>
           <p className="guest-promo-screensaver__hint">画面をタッチして注文に戻る</p>
