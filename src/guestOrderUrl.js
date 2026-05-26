@@ -1,3 +1,5 @@
+import { normalizeTableLabelKey } from './nomihodaiSession.js';
+
 /** Vite の BASE_URL を常に末尾スラッシュ付きのパスとして扱う */
 export function appBasePath() {
   const base = String(import.meta.env.BASE_URL || '/');
@@ -32,4 +34,13 @@ export function buildGuestOrderPageUrl(tableLabel) {
   const u = new URL(appBasePath(), window.location.origin);
   u.searchParams.set('table', String(tableLabel ?? '').trim());
   return u.href;
+}
+
+/** 客席 URL の ?table= を正規化して返す（無ければ ''） */
+export function readGuestTableLabelFromUrl(location) {
+  if (typeof window === 'undefined' && !location) return '';
+  const search = location?.search ?? (typeof window !== 'undefined' ? window.location.search : '');
+  const tbl = new URLSearchParams(search).get('table');
+  if (!tbl || !String(tbl).trim()) return '';
+  return normalizeTableLabelKey(String(tbl).trim()) || '';
 }

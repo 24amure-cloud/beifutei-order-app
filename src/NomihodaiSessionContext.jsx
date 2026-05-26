@@ -47,6 +47,7 @@ import {
   loadGuestPartyLocalAll,
   saveGuestPartyLocal,
 } from './guestPartyDemographics.js';
+import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
 
 const Ctx = createContext(null);
 
@@ -163,20 +164,36 @@ function normalizeItemPriceYen(raw) {
   return 0;
 }
 
+function loadLocalDeviceStateFromStorage() {
+  try {
+    const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      return {
+        tableId: p.tableId || 'default',
+        tableLabel: normalizeTableLabelKey(p.tableLabel ?? '') || '3',
+        nomihodaiFarewell: p.nomihodaiFarewell || null,
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+  return { tableId: 'default', tableLabel: '3', nomihodaiFarewell: null };
+}
+
 export function NomihodaiSessionProvider({ children }) {
   const [localDeviceState, setLocalDeviceState] = useState(() => {
-    try {
-      const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
-      if (raw) {
-        const p = JSON.parse(raw);
-        return {
-          tableId: p.tableId || 'default',
-          tableLabel: normalizeTableLabelKey(p.tableLabel ?? '') || '3',
-          nomihodaiFarewell: p.nomihodaiFarewell || null,
-        };
+    const fromUrl = readGuestTableLabelFromUrl();
+    if (fromUrl) {
+      const next = { tableId: 'default', tableLabel: fromUrl, nomihodaiFarewell: null };
+      try {
+        localStorage.setItem(NOMIHODAI_SESSION_KEY, JSON.stringify({ ...next, updatedAt: Date.now() }));
+      } catch {
+        /* ignore */
       }
-    } catch {}
-    return { tableId: 'default', tableLabel: '3', nomihodaiFarewell: null };
+      return next;
+    }
+    return loadLocalDeviceStateFromStorage();
   });
 
   const saveLocalDeviceState = useCallback((updater) => {
@@ -191,19 +208,15 @@ export function NomihodaiSessionProvider({ children }) {
   }, []);
 
   const reloadLocalDeviceFromStorage = useCallback(() => {
-    try {
-      const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
-      if (!raw) return;
-      const p = JSON.parse(raw);
-      if (!p || typeof p !== 'object') return;
-      setLocalDeviceState({
-        tableId: p.tableId || 'default',
-        tableLabel: normalizeTableLabelKey(p.tableLabel ?? '') || '3',
-        nomihodaiFarewell: p.nomihodaiFarewell || null,
-      });
-    } catch {
-      /* ignore */
+    const fromUrl = readGuestTableLabelFromUrl();
+    if (fromUrl) {
+      setLocalDeviceState((prev) => ({
+        ...prev,
+        tableLabel: fromUrl,
+      }));
+      return;
     }
+    setLocalDeviceState(loadLocalDeviceStateFromStorage());
   }, []);
 
   const [dbOrders, setDbOrders] = useState([]);
@@ -674,7 +687,7 @@ export function NomihodaiSessionProvider({ children }) {
     const t = Date.now();
     const inserts = rows.map((r, idx) => ({
       id: `ord-${t}-${idx}-${Math.random().toString(36).slice(2, 7)}`,
-      table_label: session.tableLabel,
+      table_label: lbl,
       item_id: r.itemId || `guest-item-${idx}`,
       item_name: r.itemName,
       item_price: normalizeItemPriceYen(r.itemPrice ?? r.price),

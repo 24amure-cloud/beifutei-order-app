@@ -22,6 +22,7 @@ import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 import GuestOnboardingGate from './GuestOnboardingGate.jsx';
+import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
 import {
@@ -1393,11 +1394,8 @@ function App() {
 
   useEffect(() => {
     const syncTableFromUrl = () => {
-      const params = new URLSearchParams(window.location.search);
-      const tbl = params.get('table');
-      if (tbl && String(tbl).trim()) {
-        setSessionTableLabel(String(tbl).trim());
-      }
+      const fromUrl = readGuestTableLabelFromUrl();
+      if (fromUrl) setSessionTableLabel(fromUrl);
     };
     syncTableFromUrl();
     window.addEventListener('popstate', syncTableFromUrl);

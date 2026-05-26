@@ -7,7 +7,12 @@ import {
 } from './alcoholTableCharge.js';
 import { formatLedgerPaymentJa, getLocalDateKey, loadDailyLedger } from './dailyLedger.js';
 import { NOMIHODAI_EXTENSION_PRICE_YEN } from './nomihodaiConstants.js';
-import { getNomihodaiForTable, TABLE_MEMO_MAX_LEN } from './nomihodaiSession.js';
+import {
+  collectKnownTableLabels,
+  getNomihodaiForTable,
+  mergeTableLabelLists,
+  TABLE_MEMO_MAX_LEN,
+} from './nomihodaiSession.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import TableMemoRibbon from './TableMemoRibbon.jsx';
 import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
@@ -508,6 +513,12 @@ export default function KitchenApp() {
   }, [session.nomihodaiByLabel, session.tableLabel]);
 
   const allOrders = useMemo(() => session.orders, [session.orders]);
+
+  /** 伝票ボードに出す卓：固定1〜8 ＋ 注文・人数・NH等が付いた卓（URL卓番もここに載る） */
+  const slipBoardTableLabels = useMemo(
+    () => mergeTableLabelLists(TABLE_HERO_LABELS, collectKnownTableLabels(session)),
+    [session],
+  );
   /** 全卓共通：createdAt が古いほど先（上） */
   const pendingOrders = useMemo(
     () =>
@@ -580,7 +591,7 @@ export default function KitchenApp() {
     setNhForm((prev) => {
       let changed = false;
       const next = { ...prev };
-      for (const label of TABLE_HERO_LABELS) {
+      for (const label of slipBoardTableLabels) {
         const party = session.guestPartyByLabel?.[label];
         if (!(party?.capturedAt > 0)) continue;
         if (getNomihodaiForTable(session, label)?.active) continue;
@@ -594,7 +605,7 @@ export default function KitchenApp() {
       }
       return changed ? next : prev;
     });
-  }, [session.guestPartyByLabel, session.nomihodaiByLabel]);
+  }, [session.guestPartyByLabel, session.nomihodaiByLabel, slipBoardTableLabels]);
 
   const serveOrderBatch = useCallback(
     (orders) => {
@@ -639,7 +650,7 @@ export default function KitchenApp() {
   );
   const ordersByTableLabel = useMemo(() => {
     const map = new Map();
-    for (const label of TABLE_HERO_LABELS) {
+    for (const label of slipBoardTableLabels) {
       map.set(label, []);
     }
     for (const o of allOrders) {
@@ -651,7 +662,7 @@ export default function KitchenApp() {
       arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     }
     return map;
-  }, [allOrders, session.tableLabel]);
+  }, [allOrders, session.tableLabel, slipBoardTableLabels]);
 
   const tableDetailTotals = useMemo(() => {
     if (!tableDetailLabel) return null;
@@ -1356,7 +1367,7 @@ export default function KitchenApp() {
                       </p>
                     </details>
                     <div className="kitchen-table-status-grid kitchen-table-status-grid--slip-board">
-                      {TABLE_HERO_LABELS.map((label) => {
+                      {slipBoardTableLabels.map((label) => {
                         const list = ordersByTableLabel.get(label) || [];
                         const pendingList = list.filter((o) => o.status === 'pending');
                         const servedList = list.filter((o) => o.status === 'served');

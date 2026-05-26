@@ -206,14 +206,30 @@ function sortTableLabelStrings(labels) {
   });
 }
 
+/** 複数の卓番リストをマージ（重複なし・ソート済み） */
+export function mergeTableLabelLists(...labelLists) {
+  const s = new Set();
+  for (const list of labelLists) {
+    if (!Array.isArray(list)) continue;
+    for (const raw of list) {
+      const k = normalizeTableLabelKey(raw);
+      if (k) s.add(k);
+    }
+  }
+  return sortTableLabelStrings([...s]);
+}
+
 /** 注文・卓状態・メモ等から、いまデータに現れている卓番の一覧（重複なし・ソート済み） */
 export function collectKnownTableLabels(session) {
   const s = new Set();
   const add = (k) => {
-    if (k == null) return;
-    const t = String(k).trim();
+    const t = normalizeTableLabelKey(k);
     if (t) s.add(t);
   };
+  add(session?.tableLabel);
+  if (session.guestPartyByLabel && typeof session.guestPartyByLabel === 'object') {
+    Object.keys(session.guestPartyByLabel).forEach(add);
+  }
   if (session.nomihodaiByLabel && typeof session.nomihodaiByLabel === 'object') {
     Object.keys(session.nomihodaiByLabel).forEach(add);
   }
