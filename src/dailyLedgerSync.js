@@ -3,7 +3,12 @@
  */
 
 import { isSupabaseConfigured, supabase } from './supabaseClient.js';
-import { isValidEntry, loadDailyLedger, persistDailyLedgerEntries } from './dailyLedger.js';
+import {
+  isValidEntry,
+  loadDailyLedger,
+  loadDeletedLedgerIds,
+  persistDailyLedgerEntries,
+} from './dailyLedger.js';
 
 const TABLE = 'beifutei_daily_ledger';
 const PULL_LIMIT = 2000;
@@ -47,12 +52,23 @@ export async function pullAndMergeDailyLedgerFromSupabase() {
       .limit(PULL_LIMIT);
     if (error) return { ok: false, error: error.message };
 
+    const deletedIds = loadDeletedLedgerIds();
     const remote = (data || []).map(entryFromRow).filter(Boolean);
     const local = loadDailyLedger().entries;
     const map = new Map();
-    for (const e of local) map.set(e.id, e);
-    for (const e of remote) map.set(e.id, e);
-    const merged = Array.from(map.values()).sort((a, b) => a.recordedAt - b.recordedAt);
+    for (const e of local) {
+      if (!deletedIds.has(e.id)) map.set(e.id, e);
+    }
+    for (const e of remote) {
+      if (deletedIds.has(e.id)) {
+        deleteDailyLedgerEntryFromSupabase(e.id);
+        continue;
+      }
+      map.set(e.id, e);
+    }
+    const merged = Array.from(map.values())
+      .filter((e) => !deletedIds.has(e.id))
+      .sort((a, b) => a.recordedAt - b.recordedAt);
     persistDailyLedgerEntries(merged);
     if (merged.length > 0) {
       const rows = merged.map((e) => ({

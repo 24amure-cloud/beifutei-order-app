@@ -11,6 +11,8 @@ import {
 } from './dailyLedger.js';
 import { summarizeLedgerCategoryBuckets } from './ledgerCategoryBuckets.js';
 import LedgerDataNotice from './LedgerDataNotice.jsx';
+import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
+import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
 
 const WEEK_JA = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -276,6 +278,9 @@ export default function OwnerSalesCalendar() {
 
           <div className="owner-cal-block">
             <h4 className="owner-cal-block__h">伝票一覧（会計確定）</h4>
+            <p className="owner-cal-block__hint">
+              各行の「日時」「削除」で修正できます（オーナー用パスワード・初期値 1211）。
+            </p>
             {selectedDayEntries.length === 0 ? (
               <p className="master-ledger-empty">この日の会計記録はありません</p>
             ) : (
@@ -292,6 +297,20 @@ export default function OwnerSalesCalendar() {
                       </summary>
                       <div className="owner-cal-slip__memo">
                         {e.checkoutMemo ? <span>{e.checkoutMemo}</span> : <span className="owner-cal-slip__memo--empty">メモなし</span>}
+                      </div>
+                      <div className="owner-cal-slip__actions master-ledger-act">
+                        <div className="master-ledger-act__btns">
+                          <LedgerEntryEditDateButton
+                            entry={e}
+                            variant="master"
+                            onUpdated={() => setTick((x) => x + 1)}
+                          />
+                          <LedgerEntryDeleteButton
+                            entry={e}
+                            variant="master"
+                            onDeleted={() => setTick((x) => x + 1)}
+                          />
+                        </div>
                       </div>
                       <ul className="owner-cal-slip__lines">
                         {(e.lines || []).map((ln, i) => (

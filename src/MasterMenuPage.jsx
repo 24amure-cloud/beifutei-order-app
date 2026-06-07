@@ -4,6 +4,8 @@ import DailyLedgerDashboard from './DailyLedgerDashboard.jsx';
 import OwnerSalesCalendar from './OwnerSalesCalendar.jsx';
 import MonthClosePanel from './MonthClosePanel.jsx';
 import MasterOpsPanel from './MasterOpsPanel.jsx';
+import MasterGuestUrlsPanel from './MasterGuestUrlsPanel.jsx';
+import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 import {
   MasterDrinkMenuPanel,
   MasterNomihodaiMenuPanel,
@@ -51,7 +53,7 @@ function todayLabel() {
 
 export default function MasterMenuPage() {
   const editor = useMasterMenuEditor();
-  const { guestNomihodaiIntentLabels } = useNomihodaiSession();
+  const { guestNomihodaiIntentLabels, session } = useNomihodaiSession();
 
   const [activeMode, setActiveMode] = useState('ops');
   const [lastMenuMode, setLastMenuMode] = useState('drink');
@@ -151,11 +153,18 @@ export default function MasterMenuPage() {
               厨房・スタッフ画面を開く
             </a>
 
+            <StoreEntryUrlsPanel variant="master-president" />
+
             {!isMenuMode(activeMode) && (
               <div className="master-president-aside-hint">
                 <p>過去の売上は「日計」「売上カレンダー」タブでご確認ください。</p>
               </div>
             )}
+
+            <details className="master-president-staff-tools">
+              <summary>スタッフ用ツール（客席URL・QR）</summary>
+              <MasterGuestUrlsPanel session={session} />
+            </details>
 
             {isMenuMode(activeMode) && (
               <>

@@ -6905,6 +6905,12 @@ button.fruit-toggle-btn {
   color: #aaa;
 }
 
+.owner-cal-slip__actions {
+  padding: 8px 12px 0;
+  border-top: 1px dashed #e8dfd4;
+  margin-top: 8px;
+}
+
 .owner-cal-slip__lines {
   list-style: none;
   margin: 0;

@@ -2,7 +2,36 @@
 
 export const DAILY_LEDGER_STORAGE_KEY = 'beifutei-daily-ledger-v1';
 export const DAILY_LEDGER_BACKUP_KEY = 'beifutei-daily-ledger-backup-v1';
+export const DAILY_LEDGER_DELETED_IDS_KEY = 'beifutei-daily-ledger-deleted-v1';
 export const LEDGER_SETTINGS_KEY = 'beifutei-ledger-settings-v1';
+
+const MAX_DELETED_LEDGER_IDS = 8000;
+
+/** @returns {Set<string>} */
+export function loadDeletedLedgerIds() {
+  try {
+    const raw = localStorage.getItem(DAILY_LEDGER_DELETED_IDS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(parsed.map((id) => String(id)).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistDeletedLedgerIds(deletedIds) {
+  const ids = [...deletedIds].slice(-MAX_DELETED_LEDGER_IDS);
+  localStorage.setItem(DAILY_LEDGER_DELETED_IDS_KEY, JSON.stringify(ids));
+}
+
+function recordDeletedLedgerId(entryId) {
+  const id = String(entryId || '').trim();
+  if (!id) return;
+  const deletedIds = loadDeletedLedgerIds();
+  deletedIds.add(id);
+  persistDeletedLedgerIds(deletedIds);
+}
 
 /** @typedef {{
  *   id: string,
@@ -110,13 +139,16 @@ function readLedgerStore(key) {
 }
 
 export function loadDailyLedger() {
-  const primary = readLedgerStore(DAILY_LEDGER_STORAGE_KEY);
-  const backup = readLedgerStore(DAILY_LEDGER_BACKUP_KEY);
+  const deletedIds = loadDeletedLedgerIds();
+  const primary = readLedgerStore(DAILY_LEDGER_STORAGE_KEY).filter((e) => !deletedIds.has(e.id));
+  const backup = readLedgerStore(DAILY_LEDGER_BACKUP_KEY).filter((e) => !deletedIds.has(e.id));
   if (backup.length === 0) return { version: 2, entries: primary };
   const map = new Map();
   for (const e of backup) map.set(e.id, e);
   for (const e of primary) map.set(e.id, e);
-  const entries = Array.from(map.values()).sort((a, b) => a.recordedAt - b.recordedAt);
+  const entries = Array.from(map.values())
+    .filter((e) => !deletedIds.has(e.id))
+    .sort((a, b) => a.recordedAt - b.recordedAt);
   return { version: 2, entries };
 }
 
@@ -212,6 +244,7 @@ export function removeDailyLedgerEntry(entryId) {
   const prev = loadDailyLedger();
   const next = prev.entries.filter((e) => e.id !== id);
   if (next.length === prev.entries.length) return false;
+  recordDeletedLedgerId(id);
   persistDailyLedgerEntries(next);
   import('./dailyLedgerSync.js').then(({ deleteDailyLedgerEntryFromSupabase }) => {
     deleteDailyLedgerEntryFromSupabase(id);
