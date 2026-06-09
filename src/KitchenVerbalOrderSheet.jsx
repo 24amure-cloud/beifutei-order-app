@@ -3,6 +3,7 @@ import { useMenuMaster } from './MenuMasterContext.jsx';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getNomihodaiForTable } from './nomihodaiSession.js';
 import { KITCHEN_VERBAL_FOOD_PICKS, flattenDrinkQuickPicks } from './kitchenVerbalOrderQuickPicks.js';
+import KitchenSwipeDeleteRow from './KitchenSwipeDeleteRow.jsx';
 
 const TABLE_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
@@ -340,28 +341,26 @@ export default function KitchenVerbalOrderSheet({ tableLabel: initialTable, onCl
               <header className="kitchen-verbal-cart__head">
                 <h3 className="kitchen-verbal-cart__title">追加予定</h3>
                 <span className="kitchen-verbal-cart__meta">
-                  {lines.length}品 · 小計 ￥{subtotal.toLocaleString()}
+                  {lines.length}品 · 小計 ￥{subtotal.toLocaleString()} · 左スワイプで削除
                 </span>
               </header>
               <ul className="kitchen-verbal-cart__list">
                 {lines.map((l, i) => (
-                  <li key={l._key} className="kitchen-verbal-cart__row">
-                    <span className="kitchen-verbal-cart__idx">{i + 1}</span>
-                    <div className="kitchen-verbal-cart__main">
-                      <span className="kitchen-verbal-cart__name">{l.itemName}</span>
-                      {l.nhPlanFree ? <span className="kitchen-verbal-cart__tag">NH内</span> : null}
-                    </div>
-                    <span className="kitchen-verbal-cart__price">
-                      {l.nhPlanFree ? '￥0' : `￥${(l.price || 0).toLocaleString()}`}
-                    </span>
-                    <button
-                      type="button"
-                      className="kitchen-verbal-cart__remove"
-                      onClick={() => removeLine(l._key)}
-                      aria-label="削除"
+                  <li key={l._key}>
+                    <KitchenSwipeDeleteRow
+                      className="kitchen-swipe-row--verbal"
+                      surfaceClassName="kitchen-verbal-cart__row"
+                      onDelete={() => removeLine(l._key)}
                     >
-                      ×
-                    </button>
+                      <span className="kitchen-verbal-cart__idx">{i + 1}</span>
+                      <div className="kitchen-verbal-cart__main">
+                        <span className="kitchen-verbal-cart__name">{l.itemName}</span>
+                        {l.nhPlanFree ? <span className="kitchen-verbal-cart__tag">NH内</span> : null}
+                      </div>
+                      <span className="kitchen-verbal-cart__price">
+                        {l.nhPlanFree ? '￥0' : `￥${(l.price || 0).toLocaleString()}`}
+                      </span>
+                    </KitchenSwipeDeleteRow>
                   </li>
                 ))}
               </ul>

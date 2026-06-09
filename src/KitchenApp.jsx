@@ -27,6 +27,7 @@ import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 import KitchenVerbalOrderSheet from './KitchenVerbalOrderSheet.jsx';
 import KitchenCheckoutModal from './KitchenCheckoutModal.jsx';
+import KitchenSwipeDeleteRow from './KitchenSwipeDeleteRow.jsx';
 import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
 import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
 import {
@@ -444,6 +445,7 @@ export default function KitchenApp() {
     startNomihodai,
     endNomihodai,
     markOrderServed,
+    removeKitchenOrder,
     setOrderIsNomihodai,
     markPendingServedForTable,
     guestNomihodaiIntentLabels,
@@ -668,6 +670,26 @@ export default function KitchenApp() {
       alertServeFailed(res);
     },
     [markPendingServedForTable, alertServeFailed],
+  );
+
+  const handleRemoveOrder = useCallback(
+    async (order) => {
+      const name = orderKindMeta(order).firstLine;
+      if (
+        !window.confirm(
+          `「${name}」を伝票から削除しますか？\n間違えて打った行を取り消します。`,
+        )
+      ) {
+        return;
+      }
+      const res = await removeKitchenOrder(order.id);
+      if (res?.ok === false) {
+        window.alert(
+          `削除できませんでした。\n${res.errorMessage === 'ORDER_NOT_FOUND' ? '注文が見つかりません（再同期を試してください）' : res.errorMessage || '通信またはDBを確認してください'}`,
+        );
+      }
+    },
+    [removeKitchenOrder],
   );
 
   const serveOrderBatch = useCallback(
@@ -1761,24 +1783,33 @@ export default function KitchenApp() {
                             <section className="kitchen-table-status__orders" aria-label="注文と伝票">
                               {pendingList.length > 0 ? (
                                 <>
-                                  <h3 className="kitchen-table-status__orders-heading">未提供</h3>
+                                  <h3 className="kitchen-table-status__orders-heading">
+                                    未提供
+                                    <span className="kitchen-table-status__swipe-hint">左スワイプで削除</span>
+                                  </h3>
                                   <ul className="kitchen-table-status__hist-list">
                                     {pendingList.map((o) => {
                                       const meta = orderKindMeta(o);
                                       return (
-                                        <li key={o.id} className="kitchen-table-status__hist-row">
-                                          <span aria-hidden>{meta.emoji}</span>
-                                          <span className="kitchen-table-status__hist-name">{meta.firstLine}</span>
-                                          <span className="kitchen-table-status__st kitchen-table-status__st--wait">
-                                            未提供
-                                          </span>
-                                          <button
-                                            type="button"
-                                            className="kitchen-table-status__hist-serve"
-                                            onClick={() => void handleMarkServed(o.id)}
+                                        <li key={o.id}>
+                                          <KitchenSwipeDeleteRow
+                                            className="kitchen-swipe-row--hist"
+                                            surfaceClassName="kitchen-table-status__hist-row"
+                                            onDelete={() => void handleRemoveOrder(o)}
                                           >
-                                            提供済
-                                          </button>
+                                            <span aria-hidden>{meta.emoji}</span>
+                                            <span className="kitchen-table-status__hist-name">{meta.firstLine}</span>
+                                            <span className="kitchen-table-status__st kitchen-table-status__st--wait">
+                                              未提供
+                                            </span>
+                                            <button
+                                              type="button"
+                                              className="kitchen-table-status__hist-serve"
+                                              onClick={() => void handleMarkServed(o.id)}
+                                            >
+                                              提供済
+                                            </button>
+                                          </KitchenSwipeDeleteRow>
                                         </li>
                                       );
                                     })}
@@ -1787,28 +1818,36 @@ export default function KitchenApp() {
                               ) : null}
                               {servedList.length > 0 ? (
                                 <>
-                                  <h3 className="kitchen-table-status__orders-heading">提供済・伝票</h3>
+                                  <h3 className="kitchen-table-status__orders-heading">
+                                    提供済・伝票
+                                    <span className="kitchen-table-status__swipe-hint">左スワイプで削除</span>
+                                  </h3>
                                   <ul className="kitchen-table-status__slip-list">
                                     {servedList.map((o) => (
-                                      <li
-                                        key={o.id}
-                                        className={`kitchen-table-status__slip-row${
-                                          isNomihodaiChargedExtra(o) ? ' kitchen-table-status__slip-row--nh-extra' : ''
-                                        }`}
-                                      >
-                                        <div className="kitchen-table-status__slip-main">
-                                          <span className="kitchen-table-status__slip-name">{o.itemName}</span>
-                                          <span className="kitchen-table-status__slip-meta">
-                                            {orderLineSlipMetaPrice(o)} /{' '}
-                                            {o.createdAt ? fmtTime(o.createdAt) : '--:--'}
-                                          </span>
-                                        </div>
-                                        <OrderBillingToggle
-                                          orderId={o.id}
-                                          isNomihodai={nhToggleShowsNomihodaiActive(o)}
-                                          onSetNomihodai={setOrderIsNomihodai}
-                                          compact
-                                        />
+                                      <li key={o.id}>
+                                        <KitchenSwipeDeleteRow
+                                          className="kitchen-swipe-row--slip"
+                                          surfaceClassName={`kitchen-table-status__slip-row${
+                                            isNomihodaiChargedExtra(o)
+                                              ? ' kitchen-table-status__slip-row--nh-extra'
+                                              : ''
+                                          }`}
+                                          onDelete={() => void handleRemoveOrder(o)}
+                                        >
+                                          <div className="kitchen-table-status__slip-main">
+                                            <span className="kitchen-table-status__slip-name">{o.itemName}</span>
+                                            <span className="kitchen-table-status__slip-meta">
+                                              {orderLineSlipMetaPrice(o)} /{' '}
+                                              {o.createdAt ? fmtTime(o.createdAt) : '--:--'}
+                                            </span>
+                                          </div>
+                                          <OrderBillingToggle
+                                            orderId={o.id}
+                                            isNomihodai={nhToggleShowsNomihodaiActive(o)}
+                                            onSetNomihodai={setOrderIsNomihodai}
+                                            compact
+                                          />
+                                        </KitchenSwipeDeleteRow>
                                       </li>
                                     ))}
                                   </ul>

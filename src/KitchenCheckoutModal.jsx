@@ -19,6 +19,26 @@ function card5Total(base) {
   return Math.ceil(Math.max(0, Number(base) || 0) * 1.05);
 }
 
+/** お釣り計算用：ぴったり＋よく使う札の候補 */
+function buildCashQuickAmounts(due) {
+  const yen = Math.max(0, Math.round(Number(due) || 0));
+  const set = new Set([yen]);
+  for (const bill of [1000, 2000, 5000, 10000]) {
+    if (bill >= yen) set.add(bill);
+  }
+  for (const step of [100, 500, 1000, 5000]) {
+    const rounded = Math.ceil(yen / step) * step;
+    if (rounded >= yen) set.add(rounded);
+  }
+  return [...set].sort((a, b) => a - b).slice(0, 7);
+}
+
+function parseCashInput(raw) {
+  const digits = String(raw ?? '').replace(/[^\d]/g, '');
+  if (!digits) return 0;
+  return Math.min(9_999_999, Number(digits));
+}
+
 /**
  * 会計フロー：①お客様へ伝票提示 → ②お支払い確定 → ③レシート印刷の確認
  */
@@ -37,15 +57,21 @@ export default function KitchenCheckoutModal({
   const [step, setStep] = useState('present');
   const [paying, setPaying] = useState(false);
   const [completed, setCompleted] = useState(null);
+  const [cashReceived, setCashReceived] = useState('');
 
   useEffect(() => {
     setStep('present');
     setPaying(false);
     setCompleted(null);
+    setCashReceived('');
   }, [tableLabel]);
 
   const grandTotal = checkoutSlip?.slipGrandTotal ?? 0;
   const card5Yen = card5Total(grandTotal);
+  const receivedYen = parseCashInput(cashReceived);
+  const cashChange = receivedYen - grandTotal;
+  const cashReady = receivedYen >= grandTotal && grandTotal > 0;
+  const cashQuickAmounts = useMemo(() => buildCashQuickAmounts(grandTotal), [grandTotal]);
   const alcoholLine = useMemo(() => {
     if (!tableLabel || (checkoutSlip?.alcoholChargeYen ?? 0) <= 0) return null;
     return getAlcoholTableCharge(session, tableLabel);
@@ -264,6 +290,98 @@ export default function KitchenCheckoutModal({
     );
   }
 
+  if (step === 'cash') {
+    return (
+      <div
+        className="kitchen-checkout-page-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="kitchen-checkout-cash-title"
+        onClick={onClose}
+      >
+        <div className="kitchen-checkout-page kitchen-checkout-page--cash" onClick={(e) => e.stopPropagation()}>
+          <header className="kitchen-checkout-page__head">
+            <div>
+              <h2 id="kitchen-checkout-cash-title" className="kitchen-checkout-page__title">
+                {tableLabel}番卓・現金
+              </h2>
+              <p className="kitchen-checkout-page__lead">お客様から受け取った金額を入れて、お釣りを確認してから確定してください。</p>
+            </div>
+          </header>
+
+          <div className="kitchen-checkout-cash-due">
+            <span className="kitchen-checkout-cash-due__lab">ご会計（税込）</span>
+            <strong className="kitchen-checkout-cash-due__yen">￥{grandTotal.toLocaleString()}</strong>
+          </div>
+
+          <label className="kitchen-checkout-cash-input">
+            <span className="kitchen-checkout-cash-input__lab">お預かり</span>
+            <div className="kitchen-checkout-cash-input__row">
+              <span className="kitchen-checkout-cash-input__prefix">￥</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="kitchen-checkout-cash-input__field"
+                value={cashReceived}
+                onChange={(e) => setCashReceived(e.target.value.replace(/[^\d]/g, ''))}
+                placeholder="0"
+                autoFocus
+                aria-describedby="kitchen-checkout-cash-change"
+              />
+            </div>
+          </label>
+
+          <div className="kitchen-checkout-cash-quick" aria-label="よく使う金額">
+            {cashQuickAmounts.map((amt) => (
+              <button
+                key={amt}
+                type="button"
+                className={`kitchen-checkout-cash-quick__btn${amt === grandTotal ? ' kitchen-checkout-cash-quick__btn--exact' : ''}`}
+                onClick={() => setCashReceived(String(amt))}
+              >
+                {amt === grandTotal ? 'ぴったり' : `￥${amt.toLocaleString()}`}
+              </button>
+            ))}
+          </div>
+
+          <div
+            id="kitchen-checkout-cash-change"
+            className={`kitchen-checkout-cash-change${cashReady ? ' kitchen-checkout-cash-change--ok' : ''}${receivedYen > 0 && !cashReady ? ' kitchen-checkout-cash-change--short' : ''}`}
+            aria-live="polite"
+          >
+            <span className="kitchen-checkout-cash-change__lab">お釣り</span>
+            <strong className="kitchen-checkout-cash-change__yen">
+              {receivedYen <= 0 ? '—' : cashReady ? `￥${cashChange.toLocaleString()}` : '不足'}
+            </strong>
+          </div>
+
+          <div className="kitchen-checkout-cash-actions">
+            <button
+              type="button"
+              className="kitchen-checkout-cash-confirm"
+              disabled={paying || !cashReady}
+              onClick={() => void handlePay('cash')}
+            >
+              {paying ? '確定中…' : '現金で会計を確定'}
+            </button>
+            <button
+              type="button"
+              className="kitchen-checkout-cash-back"
+              disabled={paying}
+              onClick={() => {
+                setCashReceived('');
+                setStep('pay');
+              }}
+            >
+              支払い方法に戻る
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="kitchen-checkout-page-overlay" role="dialog" aria-modal="true" aria-labelledby="kitchen-checkout-pay-title" onClick={onClose}>
       <div className="kitchen-checkout-page kitchen-checkout-page--pay" onClick={(e) => e.stopPropagation()}>
@@ -304,11 +422,14 @@ export default function KitchenCheckoutModal({
             type="button"
             className="kitchen-checkout-pay kitchen-checkout-pay--cash"
             disabled={paying}
-            onClick={() => void handlePay('cash')}
+            onClick={() => {
+              setCashReceived('');
+              setStep('cash');
+            }}
           >
             <span className="kitchen-checkout-pay__label">現金</span>
             <span className="kitchen-checkout-pay__yen">￥{grandTotal.toLocaleString()}</span>
-            <span className="kitchen-checkout-pay__sub">税込</span>
+            <span className="kitchen-checkout-pay__sub">お釣り計算へ</span>
           </button>
           <button
             type="button"

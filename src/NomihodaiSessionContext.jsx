@@ -1262,6 +1262,33 @@ export function NomihodaiSessionProvider({ children }) {
     await supabase.from('beifutei_orders').delete().match({ id: orderId, is_nomihodai: true, status: 'pending' });
   }, []);
 
+  /** 厨房：伝票の行を削除（未提供・提供済どちらも） */
+  const removeKitchenOrder = useCallback(
+    async (orderId) => {
+      const id = String(orderId ?? '').trim();
+      if (!id) return { ok: false, errorMessage: 'ORDER_ID_MISSING' };
+
+      let removed = null;
+      setDbOrders((prev) => {
+        const hit = prev.find((o) => o.id === id);
+        if (!hit) return prev;
+        removed = hit;
+        return prev.filter((o) => o.id !== id);
+      });
+      if (!removed) return { ok: false, errorMessage: 'ORDER_NOT_FOUND' };
+
+      const { error } = await supabase.from('beifutei_orders').delete().eq('id', id);
+      if (error) {
+        pushKitchenDiagFromSupabase('beifutei_orders:delete', error, '伝票行削除');
+        applyDbConnectionFromError(error);
+        setDbOrders((prev) => [...prev, removed].sort((a, b) => (a.created_at || 0) - (b.created_at || 0)));
+        return { ok: false, errorMessage: error.message || String(error) };
+      }
+      return { ok: true };
+    },
+    [applyDbConnectionFromError],
+  );
+
   const markOrderServed = useCallback(
     async (orderId) => {
       const id = String(orderId ?? '').trim();
@@ -1647,6 +1674,7 @@ export function NomihodaiSessionProvider({ children }) {
       extendNomihodai,
       addNomihodaiOrder,
       cancelNomihodaiOrder,
+      removeKitchenOrder,
       markOrderServed,
       setOrderIsNomihodai,
       markPendingServedForTable,
@@ -1690,6 +1718,7 @@ export function NomihodaiSessionProvider({ children }) {
       extendNomihodai,
       addNomihodaiOrder,
       cancelNomihodaiOrder,
+      removeKitchenOrder,
       markOrderServed,
       setOrderIsNomihodai,
       markPendingServedForTable,
