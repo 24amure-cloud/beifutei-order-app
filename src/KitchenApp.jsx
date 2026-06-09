@@ -1,10 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ALCOHOL_CHARGE_AFTER_21_YEN,
-  ALCOHOL_CHARGE_BEFORE_21_YEN,
-  alcoholChargeYenPerPersonFromNow,
-  getAlcoholTableCharge,
-} from './alcoholTableCharge.js';
+import { getAlcoholTableCharge } from './alcoholTableCharge.js';
 import { formatLedgerPaymentJa, getLocalDateKey, loadDailyLedger } from './dailyLedger.js';
 import { NOMIHODAI_EXTENSION_PRICE_YEN } from './nomihodaiConstants.js';
 import {
@@ -38,6 +33,8 @@ import {
   printReceiptWithFeedback,
 } from './receiptPrint.js';
 import KitchenReceiptPreviewButton from './KitchenReceiptPreviewButton.jsx';
+import KitchenSlipBoard from './KitchenSlipBoard.jsx';
+import { computeTableHistoryTotals, resolveSlipBundleForTableLabel } from './kitchenSlipBundle.js';
 import {
   isNomihodaiChargedExtra,
   nhToggleShowsNomihodaiActive,
@@ -248,197 +245,10 @@ function OrderBillingToggle({ orderId, isNomihodai, onSetNomihodai, compact }) {
   );
 }
 
-/** 卓チャージ（スタッフが人数・1名あたり円を入力。時刻に応じた 500/800 は目安表示のみ） */
-function KitchenTableAlcoholChargePanel({ tableLabel, session, setTableAlcoholCharge, now }) {
-  const cur = getAlcoholTableCharge(session, tableLabel);
-  const [peopleStr, setPeopleStr] = useState('1');
-  const [yenStr, setYenStr] = useState(String(ALCOHOL_CHARGE_BEFORE_21_YEN));
-
-  const clockBand = useMemo(() => alcoholChargeYenPerPersonFromNow(now), [now]);
-
-  const bumpPeople = (delta) => {
-    setPeopleStr((s) => {
-      const n = Math.max(1, Math.min(99, (parseInt(String(s), 10) || 1) + delta));
-      return String(n);
-    });
-  };
-
-  useEffect(() => {
-    if (cur.totalYen > 0) {
-      setPeopleStr(String(Math.max(1, cur.people)));
-      setYenStr(String(Math.max(0, cur.yenPerPerson)));
-    } else {
-      setPeopleStr('1');
-      setYenStr(String(clockBand));
-    }
-  }, [tableLabel, cur.totalYen, cur.people, cur.yenPerPerson, clockBand]);
-
-  const onApply = () => {
-    const pe = Math.max(1, Math.min(99, Number(peopleStr) || 1));
-    const yp = Math.max(0, Math.min(999999, Math.floor(Number(String(yenStr).replace(/[^\d]/g, '')) || 0)));
-    if (yp <= 0) {
-      void setTableAlcoholCharge(tableLabel, { people: 0, yenPerPerson: 0 });
-      return;
-    }
-    void setTableAlcoholCharge(tableLabel, { people: pe, yenPerPerson: yp });
-  };
-
-  const onClear = () => {
-    void setTableAlcoholCharge(tableLabel, { people: 0, yenPerPerson: 0 });
-  };
-
-  return (
-    <details className="kitchen-table-status__alcohol-block">
-      <summary className="kitchen-table-status__alcohol-summary">
-        <span className="kitchen-table-status__alcohol-summary-title">卓チャージ（税込）</span>
-        {cur.totalYen > 0 ? (
-          <span className="kitchen-table-status__alcohol-summary-value">
-            ￥{cur.totalYen.toLocaleString()}
-          </span>
-        ) : (
-          <span className="kitchen-table-status__alcohol-summary-value kitchen-table-status__alcohol-summary-value--muted">
-            未設定
-          </span>
-        )}
-      </summary>
-      <div className="kitchen-table-status__alcohol">
-        <div className="kitchen-table-status__alcohol-head">
-          <span className="kitchen-table-status__alcohol-hint">
-            人数と1名あたりを決めて「反映」→客席のお会計に加算。下の 500/800 は時刻の目安です。
-          </span>
-        </div>
-        <div className="kitchen-table-status__alcohol-clock" role="status" aria-live="polite">
-          {clockBand === ALCOHOL_CHARGE_BEFORE_21_YEN ? (
-            <p className="kitchen-table-status__alcohol-clock-body">
-              <span className="kitchen-table-status__alcohol-clock-tag">目安・21時前</span>
-              <strong className="kitchen-table-status__alcohol-clock-yen">500円／名</strong>
-              <span className="kitchen-table-status__alcohol-clock-tax">（税込）</span>
-            </p>
-          ) : (
-            <p className="kitchen-table-status__alcohol-clock-body">
-              <span className="kitchen-table-status__alcohol-clock-tag">目安・21時以降</span>
-              <strong className="kitchen-table-status__alcohol-clock-yen">800円／名</strong>
-              <span className="kitchen-table-status__alcohol-clock-tax">（税込）</span>
-            </p>
-          )}
-        </div>
-        <div className="kitchen-table-status__alcohol-row">
-          <label className="kitchen-table-status__alcohol-people kitchen-table-status__alcohol-people--count">
-            <span className="kitchen-table-status__alcohol-people-label">人数（1〜99名）</span>
-            <span className="kitchen-table-status__alcohol-stepper">
-              <button
-                type="button"
-                className="kitchen-table-status__alcohol-stepbtn"
-                onClick={() => bumpPeople(-1)}
-                aria-label="人数を1減らす"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                min={1}
-                max={99}
-                value={peopleStr}
-                onChange={(e) => setPeopleStr(e.target.value)}
-                aria-label="チャージ対象人数"
-              />
-              <button
-                type="button"
-                className="kitchen-table-status__alcohol-stepbtn"
-                onClick={() => bumpPeople(1)}
-                aria-label="人数を1増やす"
-              >
-                ＋
-              </button>
-            </span>
-          </label>
-          <label className="kitchen-table-status__alcohol-people">
-            1名あたり（円）
-            <input
-              type="number"
-              min={0}
-              max={999999}
-              className="kitchen-table-status__alcohol-input--yen"
-              value={yenStr}
-              onChange={(e) => setYenStr(e.target.value)}
-              aria-label="卓チャージ1名あたり金額"
-            />
-          </label>
-          <button type="button" className="kitchen-table-status__alcohol-apply" onClick={onApply}>
-            反映
-          </button>
-          <button type="button" className="kitchen-table-status__alcohol-clear" onClick={onClear}>
-            クリア
-          </button>
-        </div>
-        {cur.totalYen > 0 ? (
-          <p className="kitchen-table-status__alcohol-live" role="status">
-            <strong>伝票に加算：</strong>
-            {cur.lineName} ＝ <strong>￥{cur.totalYen.toLocaleString()}</strong>
-          </p>
-        ) : (
-          <p className="kitchen-table-status__alcohol-live kitchen-table-status__alcohol-live--muted">未設定（税込）</p>
-        )}
-      </div>
-    </details>
-  );
-}
-
 const TABLE_HERO_LABELS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
 function buildInitialNhForm() {
   return Object.fromEntries(TABLE_HERO_LABELS.map((l) => [l, { men: 1, women: 1 }]));
-}
-
-/** 伝票サマリー（提供済カードに無い卓でも飲み放題プランのみの会計に対応） */
-function resolveSlipBundleForTableLabel(servedByTable, session, tableLabel) {
-  const tl = String(tableLabel);
-  const found = servedByTable.find((t) => String(t.tableLabel) === tl);
-  const nh = getNomihodaiForTable(session, tl);
-  const nomihodaiPlanYen = nh?.active ? Math.max(0, Number(nh.billTotal) || 0) : 0;
-  const alcoholYen = getAlcoholTableCharge(session, tl).totalYen;
-  if (found) {
-    const plan = nh?.active ? nomihodaiPlanYen : Math.max(0, Number(found.nomihodaiPlanYen) || 0);
-    return {
-      ...found,
-      nomihodaiPlanYen: plan,
-      alcoholChargeYen: alcoholYen,
-      slipGrandTotal: found.normalSubtotal + plan + alcoholYen,
-    };
-  }
-  return {
-    key: `default::${tl}`,
-    tableId: 'default',
-    tableLabel: tl,
-    orders: [],
-    normalSubtotal: 0,
-    normalCount: 0,
-    nomihodaiCount: 0,
-    nomihodaiPlanYen,
-    alcoholChargeYen: alcoholYen,
-    slipGrandTotal: nomihodaiPlanYen + alcoholYen,
-  };
-}
-
-/** 注文履歴（全ステータス）＋稼働中NHプランから、税込の目安合計 */
-function computeTableHistoryTotals(session, tableLabel, orders) {
-  const tl = String(tableLabel);
-  const list = Array.isArray(orders) ? orders : [];
-  let normalSubtotal = 0;
-  for (const o of list) {
-    const yen = Math.max(0, Number(o.itemPrice) || 0);
-    if (!o.isNomihodai) normalSubtotal += yen;
-    else if (yen > 0) normalSubtotal += yen;
-  }
-  const nh = getNomihodaiForTable(session, tl);
-  const nomihodaiPlanYen = nh?.active ? Math.max(0, Number(nh.billTotal) || 0) : 0;
-  const ac = getAlcoholTableCharge(session, tl);
-  return {
-    normalSubtotal,
-    nomihodaiPlanYen,
-    alcoholChargeYen: ac.totalYen,
-    grandTaxIn: normalSubtotal + nomihodaiPlanYen + ac.totalYen,
-  };
 }
 
 export default function KitchenApp() {
@@ -471,6 +281,8 @@ export default function KitchenApp() {
   const [ledgerRevision, setLedgerRevision] = useState(0);
   /** 各卓カードで「飲み放題・卓操作」パネルを開いている卓（1枚だけ） */
   const [tableNhOpsOpen, setTableNhOpsOpen] = useState(null);
+  /** 伝票ボードで詳細表示中の卓 */
+  const [slipBoardSelectedLabel, setSlipBoardSelectedLabel] = useState('1');
   /** 口頭注文シート（卓番 or null=閉） */
   const [verbalOrderTable, setVerbalOrderTable] = useState(null);
   const ordersHubRef = useRef(null);
@@ -499,7 +311,10 @@ export default function KitchenApp() {
       const L = normalizeTableLabelKey(label ?? '');
       setStaffTab(STAFF_TABS.tableStatus);
       setTableNhOpsOpen(L || null);
-      if (L) setSessionTableLabel(L);
+      if (L) {
+        setSessionTableLabel(L);
+        setSlipBoardSelectedLabel(L);
+      }
     },
     [setSessionTableLabel],
   );
@@ -801,6 +616,53 @@ export default function KitchenApp() {
       })
       .sort((a, b) => Number(a.tableLabel) - Number(b.tableLabel));
   }, [servedOrders, session.tableId, session.tableLabel, session.nomihodaiByLabel, session.alcoholChargeByLabel]);
+
+  const slipBoardPickerMeta = useMemo(() => {
+    const meta = new Map();
+    for (const label of slipBoardTableLabels) {
+      const list = ordersByTableLabel.get(label) || [];
+      const pendingN = list.filter((o) => o.status === 'pending').length;
+      const nh = getNomihodaiForTable(session, label);
+      const slip = resolveSlipBundleForTableLabel(servedByTable, session, label);
+      meta.set(label, {
+        pendingN,
+        slipGrandTotal: slip.slipGrandTotal,
+        isNh: !!nh?.active,
+        hasCheckoutReq: !!session.checkoutRequestByLabel?.[label],
+        intentGuest: guestNomihodaiIntentLabels.includes(String(label)) && !nh?.active,
+      });
+    }
+    return meta;
+  }, [
+    slipBoardTableLabels,
+    ordersByTableLabel,
+    servedByTable,
+    session,
+    guestNomihodaiIntentLabels,
+  ]);
+
+  useEffect(() => {
+    if (staffTab !== STAFF_TABS.tableStatus) return;
+    setSlipBoardSelectedLabel((prev) => {
+      if (prev && slipBoardTableLabels.includes(prev)) return prev;
+      const focus =
+        staffFocusTableLabel && slipBoardTableLabels.includes(staffFocusTableLabel)
+          ? staffFocusTableLabel
+          : slipBoardTableLabels[0];
+      return focus || '1';
+    });
+  }, [staffTab, staffFocusTableLabel, slipBoardTableLabels]);
+
+  const handleSelectSlipTable = useCallback(
+    (label) => {
+      const L = normalizeTableLabelKey(label);
+      if (!L) return;
+      setSlipBoardSelectedLabel(L);
+      setSessionTableLabel(L);
+    },
+    [setSessionTableLabel],
+  );
+
   const checkoutRequestLabels = useMemo(() => {
     const m = session.checkoutRequestByLabel || {};
     return Object.keys(m).sort((a, b) => Number(a) - Number(b));
@@ -815,6 +677,7 @@ export default function KitchenApp() {
     if (checkoutRequestLabels.length === 1) {
       const lbl = checkoutRequestLabels[0];
       const slip = resolveSlipBundleForTableLabel(servedByTable, session, lbl);
+      setSlipBoardSelectedLabel(lbl);
       setCheckoutPage({ tableLabel: slip.tableLabel, tableId: slip.tableId });
       setStaffTab(STAFF_TABS.tableStatus);
       return;
@@ -1487,474 +1350,44 @@ export default function KitchenApp() {
                     <details className="kitchen-orders__help">
                       <summary>使い方</summary>
                       <p className="kitchen-orders__lead">
-                        卓ごとに<strong>メモ・卓チャージ・飲み放題・注文・伝票・会計</strong>までこの画面で完結します。未提供は「提供済」にし、提供済行の切替で
-                        <strong>飲み放題／通常</strong>を訂正できます。口頭分は<strong>口頭注文</strong>、会計は各卓の<strong>会計</strong>ボタンから。飲み放題の延長は時間到達で自動（
+                        左の<strong>卓一覧</strong>で選び、右で伝票を操作します。未提供は「提供済」、提供済行の切替で
+                        <strong>飲み放題／通常</strong>を訂正。会計は上部の<strong>会計</strong>ボタンから。飲み放題の延長は時間到達で自動（
                         {NOMIHODAI_EXTENSION_PRICE_YEN.toLocaleString()}
                         円／回・税込）。
                       </p>
                     </details>
-                    <div className="kitchen-table-status-grid kitchen-table-status-grid--slip-board">
-                      {slipBoardTableLabels.map((label) => {
-                        const list = ordersByTableLabel.get(label) || [];
-                        const pendingList = list.filter((o) => o.status === 'pending');
-                        const servedList = list.filter((o) => o.status === 'served');
-                        const pendingN = pendingList.length;
-                        const slip = resolveSlipBundleForTableLabel(servedByTable, session, label);
-                        const nhLabel = getNomihodaiForTable(session, label);
-                        const isNh = !!nhLabel?.active;
-                        const isSessionTable =
-                          staffFocusTableLabel !== '' && staffFocusTableLabel === label;
-                        const row = nhForm[label] || { men: 1, women: 1 };
-                        const autoExtendMinLocal =
-                          isNh && nhLabel
-                            ? Math.max(0, Math.ceil((Number(nhLabel.nextAutoExtendMs || nhLabel.endMs) - now) / 60000))
-                            : null;
-                        const extCnt = isNh && nhLabel ? Math.max(0, Number(nhLabel.extensionCount) || 0) : 0;
-                        const intentGuest =
-                          guestNomihodaiIntentLabels.includes(String(label)) && !isNh;
-                        const intentHereWithQueue =
-                          intentGuest && list.some((o) => o.status === 'pending');
-                        const hasCheckoutReq = !!session.checkoutRequestByLabel?.[label];
-                        return (
-                          <article
-                            key={label}
-                            className={[
-                              'kitchen-table-status',
-                              'kitchen-table-status--slip-board-card',
-                              isNh ? 'kitchen-table-status--nh' : '',
-                              isSessionTable ? 'kitchen-table-status--session' : '',
-                              intentHereWithQueue ? 'kitchen-table-status--nh-intent' : '',
-                              intentGuest ? 'kitchen-table-status--nh-intent-guest' : '',
-                              pendingN > 0 ? 'kitchen-table-status--has-pending' : '',
-                              hasCheckoutReq ? 'kitchen-table-status--checkout-req' : '',
-                            ]
-                              .filter(Boolean)
-                              .join(' ')}
-                          >
-                            <div className="kitchen-table-status__top">
-                              <div className="kitchen-table-status__headline">
-                                <span className="kitchen-table-status__table">TABLE {label}</span>
-                                {isNh && nhLabel ? (
-                                  <span className="kitchen-table-status__pill kitchen-table-status__pill--on">
-                                    飲み放題中
-                                  </span>
-                                ) : (
-                                  <span className="kitchen-table-status__pill kitchen-table-status__pill--off">
-                                    通常
-                                  </span>
-                                )}
-                              </div>
-                              {pendingN > 0 || hasCheckoutReq || intentGuest || isSessionTable ? (
-                                <div className="kitchen-table-status__quick" aria-label="卓の状態">
-                                  {isSessionTable ? (
-                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--session">
-                                      表示卓
-                                    </span>
-                                  ) : null}
-                                  {pendingN > 0 ? (
-                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--pending">
-                                      未提供 {pendingN}
-                                    </span>
-                                  ) : null}
-                                  {hasCheckoutReq ? (
-                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--checkout">
-                                      会計依頼
-                                    </span>
-                                  ) : null}
-                                  {intentGuest ? (
-                                    <span className="kitchen-table-status__quick-pill kitchen-table-status__quick-pill--intent">
-                                      NH希望
-                                    </span>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                              <label className="kitchen-table-status__memo-wrap">
-                                <span className="kitchen-table-status__memo-label">メモ</span>
-                                <input
-                                  type="text"
-                                  className="kitchen-table-status__memo"
-                                  value={session.tableMemoByLabel?.[label] ?? ''}
-                                  onChange={(e) => setTableMemo(label, e.target.value)}
-                                  maxLength={TABLE_MEMO_MAX_LEN}
-                                  placeholder="氏名など（任意）"
-                                  autoComplete="off"
-                                  aria-label={`卓${label}メモ`}
-                                />
-                              </label>
-                            </div>
-
-                            <KitchenTableAlcoholChargePanel
-                              tableLabel={label}
-                              session={session}
-                              setTableAlcoholCharge={setTableAlcoholCharge}
-                              now={now}
-                            />
-
-                            {intentHereWithQueue ? (
-                              <div className="kitchen-table-status__notify kitchen-table-status__notify--intent" role="status">
-                                <div>
-                                  <strong>通知：</strong>
-                                  この卓の客席から飲み放題希望です（未提供あり）。下の「飲み放題・卓操作」から開くか、
-                                  <strong>「注文一覧」</strong>タブからも開始できます。人数を確認して「飲み放題開始」を押すと応答します。
-                                </div>
-                                <div className="kitchen-table-status__notify-actions">
-                                  <button
-                                    type="button"
-                                    className="kitchen-table-status__notify-goto-slip"
-                                    onClick={() => openSlipTabWithNhOps(label)}
-                                  >
-                                    この卓の操作を開く
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="kitchen-table-status__notify-dismiss"
-                                    onClick={() => clearNomihodaiGuestIntent(label)}
-                                  >
-                                    希望を閉じる
-                                  </button>
-                                </div>
-                              </div>
-                            ) : null}
-
-                            {session.checkoutRequestByLabel?.[label] ? (
-                              <div className="kitchen-table-status__notify kitchen-table-status__notify--checkout" role="alert">
-                                <strong>お会計依頼</strong>
-                                客席から「お会計する」が届いています。この卓の<strong>会計</strong>ボタン、上部の<strong>お会計依頼</strong>、またはバナーの<strong>会計ページへ</strong>から確定できます。
-                                <button
-                                  type="button"
-                                  className="kitchen-table-status__notify-dismiss"
-                                  onClick={() => clearCheckoutRequestForTable(label)}
-                                >
-                                  依頼だけ消す
-                                </button>
-                              </div>
-                            ) : null}
-
-                            {session.guestFarewellActiveByLabel?.[label] ? (
-                              <div className="kitchen-table-status__bussing" role="region" aria-label="卓タブレット再利用">
-                                <p className="kitchen-table-status__bussing-text">
-                                  客席の飲み放題タブに「お会計完了／退席案内」が表示されています。バッシング完了後に押すと、卓タブレットを次のお客様用に戻せます。
-                                </p>
-                                <button
-                                  type="button"
-                                  className="kitchen-table-status__bussing-btn"
-                                  onClick={() => {
-                                    if (
-                                      !window.confirm(
-                                        `卓${label}のタブレット表示をリセットし、飲み放題タブを再利用可能にしますか？`
-                                      )
-                                    ) {
-                                      return;
-                                    }
-                                    void clearGuestFarewellForReuse(label);
-                                  }}
-                                >
-                                  バッシング完了・卓タブレット再利用
-                                </button>
-                              </div>
-                            ) : null}
-
-                            {isNh && nhLabel ? (
-                              <p className="kitchen-table-status__time">
-                                {fmtTime(nhLabel.startMs)}〜{fmtTime(nhLabel.endMs)}
-                              </p>
-                            ) : null}
-
-                            {isNh && nhLabel ? (
-                              <p className="kitchen-table-status__autoext">
-                                自動延長まで 約 <strong>{autoExtendMinLocal ?? '—'}</strong> 分 ／ 延長{' '}
-                                <strong>{extCnt}</strong> 回 ／ プラン{' '}
-                                <strong>￥{nhLabel.billTotal.toLocaleString()}</strong>
-                              </p>
-                            ) : null}
-
-                            {tableNhOpsOpen === label ? (
-                              <div className="kitchen-table-status__ops-panel">
-                                <div className="kitchen-table-status__ops-panel-head">
-                                  <span className="kitchen-table-status__ops-panel-title">卓{label}の操作</span>
-                                  <button
-                                    type="button"
-                                    className="kitchen-table-status__ops-close"
-                                    onClick={() => setTableNhOpsOpen((v) => (v === label ? null : v))}
-                                  >
-                                    閉じる
-                                  </button>
-                                </div>
-                                {!isSessionTable ? (
-                                  <button
-                                    type="button"
-                                    className="kitchen-table-status__sync"
-                                    onClick={() => {
-                                      if (
-                                        !window.confirm(
-                                          `この端末の「表示卓・客席の注文卓番」を卓${label}に切り替えますか？\n\n※別卓の注文と混ざらないよう、卓番をよく確認してください。`
-                                        )
-                                      ) {
-                                        return;
-                                      }
-                                      setSessionTableLabel(label);
-                                    }}
-                                  >
-                                    この卓に切り替え（客席・注文の卓番を同期）
-                                  </button>
-                                ) : (
-                                  <p className="kitchen-table-status__session-note">現在のセッション卓</p>
-                                )}
-
-                                <div className="kitchen-table-status__nhops">
-                                  <div className="kitchen-table-status__nh-row">
-                                    <label className="kitchen-table-status__nh-field">
-                                      <span>男性（￥{prices.men.toLocaleString()}）</span>
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        className="kitchen-table-status__nh-input"
-                                        value={row.men}
-                                        onChange={(e) =>
-                                          setNhForm((prev) => ({
-                                            ...prev,
-                                            [label]: {
-                                              ...(prev[label] || { men: 1, women: 1 }),
-                                              men: Math.max(0, Number(e.target.value) || 0),
-                                            },
-                                          }))
-                                        }
-                                      />
-                                    </label>
-                                    <label className="kitchen-table-status__nh-field">
-                                      <span>女性（￥{prices.women.toLocaleString()}）</span>
-                                      <input
-                                        type="number"
-                                        min={0}
-                                        className="kitchen-table-status__nh-input"
-                                        value={row.women}
-                                        onChange={(e) =>
-                                          setNhForm((prev) => ({
-                                            ...prev,
-                                            [label]: {
-                                              ...(prev[label] || { men: 1, women: 1 }),
-                                              women: Math.max(0, Number(e.target.value) || 0),
-                                            },
-                                          }))
-                                        }
-                                      />
-                                    </label>
-                                  </div>
-                                  <div className="kitchen-table-status__nh-btns">
-                                    <button
-                                      type="button"
-                                      className={`kitchen-table-status__nh-start${intentHereWithQueue || intentGuest ? ' kitchen-table-status__nh-start--pulse' : ''}`}
-                                      disabled={!!nhLabel?.active}
-                                      title={
-                                        nhLabel?.active
-                                          ? 'この卓ではすでに飲み放題が稼働中です。停止してから再度開始できます。'
-                                          : undefined
-                                      }
-                                      onClick={() => void handleConfirmStartNomihodai(label)}
-                                    >
-                                      飲み放題開始（90分）
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="kitchen-table-status__nh-stop"
-                                      disabled={!isNh}
-                                      onClick={() => {
-                                        if (window.confirm('飲み放題を停止しますか？')) endNomihodai(label);
-                                      }}
-                                    >
-                                      飲み放題停止
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <button
-                                type="button"
-                                className={`kitchen-table-status__ops-trigger${intentGuest ? ' kitchen-table-status__ops-trigger--intent' : ''}`}
-                                onClick={() => openSlipTabWithNhOps(label)}
-                              >
-                                <span className="kitchen-table-status__ops-trigger-title">飲み放題・卓操作</span>
-                                <span className="kitchen-table-status__ops-trigger-hint">タップで開く</span>
-                                {intentGuest ? (
-                                  <span className="kitchen-table-status__ops-trigger-badge">客席から希望あり</span>
-                                ) : null}
-                              </button>
-                            )}
-
-                            <section className="kitchen-table-status__orders" aria-label="注文と伝票">
-                              {pendingList.length > 0 ? (
-                                <>
-                                  <h3 className="kitchen-table-status__orders-heading">
-                                    未提供
-                                    <span className="kitchen-table-status__swipe-hint">左スワイプで削除</span>
-                                  </h3>
-                                  <ul className="kitchen-table-status__hist-list">
-                                    {pendingList.map((o) => {
-                                      const meta = orderKindMeta(o);
-                                      return (
-                                        <li key={o.id}>
-                                          <KitchenSwipeDeleteRow
-                                            className="kitchen-swipe-row--hist"
-                                            surfaceClassName="kitchen-table-status__hist-row"
-                                            onDelete={() => void handleRemoveOrder(o)}
-                                          >
-                                            <span aria-hidden>{meta.emoji}</span>
-                                            <span className="kitchen-table-status__hist-name">{meta.firstLine}</span>
-                                            <span className="kitchen-table-status__st kitchen-table-status__st--wait">
-                                              未提供
-                                            </span>
-                                            <button
-                                              type="button"
-                                              className="kitchen-table-status__hist-serve"
-                                              onClick={() => void handleMarkServed(o.id)}
-                                            >
-                                              提供済
-                                            </button>
-                                          </KitchenSwipeDeleteRow>
-                                        </li>
-                                      );
-                                    })}
-                                  </ul>
-                                </>
-                              ) : null}
-                              {servedList.length > 0 ? (
-                                <>
-                                  <h3 className="kitchen-table-status__orders-heading">
-                                    提供済・伝票
-                                    <span className="kitchen-table-status__swipe-hint">左スワイプで削除</span>
-                                  </h3>
-                                  <ul className="kitchen-table-status__slip-list">
-                                    {servedList.map((o) => (
-                                      <li key={o.id}>
-                                        <KitchenSwipeDeleteRow
-                                          className="kitchen-swipe-row--slip"
-                                          surfaceClassName={`kitchen-table-status__slip-row${
-                                            isNomihodaiChargedExtra(o)
-                                              ? ' kitchen-table-status__slip-row--nh-extra'
-                                              : ''
-                                          }`}
-                                          onDelete={() => void handleRemoveOrder(o)}
-                                        >
-                                          <div className="kitchen-table-status__slip-main">
-                                            <span className="kitchen-table-status__slip-name">{o.itemName}</span>
-                                            <span className="kitchen-table-status__slip-meta">
-                                              {orderLineSlipMetaPrice(o)} /{' '}
-                                              {o.createdAt ? fmtTime(o.createdAt) : '--:--'}
-                                            </span>
-                                          </div>
-                                          <OrderBillingToggle
-                                            orderId={o.id}
-                                            isNomihodai={nhToggleShowsNomihodaiActive(o)}
-                                            onSetNomihodai={setOrderIsNomihodai}
-                                            compact
-                                          />
-                                        </KitchenSwipeDeleteRow>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </>
-                              ) : null}
-                              {pendingList.length === 0 && servedList.length === 0 ? (
-                                <p className="kitchen-table-status__orders-empty">注文・伝票明細はまだありません</p>
-                              ) : null}
-                              {pendingN > 0 ? (
-                                <p className="kitchen-table-status__alert">未提供 {pendingN} 件あり</p>
-                              ) : null}
-                            </section>
-
-                            <details className="kitchen-slip-total kitchen-slip-total--in-card kitchen-slip-total--fold">
-                              <summary className="kitchen-slip-total__summary">
-                                <span className="kitchen-slip-total__summary-label">合計（税込）</span>
-                                <strong className="kitchen-slip-total__summary-yen">
-                                  ￥{slip.slipGrandTotal.toLocaleString()}
-                                </strong>
-                              </summary>
-                              <div className="kitchen-slip-total__breakdown">
-                                <div>通常提供 {slip.normalCount}点</div>
-                                <div>飲み放題提供 {slip.nomihodaiCount}点</div>
-                                <div>通常小計（税込）￥{slip.normalSubtotal.toLocaleString()}</div>
-                                {slip.nomihodaiPlanYen > 0 ? (
-                                  <div>飲み放題プラン（税込）￥{slip.nomihodaiPlanYen.toLocaleString()}</div>
-                                ) : null}
-                                {(slip.alcoholChargeYen ?? 0) > 0 ? (
-                                  <div className="kitchen-slip-total__alcohol">
-                                    {getAlcoholTableCharge(session, label).lineName} ￥
-                                    {(slip.alcoholChargeYen ?? 0).toLocaleString()}
-                                  </div>
-                                ) : null}
-                              </div>
-                            </details>
-
-                            <div className="kitchen-table-status__foot kitchen-table-status__foot--compact">
-                              <button
-                                type="button"
-                                className="kitchen-btn kitchen-btn--checkout kitchen-table-status__checkout"
-                                disabled={
-                                  slip.normalCount + slip.nomihodaiCount === 0 &&
-                                  slip.nomihodaiPlanYen <= 0 &&
-                                  (slip.alcoholChargeYen ?? 0) <= 0
-                                }
-                                onClick={() => setCheckoutPage({ tableId: slip.tableId, tableLabel: slip.tableLabel })}
-                              >
-                                会計
-                              </button>
-                              <div className="kitchen-table-status__foot-row">
-                                <button
-                                  type="button"
-                                  className="kitchen-table-status__verbal"
-                                  onClick={() => setVerbalOrderTable(label)}
-                                >
-                                  口頭
-                                </button>
-                                <button
-                                  type="button"
-                                  className="kitchen-table-status__detail"
-                                  onClick={() => setTableDetailLabel(label)}
-                                >
-                                  履歴
-                                </button>
-                              </div>
-                              <details className="kitchen-table-status__submenu">
-                                <summary>明細・印刷</summary>
-                                <div className="kitchen-table-status__submenu-actions">
-                                  <KitchenReceiptPreviewButton
-                                    compact
-                                    label="プレビュー"
-                                    payload={buildSlipReceiptPayload({
-                                      checkoutSlip: slip,
-                                      session,
-                                      tableLabel: label,
-                                      memo: session.tableMemoByLabel?.[label] ?? '',
-                                      payment: 'detail',
-                                    })}
-                                  />
-                                  {canUsePassPrnt() ? (
-                                    <button
-                                      type="button"
-                                      className="kitchen-table-status__print-slip"
-                                      onClick={() =>
-                                        printReceiptWithFeedback(
-                                          buildSlipReceiptPayload({
-                                            checkoutSlip: slip,
-                                            session,
-                                            tableLabel: label,
-                                            memo: session.tableMemoByLabel?.[label] ?? '',
-                                            payment: 'detail',
-                                          }),
-                                          { openDrawer: false }
-                                        )
-                                      }
-                                    >
-                                      印刷
-                                    </button>
-                                  ) : null}
-                                </div>
-                              </details>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
+                    <KitchenSlipBoard
+                      labels={slipBoardTableLabels}
+                      selectedLabel={slipBoardSelectedLabel}
+                      onSelectLabel={handleSelectSlipTable}
+                      pickerMeta={slipBoardPickerMeta}
+                      ordersByTableLabel={ordersByTableLabel}
+                      servedByTable={servedByTable}
+                      session={session}
+                      now={now}
+                      prices={prices}
+                      nhForm={nhForm}
+                      setNhForm={setNhForm}
+                      tableNhOpsOpen={tableNhOpsOpen}
+                      setTableNhOpsOpen={setTableNhOpsOpen}
+                      staffFocusTableLabel={staffFocusTableLabel}
+                      guestNomihodaiIntentLabels={guestNomihodaiIntentLabels}
+                      setTableMemo={setTableMemo}
+                      setTableAlcoholCharge={setTableAlcoholCharge}
+                      setSessionTableLabel={setSessionTableLabel}
+                      clearNomihodaiGuestIntent={clearNomihodaiGuestIntent}
+                      clearCheckoutRequestForTable={clearCheckoutRequestForTable}
+                      clearGuestFarewellForReuse={clearGuestFarewellForReuse}
+                      endNomihodai={endNomihodai}
+                      handleConfirmStartNomihodai={handleConfirmStartNomihodai}
+                      handleMarkServed={handleMarkServed}
+                      servePendingForTable={serveOrderBatch}
+                      handleRemoveOrder={handleRemoveOrder}
+                      setOrderIsNomihodai={setOrderIsNomihodai}
+                      setCheckoutPage={setCheckoutPage}
+                      setVerbalOrderTable={setVerbalOrderTable}
+                      openSlipTabWithNhOps={openSlipTabWithNhOps}
+                    />
                   </section>
 
                 <section className="kitchen-panel kitchen-panel--muted kitchen-flow-note">

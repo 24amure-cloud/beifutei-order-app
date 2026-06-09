@@ -21881,6 +21881,280 @@ button.kitchen-guest-intent--nav {
   min-height: 48px;
 }
 
+/* --- 伝票ボード：卓一覧 + 詳細（マスター／ディテール） --- */
+.kitchen-slip-board-layout {
+  display: grid;
+  grid-template-columns: minmax(118px, 152px) minmax(0, 1fr);
+  gap: 8px;
+  min-height: min(72vh, 680px);
+  align-items: stretch;
+}
+
+.kitchen-slip-board-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kitchen-slip-board-picker__btn {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  width: 100%;
+  margin: 0;
+  padding: 8px 8px 7px;
+  border-radius: 10px;
+  border: 1px solid #ddd5c8;
+  background: #fffdf9;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: #3a342c;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.kitchen-slip-board-picker__btn:hover {
+  border-color: #c9b89a;
+}
+
+.kitchen-slip-board-picker__btn.is-selected {
+  border-color: #c94b5b;
+  box-shadow: 0 0 0 2px rgba(201, 75, 91, 0.22);
+  background: #fff8f9;
+}
+
+.kitchen-slip-board-picker__btn--checkout {
+  border-color: #e8a030;
+}
+
+.kitchen-slip-board-picker__btn--pending {
+  border-left: 3px solid #c45a52;
+}
+
+.kitchen-slip-board-picker__num {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.kitchen-slip-board-picker__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 14px;
+}
+
+.kitchen-slip-board-picker__badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+  line-height: 1.35;
+}
+
+.kitchen-slip-board-picker__badge--pending {
+  background: #fde8e6;
+  color: #a83232;
+}
+
+.kitchen-slip-board-picker__badge--checkout {
+  background: #fff3d6;
+  color: #8a5a00;
+}
+
+.kitchen-slip-board-picker__badge--intent,
+.kitchen-slip-board-picker__badge--nh {
+  background: #eef6ff;
+  color: #2a5f8c;
+}
+
+.kitchen-slip-board-picker__yen {
+  font-size: 11px;
+  font-weight: 800;
+  color: #6a6258;
+  font-variant-numeric: tabular-nums;
+}
+
+.kitchen-slip-board-detail {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.kitchen-table-status--slip-detail {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 8px;
+}
+
+.kitchen-table-status__top--detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'head actions'
+    'memo memo';
+  gap: 6px 8px;
+  align-items: center;
+}
+
+.kitchen-table-status__top--detail .kitchen-table-status__headline {
+  grid-area: head;
+}
+
+.kitchen-table-status__top--detail .kitchen-table-status__memo-wrap {
+  grid-area: memo;
+}
+
+.kitchen-table-status__detail-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.kitchen-table-status__checkout--detail {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.kitchen-table-status__top--detail .kitchen-table-status__verbal {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1px solid #ddd5c8;
+  background: #fff;
+  cursor: pointer;
+}
+
+.kitchen-table-status__orders--detail {
+  flex: 1;
+  min-height: 140px;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kitchen-table-status__orders--detail .kitchen-table-status__hist-list,
+.kitchen-table-status__orders--detail .kitchen-table-status__slip-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kitchen-table-status__orders-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.kitchen-table-status__serve-all-pending {
+  flex-shrink: 0;
+  min-height: 32px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #8ab89a;
+  background: #f0faf4;
+  color: #2a5a3a;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kitchen-table-status__hist-row--detail {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.kitchen-table-status__slip-row--detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.kitchen-table-status__notify--compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.kitchen-table-status__bussing--compact .kitchen-table-status__bussing-text {
+  display: none;
+}
+
+.kitchen-table-status__autoext-inline {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7a7268;
+}
+
+.kitchen-slip-detail-foot {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.kitchen-slip-detail-foot__print {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.kitchen-slip-detail-foot__print .kitchen-receipt-preview-btn--compact,
+.kitchen-slip-detail-foot__print .kitchen-table-status__print-slip {
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .kitchen-slip-board-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(280px, 1fr);
+    min-height: 0;
+  }
+
+  .kitchen-slip-board-picker {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+  }
+
+  .kitchen-slip-board-picker__btn {
+    min-width: 88px;
+    flex-shrink: 0;
+  }
+}
+
 /* --- 厨房：狭い画面（iPad横など）コンパクト表示 --- */
 @media (orientation: landscape) and (max-height: 950px) {
   .kitchen-v2-topbar {
@@ -21990,6 +22264,18 @@ button.kitchen-guest-intent--nav {
 
   .kitchen-pending-scroll {
     max-height: min(52vh, 480px);
+  }
+
+  .kitchen-slip-board-layout {
+    min-height: min(62vh, 560px);
+  }
+
+  .kitchen-slip-board-picker__btn {
+    padding: 6px 7px;
+  }
+
+  .kitchen-slip-board-picker__num {
+    font-size: 14px;
   }
 
   .kitchen-v2-layout {
