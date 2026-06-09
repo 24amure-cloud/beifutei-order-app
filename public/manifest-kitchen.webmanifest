@@ -1,8 +1,8 @@
 {
   "name": "米風亭 厨房スタッフ",
   "short_name": "厨房",
-  "description": "スタッフ・オーダー管理（厨房）",
-  "start_url": "/kitchen.html",
+  "description": "厨房スタッフ用。操作中の卓番は端末に保存され、起動時に復元されます。",
+  "start_url": "/kitchen.html?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "landscape",

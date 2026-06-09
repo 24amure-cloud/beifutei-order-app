@@ -54,11 +54,15 @@ import {
   saveGuestPartyLocal,
 } from './guestPartyDemographics.js';
 import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
+import {
+  bootstrapPwaTableForPage,
+  isStandalonePwa,
+  loadGuestPwaTable,
+  persistGuestPwaTable,
+  persistPwaTableForCurrentPage,
+} from './pwaTableBootstrap.js';
 
 const Ctx = createContext(null);
-
-/** 客席 PWA が start_url / だけで開いたとき、最後に使った卓番を復元（Android 等） */
-const PWA_LAST_GUEST_TABLE_KEY = 'beifutei-pwa-last-guest-table-v1';
 
 /** 会計依頼：checkout_requested_at のみ書き込み（upsert → 失敗時は update→件数確認→insert） */
 async function setCheckoutRequestedAtForTable(supabaseClient, tableLabel, atMs) {
@@ -216,47 +220,32 @@ function normalizeItemPriceYen(raw) {
   return 0;
 }
 
-function rememberPwaGuestTable(label) {
-  const k = normalizeTableLabelKey(label ?? '');
-  if (!k || typeof sessionStorage === 'undefined') return;
-  try {
-    sessionStorage.setItem(PWA_LAST_GUEST_TABLE_KEY, k);
-  } catch {
-    /* ignore */
-  }
-}
-
-function loadPwaLastGuestTable() {
-  if (typeof sessionStorage === 'undefined') return '';
-  try {
-    return normalizeTableLabelKey(sessionStorage.getItem(PWA_LAST_GUEST_TABLE_KEY) ?? '');
-  } catch {
-    return '';
-  }
-}
-
 function loadGuestDeviceStateFromStorage() {
+  const fromPwa = loadGuestPwaTable();
+  if (fromPwa) {
+    return { tableId: 'default', tableLabel: fromPwa, nomihodaiFarewell: null };
+  }
   try {
     const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
     if (raw) {
       const p = JSON.parse(raw);
-      const lbl = normalizeTableLabelKey(p.tableLabel ?? '') || loadPwaLastGuestTable() || '3';
-      rememberPwaGuestTable(lbl);
-      return {
-        tableId: p.tableId || 'default',
-        tableLabel: lbl,
-        nomihodaiFarewell: p.nomihodaiFarewell || null,
-      };
+      const lbl = normalizeTableLabelKey(p.tableLabel ?? '');
+      if (lbl) {
+        persistGuestPwaTable(lbl);
+        return {
+          tableId: p.tableId || 'default',
+          tableLabel: lbl,
+          nomihodaiFarewell: p.nomihodaiFarewell || null,
+        };
+      }
     }
   } catch {
     /* ignore */
   }
-  const fromPwa = loadPwaLastGuestTable();
-  return {
-    tableId: 'default',
-    tableLabel: fromPwa || '3',
-    nomihodaiFarewell: null,
-  };
+  if (isStandalonePwa()) {
+    return { tableId: 'default', tableLabel: '', nomihodaiFarewell: null };
+  }
+  return { tableId: 'default', tableLabel: '3', nomihodaiFarewell: null };
 }
 
 function loadKitchenFocusFromStorage() {
@@ -285,10 +274,9 @@ function persistLocalDeviceState(next) {
 
 export function NomihodaiSessionProvider({ children }) {
   const [localDeviceState, setLocalDeviceState] = useState(() => {
-    const fromUrl = readGuestTableLabelFromUrl();
-    if (fromUrl) {
-      rememberPwaGuestTable(fromUrl);
-      const next = { tableId: 'default', tableLabel: fromUrl, nomihodaiFarewell: null };
+    const boot = bootstrapPwaTableForPage();
+    if (boot.tableLabel) {
+      const next = { tableId: 'default', tableLabel: boot.tableLabel, nomihodaiFarewell: null };
       try {
         persistLocalDeviceState(next);
       } catch {
@@ -312,9 +300,18 @@ export function NomihodaiSessionProvider({ children }) {
   const reloadLocalDeviceFromStorage = useCallback(() => {
     const fromUrl = readGuestTableLabelFromUrl();
     if (fromUrl) {
+      persistPwaTableForCurrentPage(fromUrl);
       setLocalDeviceState((prev) => ({
         ...prev,
         tableLabel: fromUrl,
+      }));
+      return;
+    }
+    const boot = bootstrapPwaTableForPage();
+    if (boot.tableLabel) {
+      setLocalDeviceState((prev) => ({
+        ...prev,
+        tableLabel: boot.tableLabel,
       }));
       return;
     }
@@ -818,20 +815,12 @@ export function NomihodaiSessionProvider({ children }) {
 
   const setSessionTableLabel = useCallback((label) => {
     const next = normalizeTableLabelKey(label ?? '');
-    const fallback = isKitchenAppPage() ? '' : '3';
-    saveLocalDeviceState((s) => ({
-      ...s,
-      tableLabel: next !== '' ? next : normalizeTableLabelKey(s.tableLabel ?? '') || fallback,
-    }));
-    if (isKitchenAppPage() && typeof window !== 'undefined' && next) {
-      try {
-        const u = new URL(window.location.href);
-        u.searchParams.set('table', next);
-        window.history.replaceState(null, '', `${u.pathname}${u.search}`);
-      } catch {
-        /* ignore */
-      }
-    }
+    saveLocalDeviceState((s) => {
+      const fallback = isKitchenAppPage() ? '' : isStandalonePwa() ? '' : '3';
+      const resolved = next !== '' ? next : normalizeTableLabelKey(s.tableLabel ?? '') || fallback;
+      if (resolved) persistPwaTableForCurrentPage(resolved);
+      return { ...s, tableLabel: resolved };
+    });
   }, [saveLocalDeviceState]);
 
   // Actions translating to Supabase Updates

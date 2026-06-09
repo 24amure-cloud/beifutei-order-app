@@ -22318,3 +22318,144 @@ button.kitchen-guest-intent--nav {
   }
 }
 
+/* --- PWA：卓番の保存・表示 --- */
+.pwa-table-ribbon {
+  position: fixed;
+  top: calc(6px + env(safe-area-inset-top, 0px));
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  z-index: 10050;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  pointer-events: none;
+}
+
+.pwa-table-ribbon--standalone {
+  border-color: #c9b89a;
+  background: rgba(255, 248, 236, 0.96);
+}
+
+.pwa-table-ribbon--kitchen {
+  top: auto;
+  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+}
+
+.pwa-table-ribbon__label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #7a6f62;
+  letter-spacing: 0.04em;
+}
+
+.pwa-table-ribbon__num {
+  font-size: 16px;
+  font-weight: 900;
+  color: #2a2419;
+  font-variant-numeric: tabular-nums;
+}
+
+.pwa-install-hint {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 10040;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d4c4a8;
+  background: rgba(255, 251, 242, 0.97);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+}
+
+.pwa-install-hint__text {
+  margin: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #4a3f32;
+}
+
+.pwa-install-hint__dismiss {
+  flex-shrink: 0;
+  border: 1px solid #c9b89a;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.pwa-table-missing {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #fdf9f1;
+  color: #2a2419;
+  font-family: 'Zen Kaku Gothic New', system-ui, sans-serif;
+}
+
+.pwa-table-missing__card {
+  width: min(100%, 420px);
+  padding: 22px 20px;
+  border-radius: 16px;
+  border: 1px solid #e0d4c4;
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+.pwa-table-missing__title {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+
+.pwa-table-missing__lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #5a5348;
+}
+
+.pwa-table-missing__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pwa-table-missing__field input {
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #c9b89a;
+}
+
+.pwa-table-missing__btn {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #2a2419;
+  color: #fdf9f1;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+

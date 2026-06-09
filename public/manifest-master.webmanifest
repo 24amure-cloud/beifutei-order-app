@@ -1,8 +1,8 @@
 {
   "name": "米風亭 オーナー",
   "short_name": "オーナー",
-  "description": "オーナー専用（メニュー・売上）",
-  "start_url": "/master.html",
+  "description": "オーナー専用（メニュー・売上・日計）",
+  "start_url": "/master.html?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "landscape",

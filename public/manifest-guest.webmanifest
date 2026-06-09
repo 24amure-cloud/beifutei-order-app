@@ -1,8 +1,8 @@
 {
   "name": "米風亭 客席オーダー",
   "short_name": "客席",
-  "description": "お客様用オーダー（卓番はQRのURLをそのままホーム画面に追加してください）",
-  "start_url": "/",
+  "description": "お客様用オーダー。卓番付きURL（?table=）を開いた状態でホーム画面に追加してください。",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "landscape",

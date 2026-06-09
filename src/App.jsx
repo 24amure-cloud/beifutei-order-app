@@ -22,6 +22,8 @@ import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 import GuestOnboardingGate from './GuestOnboardingGate.jsx';
 import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
+import { isStandalonePwa } from './pwaTableBootstrap.js';
+import { GuestPwaTableMissingScreen, PwaInstallTableHint, PwaTableRibbon } from './PwaTableUi.jsx';
 import { getGuestIntentForTable, getNomihodaiForTable, normalizeTableLabelKey } from './nomihodaiSession.js';
 import { isGuestPartyAcknowledgedOnDevice } from './guestPartyDemographics.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
@@ -1660,6 +1662,10 @@ function App() {
     return <SupabaseConfigMissingScreen />;
   }
 
+  if (isStandalonePwa() && !guestTableLabel) {
+    return <GuestPwaTableMissingScreen />;
+  }
+
   return (
     <div
       className={`app-container${
@@ -1676,6 +1682,8 @@ function App() {
         <GuestOnboardingGate />
       ) : null}
       <SupabaseConnectionBanner variant="guest" />
+      <PwaInstallTableHint tableLabel={guestTableLabel} />
+      <PwaTableRibbon tableLabel={guestTableLabel} role="guest" />
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="logo-area">

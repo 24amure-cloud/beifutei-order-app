@@ -34,6 +34,7 @@ import {
 } from './receiptPrint.js';
 import KitchenReceiptPreviewButton from './KitchenReceiptPreviewButton.jsx';
 import KitchenSlipBoard from './KitchenSlipBoard.jsx';
+import { PwaTableRibbon } from './PwaTableUi.jsx';
 import { computeTableHistoryTotals, resolveSlipBundleForTableLabel } from './kitchenSlipBundle.js';
 import {
   isNomihodaiChargedExtra,
@@ -829,6 +830,7 @@ export default function KitchenApp() {
         .join(' ')}
     >
       <SupabaseConnectionBanner variant="kitchen" />
+      <PwaTableRibbon tableLabel={staffFocusTableLabel} role="kitchen" />
       <header className="kitchen-v2-topbar">
         <div className="kitchen-v2-brand">
           <strong>YUM</strong>

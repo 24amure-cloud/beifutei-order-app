@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  buildGuestOrderPageUrl,
   buildKitchenPageAbsoluteUrl,
   buildMasterPageAbsoluteUrl,
   buildSiteRootUrl,
@@ -10,8 +11,8 @@ const ENTRY_ROWS = [
     id: 'guest',
     title: 'お客様用（卓オーダー）',
     titleShort: 'お客様用',
-    note: '卓ごとのQRは下の「スタッフ用」から',
-    buildUrl: buildSiteRootUrl,
+    note: '卓タブレットは ?table=付きURLを開いてからホーム画面に追加（例: 卓3）',
+    buildUrl: () => buildGuestOrderPageUrl('3'),
   },
   {
     id: 'kitchen',
