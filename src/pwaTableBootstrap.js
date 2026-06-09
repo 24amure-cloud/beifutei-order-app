@@ -19,7 +19,15 @@ export function isStandalonePwa() {
   );
 }
 
-/** アドレスバーに ?table= を戻す（見た目とブックマーク整合） */
+/** URL に ?table= があるか（空でない） */
+export function hasTableInUrl(location) {
+  if (typeof window === 'undefined' && !location) return false;
+  const search = location?.search ?? (typeof window !== 'undefined' ? window.location.search : '');
+  const tbl = new URLSearchParams(search).get('table');
+  return !!(tbl && String(tbl).trim());
+}
+
+/** アドレスバーの ?table= を指定卓番に更新（明示的な卓切替用） */
 export function syncTableInUrl(tableLabel) {
   const lbl = normalizeTableLabelKey(tableLabel ?? '');
   if (!lbl || typeof window === 'undefined') return false;
@@ -32,6 +40,12 @@ export function syncTableInUrl(tableLabel) {
   } catch {
     return false;
   }
+}
+
+/** URL に卓番が無いときだけ ?table= を復元（保存値で URL を上書きしない） */
+export function restoreTableInUrlIfMissing(tableLabel) {
+  if (hasTableInUrl()) return false;
+  return syncTableInUrl(tableLabel);
 }
 
 export function persistGuestPwaTable(label) {
@@ -100,21 +114,27 @@ function loadGuestTableFromSessionStorage() {
   }
 }
 
+function persistPwaTableStorageOnly(label) {
+  const k = normalizeTableLabelKey(label ?? '');
+  if (!k) return;
+  if (isKitchenAppPage()) persistKitchenPwaTable(k);
+  else persistGuestPwaTable(k);
+}
+
 /**
- * 起動時1回：URL の卓番を優先し、無ければ端末に保存した卓番を URL に復元する。
+ * 起動時：URL の ?table= を最優先。無いときだけ端末保存分を URL に復元。
  */
 export function bootstrapPwaTableForPage() {
   const fromUrl = readGuestTableLabelFromUrl();
   if (fromUrl) {
-    if (isKitchenAppPage()) persistKitchenPwaTable(fromUrl);
-    else persistGuestPwaTable(fromUrl);
+    persistPwaTableStorageOnly(fromUrl);
     return { tableLabel: fromUrl, source: 'url' };
   }
 
   if (isKitchenAppPage()) {
     const stored = loadKitchenPwaTable();
     if (stored) {
-      syncTableInUrl(stored);
+      restoreTableInUrlIfMissing(stored);
       return { tableLabel: stored, source: 'kitchen-storage' };
     }
     return { tableLabel: '', source: 'none' };
@@ -122,24 +142,35 @@ export function bootstrapPwaTableForPage() {
 
   const fromPwa = loadGuestPwaTable();
   if (fromPwa) {
-    syncTableInUrl(fromPwa);
+    restoreTableInUrlIfMissing(fromPwa);
     return { tableLabel: fromPwa, source: 'guest-pwa-storage' };
   }
 
   const fromSession = loadGuestTableFromSessionStorage();
   if (fromSession) {
     persistGuestPwaTable(fromSession);
-    syncTableInUrl(fromSession);
+    restoreTableInUrlIfMissing(fromSession);
     return { tableLabel: fromSession, source: 'guest-session-storage' };
   }
 
   return { tableLabel: '', source: 'none' };
 }
 
-export function persistPwaTableForCurrentPage(label) {
+/**
+ * URL に ?table= があるときは必ずそれを採用し storage に反映する。
+ * @returns {string} 採用した卓番（無ければ ''）
+ */
+export function applyTableLabelFromUrl() {
+  const fromUrl = readGuestTableLabelFromUrl();
+  if (!fromUrl) return '';
+  persistPwaTableStorageOnly(fromUrl);
+  return fromUrl;
+}
+
+/** UI から卓を切り替えたとき：storage と URL の両方を更新 */
+export function persistTableLabelFromApp(label) {
   const k = normalizeTableLabelKey(label ?? '');
   if (!k) return;
-  if (isKitchenAppPage()) persistKitchenPwaTable(k);
-  else persistGuestPwaTable(k);
+  persistPwaTableStorageOnly(k);
   syncTableInUrl(k);
 }

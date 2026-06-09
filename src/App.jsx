@@ -21,7 +21,6 @@ import SupabaseConfigMissingScreen from './SupabaseConfigMissingScreen.jsx';
 import SupabaseConnectionBanner from './SupabaseConnectionBanner.jsx';
 import GuestPromoScreensaver from './GuestPromoScreensaver.jsx';
 import GuestOnboardingGate from './GuestOnboardingGate.jsx';
-import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
 import { isStandalonePwa } from './pwaTableBootstrap.js';
 import { GuestPwaTableMissingScreen, PwaInstallTableHint, PwaTableRibbon } from './PwaTableUi.jsx';
 import { getGuestIntentForTable, getNomihodaiForTable, normalizeTableLabelKey } from './nomihodaiSession.js';
@@ -1405,23 +1404,6 @@ function App() {
       setShowBillPanel(false);
     }
   }, [session.checkoutRequestAt]);
-
-  useEffect(() => {
-    const syncTableFromUrl = () => {
-      const fromUrl = readGuestTableLabelFromUrl();
-      if (fromUrl) setSessionTableLabel(fromUrl);
-    };
-    syncTableFromUrl();
-    window.addEventListener('popstate', syncTableFromUrl);
-    const onVis = () => {
-      if (document.visibilityState === 'visible') syncTableFromUrl();
-    };
-    document.addEventListener('visibilitychange', onVis);
-    return () => {
-      window.removeEventListener('popstate', syncTableFromUrl);
-      document.removeEventListener('visibilitychange', onVis);
-    };
-  }, [setSessionTableLabel]);
 
   useEffect(() => {
     const n = getNomihodaiForTable(session, session.tableLabel);

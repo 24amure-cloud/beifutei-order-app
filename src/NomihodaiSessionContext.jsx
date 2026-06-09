@@ -55,11 +55,14 @@ import {
 } from './guestPartyDemographics.js';
 import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
 import {
+  applyTableLabelFromUrl,
   bootstrapPwaTableForPage,
   isStandalonePwa,
   loadGuestPwaTable,
+  loadKitchenPwaTable,
   persistGuestPwaTable,
-  persistPwaTableForCurrentPage,
+  persistTableLabelFromApp,
+  restoreTableInUrlIfMissing,
 } from './pwaTableBootstrap.js';
 
 const Ctx = createContext(null);
@@ -298,26 +301,29 @@ export function NomihodaiSessionProvider({ children }) {
   }, []);
 
   const reloadLocalDeviceFromStorage = useCallback(() => {
-    const fromUrl = readGuestTableLabelFromUrl();
+    const fromUrl = applyTableLabelFromUrl();
     if (fromUrl) {
-      persistPwaTableForCurrentPage(fromUrl);
       setLocalDeviceState((prev) => ({
         ...prev,
         tableLabel: fromUrl,
       }));
       return;
     }
-    const boot = bootstrapPwaTableForPage();
-    if (boot.tableLabel) {
-      setLocalDeviceState((prev) => ({
-        ...prev,
-        tableLabel: boot.tableLabel,
-      }));
+    if (isKitchenAppPage()) {
+      const stored = loadKitchenPwaTable();
+      if (stored) {
+        restoreTableInUrlIfMissing(stored);
+        setLocalDeviceState({
+          tableId: 'default',
+          tableLabel: stored,
+          nomihodaiFarewell: null,
+        });
+        return;
+      }
+      setLocalDeviceState(loadKitchenFocusFromStorage());
       return;
     }
-    setLocalDeviceState(
-      isKitchenAppPage() ? loadKitchenFocusFromStorage() : loadGuestDeviceStateFromStorage(),
-    );
+    setLocalDeviceState(loadGuestDeviceStateFromStorage());
   }, []);
 
   const [dbOrders, setDbOrders] = useState([]);
@@ -328,6 +334,25 @@ export function NomihodaiSessionProvider({ children }) {
   const [now, setNow] = useState(() => Date.now());
   /** 楽観追加直後に SELECT が空（RLS 等）で全消ししないよう refetch で参照する */
   const ordersRecentOptimisticRef = useRef(0);
+
+  /** URL の ?table= は常に最優先（アドレスバー変更・再読み込み・PWA 復帰） */
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const fromUrl = applyTableLabelFromUrl();
+      if (!fromUrl) return;
+      saveLocalDeviceState((prev) => {
+        if (normalizeTableLabelKey(prev.tableLabel) === fromUrl) return prev;
+        return { ...prev, tableLabel: fromUrl };
+      });
+    };
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    window.addEventListener('pageshow', syncFromUrl);
+    return () => {
+      window.removeEventListener('popstate', syncFromUrl);
+      window.removeEventListener('pageshow', syncFromUrl);
+    };
+  }, [saveLocalDeviceState]);
 
   useEffect(() => {
     const onStorage = (e) => {
@@ -818,7 +843,7 @@ export function NomihodaiSessionProvider({ children }) {
     saveLocalDeviceState((s) => {
       const fallback = isKitchenAppPage() ? '' : isStandalonePwa() ? '' : '3';
       const resolved = next !== '' ? next : normalizeTableLabelKey(s.tableLabel ?? '') || fallback;
-      if (resolved) persistPwaTableForCurrentPage(resolved);
+      if (resolved) persistTableLabelFromApp(resolved);
       return { ...s, tableLabel: resolved };
     });
   }, [saveLocalDeviceState]);

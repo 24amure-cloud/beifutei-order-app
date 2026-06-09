@@ -9,7 +9,6 @@ import {
   normalizeTableLabelKey,
   TABLE_MEMO_MAX_LEN,
 } from './nomihodaiSession.js';
-import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import TableMemoRibbon from './TableMemoRibbon.jsx';
 import { KitchenStaffRetailHub } from './KitchenRetailMenus.jsx';
@@ -300,11 +299,6 @@ export default function KitchenApp() {
   const goToTableStatusTab = useCallback(() => {
     setStaffTab(STAFF_TABS.tableStatus);
   }, []);
-
-  useEffect(() => {
-    const fromUrl = readGuestTableLabelFromUrl();
-    if (fromUrl) setSessionTableLabel(fromUrl);
-  }, [setSessionTableLabel]);
 
   /** 飲み放題希望サイン等から「各卓・伝票」へ。label があれば該当卓の NH 操作パネルを開く */
   const openSlipTabWithNhOps = useCallback(
