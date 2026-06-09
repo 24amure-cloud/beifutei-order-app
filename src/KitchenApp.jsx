@@ -957,7 +957,13 @@ export default function KitchenApp() {
 
   return (
     <div
-      className={`kitchen-v2${staffTab === STAFF_TABS.retailTakeout ? ' kitchen-v2--retail-takeout' : ''}`}
+      className={[
+        'kitchen-v2',
+        staffTab === STAFF_TABS.retailTakeout ? 'kitchen-v2--retail-takeout' : '',
+        staffTab !== STAFF_TABS.orders ? 'kitchen-v2--work-tab' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
     >
       <SupabaseConnectionBanner variant="kitchen" />
       <header className="kitchen-v2-topbar">
@@ -1046,15 +1052,11 @@ export default function KitchenApp() {
             </option>
           ))}
         </select>
-        {staffFocusTableLabel ? (
-          <span className="kitchen-focus-bar__hint">
-            客席URLの卓番・注文・飲み放題希望はDBで同期されます
-          </span>
-        ) : (
+        {!staffFocusTableLabel ? (
           <span className="kitchen-focus-bar__hint kitchen-focus-bar__hint--warn">
-            卓を選ぶか、各卓・伝票で操作してください
+            卓を選ぶか、各卓・伝票で操作
           </span>
-        )}
+        ) : null}
       </div>
 
       {guestNomihodaiIntentLabels.length > 0 ? (
@@ -1656,11 +1658,7 @@ export default function KitchenApp() {
                               <p className="kitchen-table-status__time">
                                 {fmtTime(nhLabel.startMs)}〜{fmtTime(nhLabel.endMs)}
                               </p>
-                            ) : (
-                              <p className="kitchen-table-status__time kitchen-table-status__time--muted">
-                                —
-                              </p>
-                            )}
+                            ) : null}
 
                             {isNh && nhLabel ? (
                               <p className="kitchen-table-status__autoext">
@@ -1864,21 +1862,28 @@ export default function KitchenApp() {
                               ) : null}
                             </section>
 
-                            <div className="kitchen-slip-total kitchen-slip-total--in-card">
-                              <div>通常提供 {slip.normalCount}点</div>
-                              <div>飲み放題提供 {slip.nomihodaiCount}点</div>
-                              <div>通常小計（税込）￥{slip.normalSubtotal.toLocaleString()}</div>
-                              {slip.nomihodaiPlanYen > 0 ? (
-                                <div>飲み放題プラン（税込）￥{slip.nomihodaiPlanYen.toLocaleString()}</div>
-                              ) : null}
-                              {(slip.alcoholChargeYen ?? 0) > 0 ? (
-                                <div className="kitchen-slip-total__alcohol">
-                                  {getAlcoholTableCharge(session, label).lineName} ￥
-                                  {(slip.alcoholChargeYen ?? 0).toLocaleString()}
-                                </div>
-                              ) : null}
-                              <strong>合計（税込）￥{slip.slipGrandTotal.toLocaleString()}</strong>
-                            </div>
+                            <details className="kitchen-slip-total kitchen-slip-total--in-card kitchen-slip-total--fold">
+                              <summary className="kitchen-slip-total__summary">
+                                <span className="kitchen-slip-total__summary-label">合計（税込）</span>
+                                <strong className="kitchen-slip-total__summary-yen">
+                                  ￥{slip.slipGrandTotal.toLocaleString()}
+                                </strong>
+                              </summary>
+                              <div className="kitchen-slip-total__breakdown">
+                                <div>通常提供 {slip.normalCount}点</div>
+                                <div>飲み放題提供 {slip.nomihodaiCount}点</div>
+                                <div>通常小計（税込）￥{slip.normalSubtotal.toLocaleString()}</div>
+                                {slip.nomihodaiPlanYen > 0 ? (
+                                  <div>飲み放題プラン（税込）￥{slip.nomihodaiPlanYen.toLocaleString()}</div>
+                                ) : null}
+                                {(slip.alcoholChargeYen ?? 0) > 0 ? (
+                                  <div className="kitchen-slip-total__alcohol">
+                                    {getAlcoholTableCharge(session, label).lineName} ￥
+                                    {(slip.alcoholChargeYen ?? 0).toLocaleString()}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </details>
 
                             <div className="kitchen-table-status__foot kitchen-table-status__foot--compact">
                               <button
