@@ -1880,45 +1880,7 @@ export default function KitchenApp() {
                               <strong>合計（税込）￥{slip.slipGrandTotal.toLocaleString()}</strong>
                             </div>
 
-                            <div className="kitchen-table-status__foot">
-                              <button
-                                type="button"
-                                className="kitchen-table-status__verbal"
-                                onClick={() => setVerbalOrderTable(label)}
-                              >
-                                口頭注文
-                              </button>
-                              <KitchenReceiptPreviewButton
-                                compact
-                                label="明細プレビュー"
-                                payload={buildSlipReceiptPayload({
-                                  checkoutSlip: slip,
-                                  session,
-                                  tableLabel: label,
-                                  memo: session.tableMemoByLabel?.[label] ?? '',
-                                  payment: 'detail',
-                                })}
-                              />
-                              {canUsePassPrnt() ? (
-                                <button
-                                  type="button"
-                                  className="kitchen-table-status__print-slip"
-                                  onClick={() =>
-                                    printReceiptWithFeedback(
-                                      buildSlipReceiptPayload({
-                                        checkoutSlip: slip,
-                                        session,
-                                        tableLabel: label,
-                                        memo: session.tableMemoByLabel?.[label] ?? '',
-                                        payment: 'detail',
-                                      }),
-                                      { openDrawer: false }
-                                    )
-                                  }
-                                >
-                                  明細印刷
-                                </button>
-                              ) : null}
+                            <div className="kitchen-table-status__foot kitchen-table-status__foot--compact">
                               <button
                                 type="button"
                                 className="kitchen-btn kitchen-btn--checkout kitchen-table-status__checkout"
@@ -1931,13 +1893,58 @@ export default function KitchenApp() {
                               >
                                 会計
                               </button>
-                              <button
-                                type="button"
-                                className="kitchen-table-status__detail"
-                                onClick={() => setTableDetailLabel(label)}
-                              >
-                                全履歴
-                              </button>
+                              <div className="kitchen-table-status__foot-row">
+                                <button
+                                  type="button"
+                                  className="kitchen-table-status__verbal"
+                                  onClick={() => setVerbalOrderTable(label)}
+                                >
+                                  口頭
+                                </button>
+                                <button
+                                  type="button"
+                                  className="kitchen-table-status__detail"
+                                  onClick={() => setTableDetailLabel(label)}
+                                >
+                                  履歴
+                                </button>
+                              </div>
+                              <details className="kitchen-table-status__submenu">
+                                <summary>明細・印刷</summary>
+                                <div className="kitchen-table-status__submenu-actions">
+                                  <KitchenReceiptPreviewButton
+                                    compact
+                                    label="プレビュー"
+                                    payload={buildSlipReceiptPayload({
+                                      checkoutSlip: slip,
+                                      session,
+                                      tableLabel: label,
+                                      memo: session.tableMemoByLabel?.[label] ?? '',
+                                      payment: 'detail',
+                                    })}
+                                  />
+                                  {canUsePassPrnt() ? (
+                                    <button
+                                      type="button"
+                                      className="kitchen-table-status__print-slip"
+                                      onClick={() =>
+                                        printReceiptWithFeedback(
+                                          buildSlipReceiptPayload({
+                                            checkoutSlip: slip,
+                                            session,
+                                            tableLabel: label,
+                                            memo: session.tableMemoByLabel?.[label] ?? '',
+                                            payment: 'detail',
+                                          }),
+                                          { openDrawer: false }
+                                        )
+                                      }
+                                    >
+                                      印刷
+                                    </button>
+                                  ) : null}
+                                </div>
+                              </details>
                             </div>
                           </article>
                         );

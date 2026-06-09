@@ -16399,6 +16399,85 @@ button.kitchen-guest-intent--nav {
   margin-top: 2px;
 }
 
+.kitchen-table-status__foot--compact {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.kitchen-table-status__foot-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.kitchen-table-status__submenu {
+  border: 1px solid #e5ddd4;
+  border-radius: 8px;
+  background: #fffefb;
+}
+
+.kitchen-table-status__submenu summary {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #6a6258;
+  cursor: pointer;
+  list-style: none;
+}
+
+.kitchen-table-status__submenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.kitchen-table-status__submenu-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 0 6px 6px;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-btn {
+  min-height: 36px;
+  font-size: 13px;
+  border-radius: 8px;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-table-status__checkout {
+  width: 100%;
+  min-height: 38px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-table-status__verbal,
+.kitchen-table-status--slip-board-card .kitchen-table-status__detail {
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1px solid #ddd5c8;
+  background: #fffdf9;
+  color: #4a443c;
+  cursor: pointer;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-receipt-preview-btn--compact {
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: 11px;
+  width: 100%;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-table-status__print-slip {
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 800;
+  width: 100%;
+}
+
 .kitchen-table-status__foot .kitchen-table-status__verbal {
   flex: 1 1 45%;
 }
@@ -21085,7 +21164,7 @@ button.kitchen-guest-intent--nav {
 }
 
 .kitchen-table-status-grid--slip-board {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   align-items: stretch;
 }
@@ -21186,7 +21265,22 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-table-status--slip-board-card .kitchen-table-status__hist-row {
   font-size: 11px;
-  padding: 3px 0;
+  padding: 2px 0;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-table-status__hist-serve {
+  min-height: 28px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-table-status__ops-trigger {
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
+.kitchen-table-status--slip-board-card .kitchen-table-status__ops-trigger-title {
+  font-size: 12px;
 }
 
 .kitchen-table-status--slip-board-card .kitchen-slip-total--in-card {
@@ -21204,14 +21298,7 @@ button.kitchen-guest-intent--nav {
 
 .kitchen-table-status--slip-board-card .kitchen-table-status__foot {
   flex-shrink: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
   padding-top: 4px;
-}
-
-.kitchen-table-status--slip-board-card .kitchen-table-status__foot .kitchen-table-status__checkout {
-  grid-column: 1 / -1;
 }
 
 .kitchen-table-status--nh-intent.kitchen-table-status--slip-board-card,
@@ -21223,15 +21310,21 @@ button.kitchen-guest-intent--nav {
   box-shadow: 0 0 0 2px rgba(230, 184, 77, 0.35);
 }
 
-@media (max-width: 1400px) {
+@media (min-width: 1600px) {
   .kitchen-table-status-grid--slip-board {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   .kitchen-table-status-grid--slip-board {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .kitchen-table-status-grid--slip-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -21709,57 +21802,35 @@ button.kitchen-guest-intent--nav {
   min-height: 48px;
 }
 
-/* --- 厨房：iPad 横画面タッチ最適化（機能はそのまま・押しやすさ優先） --- */
-@media (orientation: landscape) and (min-width: 900px) and (max-height: 950px) {
+/* --- 厨房：狭い画面（iPad横など）コンパクト表示 --- */
+@media (orientation: landscape) and (max-height: 950px) {
   .kitchen-v2-topbar {
-    padding: 6px 12px;
-    gap: 8px;
-    flex-wrap: nowrap;
-  }
-
-  .kitchen-v2-brand {
-    min-width: auto;
+    padding: 4px 10px;
+    gap: 6px;
   }
 
   .kitchen-v2-brand strong {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .kitchen-v2-brand span {
     display: none;
   }
 
-  .kitchen-v2-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 6px;
-    padding-bottom: 2px;
-  }
-
-  .kitchen-v2-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
   .kitchen-v2-tab {
-    flex-shrink: 0;
-    min-height: 48px;
-    padding: 10px 16px;
-    font-size: 15px;
-    border-radius: 12px;
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 12px;
   }
 
   .kitchen-receipt-preview-btn {
-    min-height: 44px;
-    font-size: 12px;
-    padding: 8px 10px;
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 11px;
   }
 
   .kitchen-focus-bar {
-    padding: 6px 12px;
-    gap: 8px;
+    padding: 4px 10px;
   }
 
   .kitchen-focus-bar__hint {
@@ -21767,14 +21838,12 @@ button.kitchen-guest-intent--nav {
   }
 
   .kitchen-focus-bar__select {
-    min-height: 44px;
-    min-width: 8rem;
-    font-size: 16px;
+    min-height: 34px;
+    font-size: 14px;
   }
 
   .kitchen-nh-intent-sticky {
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 6px 10px;
   }
 
   .kitchen-nh-intent-sticky__hint {
@@ -21782,32 +21851,27 @@ button.kitchen-guest-intent--nav {
   }
 
   .kitchen-nh-intent-sticky__cta {
-    min-height: 44px;
-    padding: 10px 14px;
-    font-size: 14px;
-    white-space: nowrap;
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 12px;
   }
 
   .kitchen-live-strip {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
-    padding: 6px 12px 8px;
+    gap: 6px;
+    padding: 4px 10px 6px;
   }
 
   .kitchen-live-cell {
-    min-height: 58px;
-    padding: 6px 8px;
-    justify-content: center;
+    min-height: 42px;
+    padding: 4px 6px;
   }
 
   .kitchen-live-cell__label {
-    font-size: 11px;
-    font-weight: 800;
+    font-size: 10px;
   }
 
   .kitchen-live-cell__value {
-    font-size: 22px;
-    line-height: 1.1;
+    font-size: 16px;
   }
 
   .kitchen-live-cell__sub {
@@ -21815,172 +21879,42 @@ button.kitchen-guest-intent--nav {
   }
 
   .kitchen-v2-layout {
-    padding: 8px 10px;
-    gap: 8px;
-    padding-bottom: calc(8px + var(--safe-bottom));
-  }
-
-  .kitchen-v2-headline {
-    margin-bottom: 4px;
-    padding: 0 2px;
+    padding: 6px 8px;
+    gap: 6px;
   }
 
   .kitchen-v2-headline h1 {
-    font-size: 18px;
+    font-size: 16px;
     margin: 0;
   }
 
-  .kitchen-v2-headline__lead {
-    display: none;
-  }
-
+  .kitchen-v2-headline__lead,
   .kitchen-orders__help {
     display: none;
   }
 
-  .kitchen-orders__lead {
-    font-size: 12px;
-    line-height: 1.45;
-    margin-bottom: 8px;
-  }
-
-  .kitchen-table-status-grid--slip-board {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .kitchen-table-status--slip-board-card {
-    padding: 10px;
-    gap: 8px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__table {
-    font-size: 20px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__memo {
-    min-height: 40px;
-    font-size: 14px;
-    padding: 8px 10px;
-  }
-
   .kitchen-table-status--slip-board-card .kitchen-table-status__orders {
-    min-height: 110px;
-    max-height: min(36vh, 240px);
-    padding: 8px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__orders-heading {
-    font-size: 12px;
-    font-weight: 800;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__slip-name {
-    font-size: 14px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__slip-meta {
-    font-size: 12px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__hist-row {
-    font-size: 13px;
-    padding: 6px 0;
+    min-height: 72px;
+    max-height: min(28vh, 180px);
   }
 
   .kitchen-table-status--slip-board-card .kitchen-table-status__hist-serve {
-    min-height: 40px;
-    min-width: 64px;
-    padding: 8px 12px;
-    font-size: 13px;
-    border-radius: 8px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-slip-total--in-card {
-    font-size: 13px;
-    padding: 10px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-slip-total--in-card strong {
-    font-size: 18px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__foot {
-    gap: 8px;
-    padding-top: 6px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__verbal,
-  .kitchen-table-status--slip-board-card .kitchen-table-status__print-slip,
-  .kitchen-table-status--slip-board-card .kitchen-receipt-preview-btn,
-  .kitchen-table-status--slip-board-card .kitchen-table-status__detail {
-    min-height: 48px;
-    font-size: 15px;
-    font-weight: 800;
-    border-radius: 10px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__checkout {
-    min-height: 52px;
-    font-size: 17px;
-    font-weight: 900;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__ops-trigger {
-    min-height: 48px;
-    padding: 12px;
-  }
-
-  .kitchen-table-status--slip-board-card .kitchen-table-status__ops-trigger-title {
-    font-size: 15px;
+    min-height: 28px;
+    min-width: 52px;
+    padding: 4px 8px;
+    font-size: 11px;
   }
 
   .kitchen-pending-batch__serve-all {
-    min-height: 48px;
-    padding: 12px 18px;
-    font-size: 16px;
-  }
-
-  .kitchen-pending-batch__line {
-    padding: 10px 10px;
-    font-size: 16px;
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 14px;
   }
 
   .kitchen-pending-batch__line-serve {
-    min-height: 44px;
-    min-width: 72px;
-    padding: 10px 14px;
-    font-size: 14px;
-    border-radius: 10px;
-  }
-
-  .kitchen-pending-fifo-bulk__btn {
-    min-height: 48px;
-    font-size: 15px;
-  }
-
-  .kitchen-btn--checkout-dismiss {
-    min-height: 48px;
-    font-size: 15px;
-  }
-
-  .kitchen-checkout-log__card-actions .kitchen-receipt-preview-btn,
-  .kitchen-checkout-log__reprint,
-  .kitchen-checkout-log__card-actions .kitchen-checkout-log__edit,
-  .kitchen-checkout-log__card-actions button {
-    min-height: 44px;
-    font-size: 14px;
-  }
-
-  .kitchen-swipe-row__delete {
-    width: 84px;
-    font-size: 14px;
-  }
-}
-
-@media (orientation: landscape) and (min-width: 1180px) and (max-height: 950px) {
-  .kitchen-table-status-grid--slip-board {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 12px;
   }
 }
 
