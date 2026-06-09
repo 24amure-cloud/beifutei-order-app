@@ -1,8 +1,17 @@
 import { formatLedgerPaymentJa } from './dailyLedger.js';
 import { getAlcoholTableCharge } from './alcoholTableCharge.js';
 
+/** レシート・会計伝票の店舗ヘッダー */
+export const RECEIPT_STORE = {
+  title: 'しあわせ研究所',
+  subtitle: 'yum yum しあわせ研究所',
+  phone: '0144-82-8377',
+  address: '北海道苫小牧市表町2-1-17',
+};
+
 const STORE_NAME =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RECEIPT_STORE_NAME) || '米風亭';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RECEIPT_STORE_NAME) ||
+  RECEIPT_STORE.title;
 
 /** PassPRNT URL 長の安全上限（iOS のカスタム URL 制限対策） */
 const PASSPRNT_URI_SAFE_MAX = 11000;
@@ -72,10 +81,10 @@ export function buildSlipReceiptPayload({ checkoutSlip, session, tableLabel, mem
   const baseTotal = Math.max(0, Number(checkoutSlip?.slipGrandTotal) || 0);
   const total = pay === 'card_5pct' ? Math.ceil(baseTotal * 1.05) : baseTotal;
 
+  void memo;
   return {
     storeName: STORE_NAME,
     tableLabel: tl,
-    memo: typeof memo === 'string' ? memo.trim() : '',
     payment: pay,
     paymentLabel: pay === 'detail' ? '明細のみ' : formatLedgerPaymentJa(pay),
     recordedAt: recordedAt ?? Date.now(),
@@ -124,7 +133,6 @@ export function buildLedgerReceiptPayload(entry) {
   return {
     storeName: STORE_NAME,
     tableLabel: String(entry.tableLabel ?? '?'),
-    memo: typeof entry.checkoutMemo === 'string' ? entry.checkoutMemo.trim() : '',
     payment: pay,
     paymentLabel: formatLedgerPaymentJa(pay),
     recordedAt: entry.recordedAt ?? Date.now(),
@@ -179,10 +187,6 @@ export function buildReceiptHtml(payload, opts = {}) {
     })
     .join('');
 
-  const memoBlock = payload.memo
-    ? `<div style="margin:8px 0">メモ：${escapeHtml(payload.memo)}</div>`
-    : '';
-
   const detailNote = payload.detailOnly
     ? '<div style="margin-top:10px;font-size:18px">※お支払いはスマレジ等で承ります（明細のみ）</div>'
     : '';
@@ -198,8 +202,10 @@ export function buildReceiptHtml(payload, opts = {}) {
 <meta name="format-detection" content="telephone=no">
 <style>
 body{font-family:Helvetica,'Hiragino Sans',sans-serif;width:384px;margin:0;padding:10px 8px;font-size:${bodySize}px;line-height:1.35;color:#000}
-.h{text-align:center;font-weight:700;font-size:28px;margin:0 0 4px}
-.subh{text-align:center;font-size:20px;margin:0 0 10px}
+.h{text-align:center;font-weight:700;font-size:26px;margin:0 0 2px}
+.brand{text-align:center;font-size:17px;font-weight:700;margin:0 0 6px;letter-spacing:0.02em}
+.shop{text-align:center;font-size:15px;margin:0 0 2px;color:#222}
+.subh{text-align:center;font-size:20px;margin:10px 0 8px;font-weight:700}
 .row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .name{flex:1;word-break:break-all}
 .price{white-space:nowrap;font-weight:700;text-align:right}
@@ -208,11 +214,13 @@ hr{border:none;border-top:2px dashed #000;margin:10px 0}
 .meta{font-size:18px;color:#333}
 </style>
 </head><body>
-<p class="h">${escapeHtml(payload.storeName)}</p>
+<p class="h">${escapeHtml(RECEIPT_STORE.title)}</p>
+<p class="brand">${escapeHtml(RECEIPT_STORE.subtitle)}</p>
+<p class="shop">${escapeHtml(RECEIPT_STORE.phone)}</p>
+<p class="shop">${escapeHtml(RECEIPT_STORE.address)}</p>
 <p class="subh">お会計明細</p>
 <p class="meta">${escapeHtml(when)}</p>
 <p class="meta">卓 ${escapeHtml(payload.tableLabel)}　${escapeHtml(payload.paymentLabel)}</p>
-${memoBlock}
 <hr>
 ${lineRows || '<p>（明細行なし）</p>'}
 <hr>
@@ -244,7 +252,6 @@ export function buildSampleReceiptPayload() {
     },
     session: {},
     tableLabel: '3',
-    memo: 'サンプル（プレビュー用）',
     payment: 'cash',
   });
 }

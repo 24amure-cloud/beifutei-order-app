@@ -11,10 +11,8 @@ import {
   buildSlipReceiptPayload,
   canUsePassPrnt,
   printReceiptWithFeedback,
+  RECEIPT_STORE,
 } from './receiptPrint.js';
-
-const STORE_NAME =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RECEIPT_STORE_NAME) || '米風亭';
 
 function card5Total(base) {
   return Math.ceil(Math.max(0, Number(base) || 0) * 1.05);
@@ -192,7 +190,8 @@ export default function KitchenCheckoutModal({
       <div className="kitchen-checkout-guest-overlay" role="dialog" aria-modal="true" aria-labelledby="kitchen-checkout-guest-title">
         <div className="kitchen-checkout-guest">
           <header className="kitchen-checkout-guest__head">
-            <p className="kitchen-checkout-guest__store">{STORE_NAME}</p>
+            <p className="kitchen-checkout-guest__store">{RECEIPT_STORE.title}</p>
+            <p className="kitchen-checkout-guest__store-sub">{RECEIPT_STORE.subtitle}</p>
             <h1 id="kitchen-checkout-guest-title" className="kitchen-checkout-guest__table">
               <span className="kitchen-checkout-guest__table-label">TABLE</span>
               <span className="kitchen-checkout-guest__table-num">{tableLabel}</span>

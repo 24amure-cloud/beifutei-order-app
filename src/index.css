@@ -17234,11 +17234,19 @@ button.kitchen-guest-intent--nav {
 }
 
 .kitchen-checkout-guest__store {
-  margin: 0 0 8px;
-  font-size: 13px;
-  letter-spacing: 0.2em;
-  font-weight: 700;
-  opacity: 0.85;
+  margin: 0 0 4px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+  opacity: 0.95;
+}
+
+.kitchen-checkout-guest__store-sub {
+  margin: 0 0 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 .kitchen-checkout-guest__table {
