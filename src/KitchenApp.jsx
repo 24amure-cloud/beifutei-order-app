@@ -32,10 +32,12 @@ import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
 import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
 import {
   buildLedgerReceiptPayload,
+  buildSampleReceiptPayload,
   buildSlipReceiptPayload,
   canUsePassPrnt,
   printReceiptWithFeedback,
 } from './receiptPrint.js';
+import KitchenReceiptPreviewButton from './KitchenReceiptPreviewButton.jsx';
 import {
   isNomihodaiChargedExtra,
   nhToggleShowsNomihodaiActive,
@@ -1022,6 +1024,7 @@ export default function KitchenApp() {
             スポット品
           </button>
         </nav>
+        <KitchenReceiptPreviewButton payload={buildSampleReceiptPayload()} compact label="レシート見本" />
         <KitchenRealtimeBadge />
       </header>
 
@@ -1885,6 +1888,17 @@ export default function KitchenApp() {
                               >
                                 口頭注文
                               </button>
+                              <KitchenReceiptPreviewButton
+                                compact
+                                label="明細プレビュー"
+                                payload={buildSlipReceiptPayload({
+                                  checkoutSlip: slip,
+                                  session,
+                                  tableLabel: label,
+                                  memo: session.tableMemoByLabel?.[label] ?? '',
+                                  payment: 'detail',
+                                })}
+                              />
                               {canUsePassPrnt() ? (
                                 <button
                                   type="button"
@@ -1989,6 +2003,11 @@ export default function KitchenApp() {
                           </span>
                           <span className="kitchen-checkout-log__total">￥{Number(e.total || 0).toLocaleString()}</span>
                           <div className="kitchen-checkout-log__card-actions">
+                            <KitchenReceiptPreviewButton
+                              compact
+                              label="プレビュー"
+                              payload={buildLedgerReceiptPayload(e)}
+                            />
                             {canUsePassPrnt() ? (
                               <button
                                 type="button"

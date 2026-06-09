@@ -6,6 +6,7 @@ import {
   orderKindMeta,
   orderLineTaxInLabel,
 } from './kitchenOrderDisplay.js';
+import KitchenReceiptPreviewButton from './KitchenReceiptPreviewButton.jsx';
 import {
   buildSlipReceiptPayload,
   canUsePassPrnt,
@@ -154,6 +155,11 @@ export default function KitchenCheckoutModal({
                 <button type="button" className="kitchen-checkout-done__print-yes" onClick={finishWithPrint}>
                   印刷する
                 </button>
+                <KitchenReceiptPreviewButton
+                  payload={completed.printPayload}
+                  label="プレビュー"
+                  className="kitchen-checkout-done__print-preview"
+                />
                 <button type="button" className="kitchen-checkout-done__print-no" onClick={finishWithoutPrint}>
                   印刷しない
                 </button>
@@ -162,11 +168,18 @@ export default function KitchenCheckoutModal({
           ) : (
             <section className="kitchen-checkout-done__print kitchen-checkout-done__print--noop">
               <p className="kitchen-checkout-done__print-note">
-                レシート印刷は iPad（PassPRNT）接続時のみ利用できます。
+                レシート印刷は iPad（PassPRNT）接続時のみ利用できます。デザインは「プレビュー」で確認できます。
               </p>
-              <button type="button" className="kitchen-checkout-done__print-no kitchen-checkout-done__done-only" onClick={finishWithoutPrint}>
-                完了
-              </button>
+              <div className="kitchen-checkout-done__print-actions">
+                <KitchenReceiptPreviewButton
+                  payload={completed.printPayload}
+                  label="レシートをプレビュー"
+                  className="kitchen-checkout-done__print-preview"
+                />
+                <button type="button" className="kitchen-checkout-done__print-no kitchen-checkout-done__done-only" onClick={finishWithoutPrint}>
+                  完了
+                </button>
+              </div>
             </section>
           )}
         </div>

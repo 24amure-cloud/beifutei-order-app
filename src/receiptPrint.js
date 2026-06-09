@@ -226,6 +226,60 @@ ${detailNote}
 }
 
 
+/** プレビュー用のサンプル伝票（実際の印刷イメージ確認用） */
+export function buildSampleReceiptPayload() {
+  return buildSlipReceiptPayload({
+    checkoutSlip: {
+      orders: [
+        { itemName: '醤油ラーメン', itemPrice: 980, isNomihodai: false },
+        { itemName: 'ハイボール', itemPrice: 0, isNomihodai: true },
+        { itemName: '唐揚げ', itemPrice: 580, isNomihodai: false },
+      ],
+      normalCount: 2,
+      nomihodaiCount: 1,
+      normalSubtotal: 1560,
+      nomihodaiPlanYen: 3500,
+      alcoholChargeYen: 500,
+      slipGrandTotal: 5560,
+    },
+    session: {},
+    tableLabel: '3',
+    memo: 'サンプル（プレビュー用）',
+    payment: 'cash',
+  });
+}
+
+/**
+ * レシート HTML をブラウザの別タブで開く（PassPRNT なしでもデザイン確認可）
+ * @param {ReturnType<typeof buildSlipReceiptPayload>} payload
+ */
+export function openReceiptHtmlPreview(payload) {
+  const html = buildReceiptHtml(payload);
+  try {
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (opened) {
+      window.setTimeout(() => URL.revokeObjectURL(url), 120000);
+      return { ok: true };
+    }
+  } catch {
+    /* fallback below */
+  }
+  const w = window.open('', '_blank', 'noopener,noreferrer');
+  if (!w) {
+    return { ok: false, error: 'popup_blocked' };
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  return { ok: true };
+}
+
+export function receiptPreviewBlockedMessageJa() {
+  return 'プレビューを開けませんでした。ポップアップを許可するか、もう一度お試しください。';
+}
+
 export function canUsePassPrnt() {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent || '';

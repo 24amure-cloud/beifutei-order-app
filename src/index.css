@@ -21670,3 +21670,309 @@ button.kitchen-guest-intent--nav {
   border-color: var(--nh-lux-gold, #d4b87a);
 }
 
+/* レシート HTML プレビュー（厨房） */
+.kitchen-receipt-preview-btn {
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px dashed #9a8a78;
+  background: #fffdf9;
+  color: #5a5348;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.kitchen-receipt-preview-btn--compact {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.kitchen-receipt-preview-btn:hover {
+  filter: brightness(1.03);
+  border-color: #7a6a58;
+}
+
+.kitchen-checkout-done__print-preview {
+  flex: 1 1 auto;
+  min-height: 48px;
+}
+
+/* --- 厨房：iPad 横画面タッチ最適化（機能はそのまま・押しやすさ優先） --- */
+@media (orientation: landscape) and (min-width: 900px) and (max-height: 950px) {
+  .kitchen-v2-topbar {
+    padding: 6px 12px;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .kitchen-v2-brand {
+    min-width: auto;
+  }
+
+  .kitchen-v2-brand strong {
+    font-size: 20px;
+  }
+
+  .kitchen-v2-brand span {
+    display: none;
+  }
+
+  .kitchen-v2-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+
+  .kitchen-v2-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kitchen-v2-tab {
+    flex-shrink: 0;
+    min-height: 48px;
+    padding: 10px 16px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+
+  .kitchen-receipt-preview-btn {
+    min-height: 44px;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .kitchen-focus-bar {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+
+  .kitchen-focus-bar__hint {
+    display: none;
+  }
+
+  .kitchen-focus-bar__select {
+    min-height: 44px;
+    min-width: 8rem;
+    font-size: 16px;
+  }
+
+  .kitchen-nh-intent-sticky {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .kitchen-nh-intent-sticky__hint {
+    display: none;
+  }
+
+  .kitchen-nh-intent-sticky__cta {
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  .kitchen-live-strip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    padding: 6px 12px 8px;
+  }
+
+  .kitchen-live-cell {
+    min-height: 58px;
+    padding: 6px 8px;
+    justify-content: center;
+  }
+
+  .kitchen-live-cell__label {
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .kitchen-live-cell__value {
+    font-size: 22px;
+    line-height: 1.1;
+  }
+
+  .kitchen-live-cell__sub {
+    display: none;
+  }
+
+  .kitchen-v2-layout {
+    padding: 8px 10px;
+    gap: 8px;
+    padding-bottom: calc(8px + var(--safe-bottom));
+  }
+
+  .kitchen-v2-headline {
+    margin-bottom: 4px;
+    padding: 0 2px;
+  }
+
+  .kitchen-v2-headline h1 {
+    font-size: 18px;
+    margin: 0;
+  }
+
+  .kitchen-v2-headline__lead {
+    display: none;
+  }
+
+  .kitchen-orders__help {
+    display: none;
+  }
+
+  .kitchen-orders__lead {
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 8px;
+  }
+
+  .kitchen-table-status-grid--slip-board {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .kitchen-table-status--slip-board-card {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__table {
+    font-size: 20px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__memo {
+    min-height: 40px;
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__orders {
+    min-height: 110px;
+    max-height: min(36vh, 240px);
+    padding: 8px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__orders-heading {
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__slip-name {
+    font-size: 14px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__slip-meta {
+    font-size: 12px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__hist-row {
+    font-size: 13px;
+    padding: 6px 0;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__hist-serve {
+    min-height: 40px;
+    min-width: 64px;
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-slip-total--in-card {
+    font-size: 13px;
+    padding: 10px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-slip-total--in-card strong {
+    font-size: 18px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__foot {
+    gap: 8px;
+    padding-top: 6px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__verbal,
+  .kitchen-table-status--slip-board-card .kitchen-table-status__print-slip,
+  .kitchen-table-status--slip-board-card .kitchen-receipt-preview-btn,
+  .kitchen-table-status--slip-board-card .kitchen-table-status__detail {
+    min-height: 48px;
+    font-size: 15px;
+    font-weight: 800;
+    border-radius: 10px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__checkout {
+    min-height: 52px;
+    font-size: 17px;
+    font-weight: 900;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__ops-trigger {
+    min-height: 48px;
+    padding: 12px;
+  }
+
+  .kitchen-table-status--slip-board-card .kitchen-table-status__ops-trigger-title {
+    font-size: 15px;
+  }
+
+  .kitchen-pending-batch__serve-all {
+    min-height: 48px;
+    padding: 12px 18px;
+    font-size: 16px;
+  }
+
+  .kitchen-pending-batch__line {
+    padding: 10px 10px;
+    font-size: 16px;
+  }
+
+  .kitchen-pending-batch__line-serve {
+    min-height: 44px;
+    min-width: 72px;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  .kitchen-pending-fifo-bulk__btn {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .kitchen-btn--checkout-dismiss {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .kitchen-checkout-log__card-actions .kitchen-receipt-preview-btn,
+  .kitchen-checkout-log__reprint,
+  .kitchen-checkout-log__card-actions .kitchen-checkout-log__edit,
+  .kitchen-checkout-log__card-actions button {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .kitchen-swipe-row__delete {
+    width: 84px;
+    font-size: 14px;
+  }
+}
+
+@media (orientation: landscape) and (min-width: 1180px) and (max-height: 950px) {
+  .kitchen-table-status-grid--slip-board {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
