@@ -1,13 +1,10 @@
 import { readGuestTableLabelFromUrl } from './guestOrderUrl.js';
-import {
-  KITCHEN_FOCUS_TABLE_KEY,
-  NOMIHODAI_SESSION_KEY,
-  isKitchenAppPage,
-  normalizeTableLabelKey,
-} from './nomihodaiSession.js';
+import { isKitchenAppPage, normalizeTableLabelKey } from './nomihodaiSession.js';
 
 /** 客席タブレット用：ホーム画面追加後も卓番を復元（localStorage） */
 export const GUEST_PWA_TABLE_KEY = 'beifutei-pwa-guest-table-v1';
+/** ?table= 付き URL で一度保存した卓番だけ PWA 起動時に信頼する */
+export const GUEST_PWA_TABLE_CONFIRMED_KEY = 'beifutei-pwa-guest-table-from-url-v1';
 const LEGACY_GUEST_PWA_SESSION_KEY = 'beifutei-pwa-last-guest-table-v1';
 
 export function isStandalonePwa() {
@@ -48,23 +45,39 @@ export function restoreTableInUrlIfMissing(tableLabel) {
   return syncTableInUrl(tableLabel);
 }
 
-export function persistGuestPwaTable(label) {
+export function persistGuestPwaTable(label, { confirmed = false } = {}) {
   const k = normalizeTableLabelKey(label ?? '');
   if (!k) return;
   try {
     localStorage.setItem(GUEST_PWA_TABLE_KEY, k);
+    if (confirmed) localStorage.setItem(GUEST_PWA_TABLE_CONFIRMED_KEY, '1');
   } catch {
     /* ignore */
   }
 }
 
-export function loadGuestPwaTable() {
+/** バグで誤保存されたデフォルト卓3を PWA 起動時に使わない */
+export function isGuestPwaTableTrusted(label) {
+  const k = normalizeTableLabelKey(label ?? '');
+  if (!k) return false;
+  try {
+    if (localStorage.getItem(GUEST_PWA_TABLE_CONFIRMED_KEY) === '1') return true;
+    return k !== '3';
+  } catch {
+    return k !== '3';
+  }
+}
+
+export function loadGuestPwaTable({ trustedOnly = false } = {}) {
   try {
     const fromLs = normalizeTableLabelKey(localStorage.getItem(GUEST_PWA_TABLE_KEY) ?? '');
-    if (fromLs) return fromLs;
+    if (fromLs) {
+      if (!trustedOnly || isGuestPwaTableTrusted(fromLs)) return fromLs;
+      return '';
+    }
     const fromSs = normalizeTableLabelKey(sessionStorage.getItem(LEGACY_GUEST_PWA_SESSION_KEY) ?? '');
     if (fromSs) {
-      persistGuestPwaTable(fromSs);
+      persistGuestPwaTable(fromSs, { confirmed: true });
       sessionStorage.removeItem(LEGACY_GUEST_PWA_SESSION_KEY);
       return fromSs;
     }
@@ -103,22 +116,11 @@ export function loadKitchenPwaTable() {
   }
 }
 
-function loadGuestTableFromSessionStorage() {
-  try {
-    const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
-    if (!raw) return '';
-    const p = JSON.parse(raw);
-    return normalizeTableLabelKey(p.tableLabel ?? '');
-  } catch {
-    return '';
-  }
-}
-
-function persistPwaTableStorageOnly(label) {
+function persistPwaTableStorageOnly(label, { confirmed = false } = {}) {
   const k = normalizeTableLabelKey(label ?? '');
   if (!k) return;
   if (isKitchenAppPage()) persistKitchenPwaTable(k);
-  else persistGuestPwaTable(k);
+  else persistGuestPwaTable(k, { confirmed });
 }
 
 /**
@@ -127,7 +129,7 @@ function persistPwaTableStorageOnly(label) {
 export function bootstrapPwaTableForPage() {
   const fromUrl = readGuestTableLabelFromUrl();
   if (fromUrl) {
-    persistPwaTableStorageOnly(fromUrl);
+    persistPwaTableStorageOnly(fromUrl, { confirmed: true });
     return { tableLabel: fromUrl, source: 'url' };
   }
 
@@ -140,17 +142,10 @@ export function bootstrapPwaTableForPage() {
     return { tableLabel: '', source: 'none' };
   }
 
-  const fromPwa = loadGuestPwaTable();
+  const fromPwa = loadGuestPwaTable({ trustedOnly: true });
   if (fromPwa) {
     restoreTableInUrlIfMissing(fromPwa);
     return { tableLabel: fromPwa, source: 'guest-pwa-storage' };
-  }
-
-  const fromSession = loadGuestTableFromSessionStorage();
-  if (fromSession) {
-    persistGuestPwaTable(fromSession);
-    restoreTableInUrlIfMissing(fromSession);
-    return { tableLabel: fromSession, source: 'guest-session-storage' };
   }
 
   return { tableLabel: '', source: 'none' };
@@ -163,7 +158,7 @@ export function bootstrapPwaTableForPage() {
 export function applyTableLabelFromUrl() {
   const fromUrl = readGuestTableLabelFromUrl();
   if (!fromUrl) return '';
-  persistPwaTableStorageOnly(fromUrl);
+  persistPwaTableStorageOnly(fromUrl, { confirmed: true });
   return fromUrl;
 }
 
@@ -171,6 +166,6 @@ export function applyTableLabelFromUrl() {
 export function persistTableLabelFromApp(label) {
   const k = normalizeTableLabelKey(label ?? '');
   if (!k) return;
-  persistPwaTableStorageOnly(k);
+  persistPwaTableStorageOnly(k, { confirmed: true });
   syncTableInUrl(k);
 }

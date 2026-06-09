@@ -61,6 +61,7 @@ import {
   loadGuestPwaTable,
   loadKitchenPwaTable,
   persistGuestPwaTable,
+  persistKitchenPwaTable,
   persistTableLabelFromApp,
   restoreTableInUrlIfMissing,
 } from './pwaTableBootstrap.js';
@@ -224,26 +225,9 @@ function normalizeItemPriceYen(raw) {
 }
 
 function loadGuestDeviceStateFromStorage() {
-  const fromPwa = loadGuestPwaTable();
+  const fromPwa = loadGuestPwaTable({ trustedOnly: true });
   if (fromPwa) {
     return { tableId: 'default', tableLabel: fromPwa, nomihodaiFarewell: null };
-  }
-  try {
-    const raw = localStorage.getItem(NOMIHODAI_SESSION_KEY);
-    if (raw) {
-      const p = JSON.parse(raw);
-      const lbl = normalizeTableLabelKey(p.tableLabel ?? '');
-      if (lbl) {
-        persistGuestPwaTable(lbl);
-        return {
-          tableId: p.tableId || 'default',
-          tableLabel: lbl,
-          nomihodaiFarewell: p.nomihodaiFarewell || null,
-        };
-      }
-    }
-  } catch {
-    /* ignore */
   }
   if (isStandalonePwa()) {
     return { tableId: 'default', tableLabel: '', nomihodaiFarewell: null };
@@ -272,6 +256,11 @@ function loadKitchenFocusFromStorage() {
 function persistLocalDeviceState(next) {
   const key = isKitchenAppPage() ? KITCHEN_FOCUS_TABLE_KEY : NOMIHODAI_SESSION_KEY;
   localStorage.setItem(key, JSON.stringify({ ...next, updatedAt: Date.now() }));
+  const lbl = normalizeTableLabelKey(next.tableLabel ?? '');
+  if (lbl && readGuestTableLabelFromUrl() === lbl) {
+    if (isKitchenAppPage()) persistKitchenPwaTable(lbl);
+    else persistGuestPwaTable(lbl, { confirmed: true });
+  }
   broadcastSession();
 }
 
@@ -685,7 +674,7 @@ export function NomihodaiSessionProvider({ children }) {
 
     const deviceLabel =
       normalizeTableLabelKey(localDeviceState.tableLabel ?? '') ||
-      (isKitchenAppPage() ? '' : '3');
+      (isKitchenAppPage() || isStandalonePwa() ? '' : '3');
 
     dbTables.forEach((row) => {
       const lbl = normalizeTableLabelKey(row.table_label ?? '');
