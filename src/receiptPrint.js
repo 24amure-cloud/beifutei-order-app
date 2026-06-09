@@ -3,8 +3,8 @@ import { getAlcoholTableCharge } from './alcoholTableCharge.js';
 
 /** レシート・会計伝票の店舗ヘッダー */
 export const RECEIPT_STORE = {
-  title: 'しあわせ研究所',
-  subtitle: 'yum yum しあわせ研究所',
+  title: 'しあわせ研究所　yum',
+  subtitle: '',
   phone: '0144-82-8377',
   address: '北海道苫小牧市表町2-1-17',
 };
@@ -215,7 +215,7 @@ hr{border:none;border-top:2px dashed #000;margin:10px 0}
 </style>
 </head><body>
 <p class="h">${escapeHtml(RECEIPT_STORE.title)}</p>
-<p class="brand">${escapeHtml(RECEIPT_STORE.subtitle)}</p>
+${RECEIPT_STORE.subtitle ? `<p class="brand">${escapeHtml(RECEIPT_STORE.subtitle)}</p>` : ''}
 <p class="shop">${escapeHtml(RECEIPT_STORE.phone)}</p>
 <p class="shop">${escapeHtml(RECEIPT_STORE.address)}</p>
 <p class="subh">お会計明細</p>

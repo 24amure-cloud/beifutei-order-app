@@ -191,7 +191,9 @@ export default function KitchenCheckoutModal({
         <div className="kitchen-checkout-guest">
           <header className="kitchen-checkout-guest__head">
             <p className="kitchen-checkout-guest__store">{RECEIPT_STORE.title}</p>
-            <p className="kitchen-checkout-guest__store-sub">{RECEIPT_STORE.subtitle}</p>
+            {RECEIPT_STORE.subtitle ? (
+              <p className="kitchen-checkout-guest__store-sub">{RECEIPT_STORE.subtitle}</p>
+            ) : null}
             <h1 id="kitchen-checkout-guest-title" className="kitchen-checkout-guest__table">
               <span className="kitchen-checkout-guest__table-label">TABLE</span>
               <span className="kitchen-checkout-guest__table-num">{tableLabel}</span>
