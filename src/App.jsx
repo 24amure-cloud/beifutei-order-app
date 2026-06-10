@@ -594,7 +594,7 @@ function SideDishMenu({ addToCart }) {
 
 function DrinkMenuCategory({ sec, addToCart, nomihodaiActive, ut, locale }) {
   return (
-    <div className="drink-page-cat">
+    <div className={`drink-page-cat${sec.id === 'cocktail' ? ' drink-page-cat--cocktail' : ''}`}>
       <div className="drink-page-cat__head drink-page-cat__head--hero-inline">
         <div className="drink-page-cat__head-titles">
           {locale === 'en' ? (

@@ -3,10 +3,11 @@
 
 export const DEFAULT_DRINK_MENU_VERSION = 5;
 
-/** 客席ドリンク：1行3カテゴリ（ハイボール行・焼酎行・ソフト行） */
+/** 客席ドリンク：1行3カテゴリ（カクテルは品数・名称が長いため単独行） */
 export const DRINK_MENU_GUEST_ROWS = [
   ['whisky', 'beer', 'sake'],
-  ['shochu', 'sour', 'cocktail'],
+  ['shochu', 'sour'],
+  ['cocktail'],
   ['soft'],
 ];
 
