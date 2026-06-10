@@ -10,7 +10,7 @@ export const KITCHEN_ABURASOBA_TAKEOUT = [
     key: 'spicy',
     name: '辛々担々 油そば',
     note: 'お持ち帰り',
-    prices: { 小: 980, 並: 1180, 大: 1380 },
+    prices: { 小: 1100, 並: 1300, 大: 1500 },
   },
   {
     key: 'cheese',
@@ -46,7 +46,7 @@ export const KITCHEN_RETAIL_VERBAL_PICKS = [
   { itemId: 'cafe-latte-hot-M', itemName: 'カフェラテ（HOT/M）', price: 540 },
   { itemId: 'fr-soft-コーン', itemName: 'ジェラ生ソフト（コーン）', price: 460 },
   { itemId: 'to-abu-normal-並', itemName: '米風亭 油そば（並）', price: 1130 },
-  { itemId: 'to-abu-spicy-並', itemName: '辛々担々 油そば（並）', price: 1180 },
+  { itemId: 'to-abu-spicy-並', itemName: '辛々担々 油そば（並）', price: 1300 },
 ];
 
 /** 油そばサイズに対応するお持ち帰り容器（小・並→小、大→大） */

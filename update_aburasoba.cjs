@@ -9,13 +9,13 @@ const newAburasobaMenu = `// === ABURASOBA PAGE COMPONENT ===
 function AburasobaMenu({ addToCart }) {
   const [opts, setOpts] = useState({
     normal: { size: '並', price: 1130 },
-    spicy: { size: '並', price: 1180 },
+    spicy: { size: '並', price: 1300 },
     negi: { size: '並', price: 1230 }
   });
 
   const prices = {
     normal: { '小': 980, '並': 1130, '大': 1330 },
-    spicy: { '小': 980, '並': 1180, '大': 1380 },
+    spicy: { '小': 1100, '並': 1300, '大': 1500 },
     negi: { '小': 1030, '並': 1230, '大': 1430 }
   };
 
