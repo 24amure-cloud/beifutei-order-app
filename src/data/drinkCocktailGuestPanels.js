@@ -10,7 +10,7 @@ export const DRINK_COCKTAIL_GUEST_PANELS = [
     subtitleJa: 'ジン・ウォッカ・ラム・リキュール',
     heroSectionId: 'cocktail',
     /** この id まで（含む）を左パネルへ */
-    lastItemId: 'pd-ck-malibu-milk',
+    lastItemId: 'pd-ck-malibu-orange',
   },
   {
     id: 'cocktail-mix',
@@ -20,7 +20,7 @@ export const DRINK_COCKTAIL_GUEST_PANELS = [
     subtitleJa: 'カシス・ピーチ・ビール・ワイン',
     heroSectionId: 'wine',
     /** この id から右パネルへ */
-    firstItemId: 'pd-ck-kahlua-milk',
+    firstItemId: 'pd-ck-kahlua-coke',
   },
 ];
 

@@ -3,7 +3,7 @@
 
 import { DEFAULT_DRINK_COCKTAIL_ITEMS } from './defaultDrinkCocktailItems.js';
 
-export const DEFAULT_DRINK_MENU_VERSION = 8;
+export const DEFAULT_DRINK_MENU_VERSION = 9;
 
 /** 客席ドリンク：1行3カテゴリ（カクテルは単独行・2ヒーロー） */
 export const DRINK_MENU_GUEST_ROWS = [

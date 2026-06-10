@@ -24,10 +24,6 @@ export const DEFAULT_DRINK_COCKTAIL_ITEMS = [
   { id: 'pd-ck-dark-rum-soda', name: 'ダークラムソーダ', nameEn: 'Dark rum soda', price: 700 },
   { id: 'pd-ck-dark-rum-coke', name: 'ダークラムコーク', nameEn: 'Dark rum and Coke', price: 700 },
   { id: 'pd-ck-dark-rum-ginger', name: 'ダークラムジンジャー', nameEn: 'Dark rum ginger', price: 700 },
-  // サンジェルマンベース
-  { id: 'pd-ck-stg-soda', name: 'サンジェルマンソーダ', nameEn: 'St-Germain soda', price: 700 },
-  { id: 'pd-ck-stg-orange', name: 'サンジェルマンオレンジ', nameEn: 'St-Germain orange', price: 700 },
-  { id: 'pd-ck-stg-ginger', name: 'サンジェルマンジンジャー', nameEn: 'St-Germain ginger', price: 700 },
   // カンパリベース
   { id: 'pd-ck-campari-soda', name: 'カンパリソーダ', nameEn: 'Campari soda', price: 700 },
   { id: 'pd-ck-campari-orange', name: 'カンパリオレンジ', nameEn: 'Campari orange', price: 700 },
@@ -35,22 +31,12 @@ export const DEFAULT_DRINK_COCKTAIL_ITEMS = [
   // マリブベース
   { id: 'pd-ck-malibu-coke', name: 'マリブコーク', nameEn: 'Malibu and Coke', price: 700 },
   { id: 'pd-ck-malibu-orange', name: 'マリブオレンジ', nameEn: 'Malibu orange', price: 700 },
-  { id: 'pd-ck-malibu-milk', name: 'マリブミルク', nameEn: 'Malibu milk', price: 700 },
   // カルーアベース
-  { id: 'pd-ck-kahlua-milk', name: 'カルーアミルク', nameEn: 'Kahlúa milk', price: 700 },
   { id: 'pd-ck-kahlua-coke', name: 'カルーアコーク', nameEn: 'Kahlúa and Coke', price: 700 },
   // パッソアベース
   { id: 'pd-ck-passoa-orange', name: 'パッソアオレンジ', nameEn: 'Passoã orange', price: 700 },
   { id: 'pd-ck-passoa-soda', name: 'パッソアソーダ', nameEn: 'Passoã soda', price: 700 },
   { id: 'pd-ck-passoa-gf', name: 'パッソアグレープフルーツ', nameEn: 'Passoã grapefruit', price: 700 },
-  // ブランデーベース
-  { id: 'pd-ck-brandy-soda', name: 'ブランデーソーダ', nameEn: 'Brandy soda', price: 700 },
-  { id: 'pd-ck-brandy-ginger', name: 'ブランデージンジャー', nameEn: 'Brandy ginger', price: 700 },
-  { id: 'pd-ck-brandy-coke', name: 'ブランデーコーク', nameEn: 'Brandy and Coke', price: 700 },
-  // グリーンティリキュールベース
-  { id: 'pd-ck-gtea-soda', name: 'グリーンティソーダ', nameEn: 'Green tea soda', price: 700 },
-  { id: 'pd-ck-gtea-oolong', name: 'グリーンティウーロン', nameEn: 'Green tea oolong', price: 700 },
-  { id: 'pd-ck-gtea-milk', name: 'グリーンティミルク', nameEn: 'Green tea milk', price: 700 },
   // カシスベース
   { id: 'pd-ck-cassis-soda', name: 'カシスソーダ', nameEn: 'Cassis soda', price: 700 },
   { id: 'pd-ck-cassis-orange', name: 'カシスオレンジ', nameEn: 'Cassis orange', price: 700 },

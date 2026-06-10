@@ -120,7 +120,7 @@ export const NOMIHODAI_GUEST_TAB_ORDER = [
 ];
 
 /** 既定カタログの版（localStorage がこれより古い場合は既定へ差し替え） */
-export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 16;
+export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 17;
 
 /** ノンアル統合ラインナップ（15品） */
 export const NOMIHODAI_NONALCOHOL_ITEM_IDS = [

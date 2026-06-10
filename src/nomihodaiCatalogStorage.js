@@ -85,6 +85,17 @@ const REMOVED_NOMIHODAI_ITEM_IDS = new Set([
   'nh-ck-brandy-xo',
   'nh-ck-green-tea-liq',
   'nh-ck-wine-glass',
+  'nh-ck-stg-soda',
+  'nh-ck-stg-orange',
+  'nh-ck-stg-ginger',
+  'nh-ck-malibu-milk',
+  'nh-ck-kahlua-milk',
+  'nh-ck-brandy-soda',
+  'nh-ck-brandy-ginger',
+  'nh-ck-brandy-coke',
+  'nh-ck-gtea-soda',
+  'nh-ck-gtea-oolong',
+  'nh-ck-gtea-milk',
 ]);
 
 function catalogHasRemovedItems(catalog) {
