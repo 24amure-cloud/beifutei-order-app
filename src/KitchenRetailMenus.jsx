@@ -7,12 +7,8 @@ import { appendDailyLedgerEntry } from './dailyLedger.js';
 import { assertTakeoutSweetsCart, applyTakeoutSweetsSales } from './takeoutSweetsInventory.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import KitchenRetailVerbalPanel from './KitchenRetailVerbalPanel.jsx';
+import KitchenStaffAburasobaTakeoutMenu from './KitchenStaffAburasobaTakeoutMenu.jsx';
 import KitchenRetailStatsGate from './KitchenRetailStatsGate.jsx';
-import {
-  KITCHEN_ABURASOBA_TAKEOUT,
-  KITCHEN_ABURASOBA_TOPPINGS,
-  KITCHEN_TAKEOUT_CONTAINER_ITEMS,
-} from './data/kitchenRetailTakeoutMenu.js';
 import { retailAssetUrl, retailCssBgUrl, STAFF_CAFE_IMAGES } from './retailMenuAssets.js';
 
 const RetailStaffCartContext = createContext(null);
@@ -442,109 +438,6 @@ export function KitchenStaffTakeoutSweetsMenu() {
   return <TakeoutSweetsMenuView addToCart={addToCart} variant="kitchen" PageHeader={PageHeaderImage} />;
 }
 
-export function KitchenStaffAburasobaTakeoutMenu() {
-  const { addToCart } = useRetailStaffCart();
-  const [sizes, setSizes] = useState(() =>
-    Object.fromEntries(KITCHEN_ABURASOBA_TAKEOUT.map((row) => [row.key, '並'])),
-  );
-  const [bowlToppings, setBowlsToppings] = useState(() =>
-    Object.fromEntries(KITCHEN_ABURASOBA_TAKEOUT.map((row) => [row.key, []])),
-  );
-
-  const toggleBowlTopping = (bowlKey, topId) => {
-    setBowlsToppings((prev) => {
-      const cur = prev[bowlKey] ?? [];
-      const next = cur.includes(topId) ? cur.filter((id) => id !== topId) : [...cur, topId];
-      return { ...prev, [bowlKey]: next };
-    });
-  };
-
-  return (
-    <div className="kitchen-staff-retail-menu kitchen-staff-retail-menu--soft kretail-soft-list">
-      <h2 className="kretail-soft-list__title">油そば お持ち帰り</h2>
-      <p className="kretail-soft-list__lead">サイズとトッピングを選んで「追加」。容器は下から別途追加してください。</p>
-
-      {KITCHEN_ABURASOBA_TAKEOUT.map((row) => {
-        const sizeOpts = Object.keys(row.prices).map((k) => ({ key: k, label: k, price: row.prices[k] }));
-        const selectedKey = sizes[row.key] ?? '並';
-        const selectedTops = bowlToppings[row.key] ?? [];
-        const sizePrice = (sizeOpts.find((x) => x.key === selectedKey) ?? sizeOpts[1]).price;
-        const topsPrice = selectedTops.reduce((s, id) => {
-          const t = KITCHEN_ABURASOBA_TOPPINGS.find((x) => x.id === id);
-          return s + (t?.price ?? 0);
-        }, 0);
-        const totalPrice = sizePrice + topsPrice;
-
-        return (
-          <article key={row.key} className="kretail-abu-row">
-            <KitchenStaffSoftcreamRow
-              name={row.name}
-              note={row.note}
-              options={sizeOpts}
-              selectedKey={selectedKey}
-              onSelect={(k) => setSizes((prev) => ({ ...prev, [row.key]: k }))}
-              onAdd={() => {
-                const o = sizeOpts.find((x) => x.key === selectedKey) ?? sizeOpts[1];
-                const tops = KITCHEN_ABURASOBA_TOPPINGS.filter((t) => selectedTops.includes(t.id));
-                const topLabel = tops.length ? `＋${tops.map((t) => t.name).join('・')}` : '';
-                addToCart({
-                  id: `to-abu-${row.key}-${o.key}${tops.length ? `-${tops.map((t) => t.id).join('-')}` : ''}`,
-                  name: `${row.name}（${o.label}・TA${topLabel ? ` ${topLabel}` : ''}）`,
-                  price: totalPrice,
-                });
-              }}
-              fixedPrice={totalPrice}
-              displayPrice={totalPrice}
-            />
-            <div className="kretail-abu-row__tops" role="group" aria-label={`${row.name}のトッピング`}>
-              {KITCHEN_ABURASOBA_TOPPINGS.map((top) => (
-                <button
-                  key={top.id}
-                  type="button"
-                  className={`kretail-abu-row__top${selectedTops.includes(top.id) ? ' kretail-abu-row__top--on' : ''}`}
-                  onClick={() => toggleBowlTopping(row.key, top.id)}
-                  aria-pressed={selectedTops.includes(top.id)}
-                >
-                  <span className="kretail-abu-row__top-name">{top.name}</span>
-                  <span className="kretail-abu-row__top-price">+￥{top.price}</span>
-                </button>
-              ))}
-            </div>
-          </article>
-        );
-      })}
-
-      <h3 className="kretail-soft-list__subtitle">トッピングのみ追加</h3>
-      <p className="kretail-soft-list__lead">既にカートにある油そばへの追加など</p>
-      {KITCHEN_ABURASOBA_TOPPINGS.map((it) => (
-        <KitchenStaffSoftcreamRow
-          key={`solo-${it.id}`}
-          name={it.name}
-          note="トッピング"
-          options={[]}
-          selectedKey=""
-          fixedPrice={it.price}
-          onSelect={() => {}}
-          onAdd={() => addToCart({ id: `${it.id}-solo`, name: `${it.name}（TA）`, price: it.price })}
-        />
-      ))}
-
-      <h3 className="kretail-soft-list__subtitle">お持ち帰り容器</h3>
-      {KITCHEN_TAKEOUT_CONTAINER_ITEMS.map((it) => (
-        <KitchenStaffSoftcreamRow
-          key={it.id}
-          name={it.name}
-          options={[]}
-          selectedKey=""
-          fixedPrice={it.price}
-          onSelect={() => {}}
-          onAdd={() => addToCart({ id: it.id, name: it.name, price: it.price })}
-        />
-      ))}
-    </div>
-  );
-}
-
 /** 日計・売上カレンダーに載せる区分（卓番ではない） */
 const LEDGER_TAKEOUT_GUEST_LABEL = 'テイクアウト客';
 
@@ -725,7 +618,7 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
                 className={`kitchen-retail-hub__tab kitchen-retail-hub__tab--aburasoba${sub === 'aburasoba' ? ' is-active' : ''}`}
                 onClick={() => setSub('aburasoba')}
               >
-                油そばTA
+                油そば
               </button>
             </div>
           </div>
@@ -740,8 +633,8 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
               {retailStats && sub === 'fruit' ? <KitchenStaffFruitStudioMenu /> : null}
               {retailStats && sub === 'cafe' ? <KitchenStaffCafeMenu /> : null}
               {retailStats && sub === 'takeout' ? <KitchenStaffTakeoutSweetsMenu /> : null}
-              {retailStats && sub === 'aburasoba' ? <KitchenStaffAburasobaTakeoutMenu /> : null}
-              {retailStats ? <KitchenRetailVerbalPanel addToCart={addToCart} /> : null}
+              {retailStats && sub === 'aburasoba' ? <KitchenStaffAburasobaTakeoutMenu addToCart={addToCart} /> : null}
+              {retailStats && sub !== 'aburasoba' ? <KitchenRetailVerbalPanel addToCart={addToCart} /> : null}
             </div>
 
             <aside

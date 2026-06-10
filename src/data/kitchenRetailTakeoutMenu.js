@@ -40,11 +40,11 @@ export const KITCHEN_ABURASOBA_TOPPINGS = [
 /** 口頭注文クイック選択（タップでカートへ） */
 export const KITCHEN_RETAIL_VERBAL_PICKS = [
   ...KITCHEN_TAKEOUT_CONTAINER_ITEMS.map((it) => ({ ...it, itemId: it.id, itemName: it.name })),
-  ...KITCHEN_ABURASOBA_TOPPINGS.slice(0, 3).map((it) => ({ itemId: it.id, itemName: `TA ${it.name}`, price: it.price })),
+  ...KITCHEN_ABURASOBA_TOPPINGS.slice(0, 3).map((it) => ({ itemId: it.id, itemName: it.name, price: it.price })),
   { itemId: 'ts-sc-wakeari', itemName: '訳アリスコーン', price: 680 },
   { itemId: 'cafe-ameri-hot-M', itemName: 'コーヒー（HOT/M）', price: 420 },
   { itemId: 'cafe-latte-hot-M', itemName: 'カフェラテ（HOT/M）', price: 540 },
   { itemId: 'fr-soft-コーン', itemName: 'ジェラ生ソフト（コーン）', price: 460 },
-  { itemId: 'to-abu-normal-並', itemName: '米風亭 油そばTA（並）', price: 1130 },
-  { itemId: 'to-abu-spicy-並', itemName: '辛々担々 油そばTA（並）', price: 1180 },
+  { itemId: 'to-abu-normal-並', itemName: '米風亭 油そば（並）', price: 1130 },
+  { itemId: 'to-abu-spicy-並', itemName: '辛々担々 油そば（並）', price: 1180 },
 ];
