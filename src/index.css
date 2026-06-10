@@ -2195,6 +2195,32 @@ body.guest-screensaver-active .cart-drawer-panel {
   box-shadow: inset 0 0 0 3px rgba(169, 30, 30, 0.75);
 }
 
+/* 英語UI：品名を画像上に常時表示（タップで注文） */
+.shochu-menu-page--en .shochu-menu-page__hotspot:not(:disabled) {
+  box-shadow: inset 0 0 0 2px rgba(169, 30, 30, 0.34);
+  background: rgba(169, 30, 30, 0.05);
+}
+
+.shochu-menu-page--en .shochu-menu-page__hotspot:not(:disabled) .shochu-menu-page__hotspot-chip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.shochu-menu-page--en .shochu-menu-page__hotspot-name {
+  font-size: clamp(8px, 1.85vw, 10px);
+  line-height: 1.25;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.shochu-menu-page--en .shochu-menu-page__hotspot:hover:not(:disabled),
+.shochu-menu-page--en .shochu-menu-page__hotspot:active:not(:disabled) {
+  background: rgba(169, 30, 30, 0.18);
+  box-shadow: inset 0 0 0 3px rgba(169, 30, 30, 0.72);
+}
+
 .shochu-menu-page__hotspot:disabled {
   cursor: not-allowed;
   pointer-events: none;

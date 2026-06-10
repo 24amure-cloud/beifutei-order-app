@@ -4,7 +4,7 @@ import { useSideDishMenu } from './SideDishMenuContext.jsx';
 import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { useDrinkMenuForGuest } from './useDrinkMenuForGuest.js';
-import { guestDrinkRowName } from './guestMenuDisplay.js';
+import { guestDrinkRowName, guestTakeoutItemDisplayName } from './guestMenuDisplay.js';
 
 const ASSET_BASE = import.meta.env.BASE_URL;
 
@@ -55,10 +55,11 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
       if (spot.kind === 'drink') {
         const it = drinkById[spot.drinkId];
         if (!it) return null;
+        const label = guestDrinkRowName(it, locale);
         return {
           key: spot.drinkId,
-          label: guestDrinkRowName(it, locale),
-          shortLabel: shortenHotspotLabel(it.name),
+          label,
+          shortLabel: locale === 'en' ? label : shortenHotspotLabel(it.name),
           price: it.price,
           product: { id: it.id, name: it.name, price: it.price },
           rect: spot,
@@ -66,10 +67,11 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
       }
       const it = findSideItem(sideDishSections, spot.sideId);
       if (!it) return null;
+      const label = guestTakeoutItemDisplayName(it, locale);
       return {
         key: spot.sideId,
-        label: it.name,
-        shortLabel: shortenHotspotLabel(it.name),
+        label,
+        shortLabel: locale === 'en' ? label : shortenHotspotLabel(it.name),
         price: it.price,
         product: { id: it.id, name: it.name, price: it.price },
         rect: spot,
@@ -88,7 +90,7 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
 
   return (
     <main
-      className={`main-content shochu-menu-page${nomihodaiActive ? ' shochu-menu-page--locked' : ''}`}
+      className={`main-content shochu-menu-page${locale === 'en' ? ' shochu-menu-page--en' : ''}${nomihodaiActive ? ' shochu-menu-page--locked' : ''}`}
       style={{ background: '#F5F0E6' }}
     >
       <div className="shochu-menu-page__inner">
