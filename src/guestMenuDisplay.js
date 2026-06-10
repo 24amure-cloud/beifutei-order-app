@@ -23,7 +23,7 @@ const RETAIL_EN = {
   'pz-bismark': 'Bismark',
   'pz-quattro': 'Quattro formaggi',
   'ts-fr-itigo': 'Strawberry',
-  'ts-fr-furu-tumix': 'Fruits mix',
+  'ts-fr-furu-tumix': 'Fruit mix',
   'ts-fr-golden-pine': 'Golden pineapple',
   'ts-fr-itigokiui': 'Kiwi & strawberry',
   'ts-fr-itigopain': 'Strawberry & pineapple',
