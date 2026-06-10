@@ -2,15 +2,16 @@ import { DEFAULT_SIDE_DISH_SECTIONS } from './data/defaultSideDishMenu.js';
 import { enrichSideDishSections } from './sideDishMenuLabels.js';
 
 export const SIDE_DISH_MENU_STORAGE_KEY = 'beifutei-side-dish-menu-v1';
-const SIDE_DISH_CONTENT_FIX_KEY = 'beifutei-sidedish-content-fix-v1';
+const SIDE_DISH_CONTENT_FIX_KEY = 'beifutei-sidedish-content-fix-v2';
 
 const SIDE_DISH_ITEM_PATCHES = {
   'sd-jerky': { name: '自家製ジャーキー' },
   'sd-potato': { name: 'ポテト' },
-  'sd-hash': { name: 'ハッシュドポテト（5個）' },
+  'sd-hash': { name: 'ハッシュドポテト（5個）', image: '' },
   'sd-nugget': { name: 'チキンナゲット（5個）' },
-  'sd-wiener': { image: '' },
+  'sd-wiener': { name: '赤ウインナー串', image: '' },
   'sd-snack-chashu': { image: '' },
+  'sd-pickles': { name: '自家製ピクルス', image: '' },
 };
 
 function isValidItem(it) {

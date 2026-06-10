@@ -31,7 +31,7 @@ export const DEFAULT_SIDE_DISH_SECTIONS = [
     titleJa: 'とりあえず',
     titleKey: 'sd_section_toriaezu',
     items: [
-      { id: 'sd-pickles', name: '自家製ピクルス盛り', price: 560, image: '名称未設定-2_0007_pikurusu.png', imageLayout: 'medium' },
+      { id: 'sd-pickles', name: '自家製ピクルス', price: 560, image: '', imageLayout: 'medium' },
       { id: 'sd-edamame', name: '塩ゆで枝豆', price: 450, image: '名称未設定-2_0006_edamame.png', imageLayout: 'medium' },
     ],
   },
@@ -41,10 +41,10 @@ export const DEFAULT_SIDE_DISH_SECTIONS = [
     titleJa: 'みんな大好き',
     titleKey: 'sd_section_popular',
     items: [
-      { id: 'sd-wiener', name: '赤ウインナー', price: 580, image: '', imageLayout: 'round' },
+      { id: 'sd-wiener', name: '赤ウインナー串', price: 580, image: '', imageLayout: 'round' },
       { id: 'sd-potato', name: 'ポテト', price: 580, image: '名称未設定-2_0001_potato.png', imageLayout: 'round' },
       { id: 'sd-nugget', name: 'チキンナゲット（5個）', price: 580, image: '名称未設定-2_0003_nagetto.png', imageLayout: 'round' },
-      { id: 'sd-hash', name: 'ハッシュドポテト（5個）', price: 560, image: '名称未設定-2_0002_hassyupotato.png', imageLayout: 'round' },
+      { id: 'sd-hash', name: 'ハッシュドポテト（5個）', price: 560, image: '', imageLayout: 'round' },
     ],
   },
   {
