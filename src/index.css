@@ -2061,6 +2061,115 @@ body.guest-screensaver-active .cart-drawer-panel {
   pointer-events: none;
 }
 
+/* --- 焼酎メニュー（画像＋タップ注文） --- */
+.shochu-menu-page__inner {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 12px 14px 28px;
+}
+
+.shochu-menu-page__hint,
+.shochu-menu-page__lock {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4a3b2a;
+  text-align: center;
+}
+
+.shochu-menu-page__lock {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(230, 200, 120, 0.35);
+  border: 1px solid rgba(160, 120, 40, 0.35);
+}
+
+.shochu-menu-page__frame {
+  position: relative;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(60, 40, 20, 0.12);
+  background: #faf6ee;
+}
+
+.shochu-menu-page__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  vertical-align: top;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.shochu-menu-page__missing {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: #5a4a38;
+}
+
+.shochu-menu-page__missing code {
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.shochu-menu-page__hotspot {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shochu-menu-page__hotspot:hover:not(:disabled) {
+  background: rgba(169, 30, 30, 0.12);
+  box-shadow: inset 0 0 0 2px rgba(169, 30, 30, 0.45);
+}
+
+.shochu-menu-page__hotspot:active:not(:disabled) {
+  background: rgba(169, 30, 30, 0.22);
+}
+
+.shochu-menu-page__hotspot:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.shochu-menu-page__foot {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.shochu-menu-page__link {
+  border: none;
+  background: none;
+  color: #a91e1e;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 8px 4px;
+}
+
+.shochu-menu-page__tax {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #777;
+}
+
 .nh-active__shots {
   margin-top: 14px;
 }

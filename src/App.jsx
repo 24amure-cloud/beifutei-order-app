@@ -27,6 +27,7 @@ import { getGuestIntentForTable, getNomihodaiForTable, normalizeTableLabelKey } 
 import { isGuestPartyAcknowledgedOnDevice } from './guestPartyDemographics.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
+import ShochuMenuGuest from './ShochuMenuGuest.jsx';
 import {
   retailAssetUrl,
   retailCssBgUrl,
@@ -1708,6 +1709,9 @@ function App() {
               <div className={`nav-item ${activeTab === 'drink' ? 'active' : ''}`} onClick={() => setActiveTab('drink')}>
                 {ut('nav_drink')}
               </div>
+              <div className={`nav-item ${activeTab === 'shochu' ? 'active' : ''}`} onClick={() => setActiveTab('shochu')}>
+                {ut('nav_shochu')}
+              </div>
             </div>
             <hr className="nav-menu-rule" role="presentation" />
             <div className="nav-menu-section" aria-label={ut('nav_dessert')}>
@@ -1756,7 +1760,7 @@ function App() {
           backgroundColor:
             activeTab === 'sidedish'
               ? '#FAF8F5'
-              : activeTab === 'pizza' || activeTab === 'drink'
+              : activeTab === 'pizza' || activeTab === 'drink' || activeTab === 'shochu'
                 ? '#F8F4E6'
                 : activeTab === 'nomihoudai'
                   ? '#F2E8DC'
@@ -1787,6 +1791,13 @@ function App() {
           {activeTab === 'pizza' && <PizzaMenu addToCart={addToCart} />}
           {activeTab === 'drink' && (
             <DrinkMenu addToCart={addToCart} />
+          )}
+          {activeTab === 'shochu' && (
+            <ShochuMenuGuest
+              addToCart={addToCart}
+              onNotify={(msg) => showNotice(msg, 'ok')}
+              onOpenDrinkTab={() => setActiveTab('drink')}
+            />
           )}
           {activeTab === 'nomihoudai' && (
               <NomihodaiTabRouter onOpenNomihodaiBill={() => setShowBillPanel(true)} />
