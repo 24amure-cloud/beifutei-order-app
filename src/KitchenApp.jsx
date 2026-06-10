@@ -175,6 +175,40 @@ function playDrinkStaleForgotAlert(timing) {
   }
 }
 
+/** フード出し忘れの注意音（18分＝低めの2音） */
+function playFoodStaleForgotAlert() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const beep = (when, freq) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, when);
+      g.gain.setValueAtTime(0.001, when);
+      g.gain.exponentialRampToValueAtTime(0.1, when + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, when + 0.22);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(when);
+      osc.stop(when + 0.24);
+    };
+    const t0 = ctx.currentTime + 0.03;
+    beep(t0, 349);
+    beep(t0 + 0.28, 294);
+    setTimeout(() => {
+      try {
+        ctx.close();
+      } catch {
+        /* ignore */
+      }
+    }, 700);
+  } catch {
+    /* ignore */
+  }
+}
+
 function orderKitchenEmoji(o) {
   return orderKindMeta(o).emoji;
 }
@@ -326,6 +360,7 @@ export default function KitchenApp() {
   const pendingIdsForSoundRef = useRef(null);
   const nhIntentLabelsForSoundRef = useRef(null);
   const drinkStaleLevelRef = useRef(null);
+  const foodStaleLevelRef = useRef(null);
 
   const goToOrdersTab = useCallback(() => {
     setStaffTab(STAFF_TABS.orders);
@@ -820,6 +855,19 @@ export default function KitchenApp() {
     if (earlyHit) playDrinkStaleForgotAlert('early');
     else if (lateHit) playDrinkStaleForgotAlert('late');
   }, [drinkStale.level]);
+
+  /** フード出し忘れ：18分だけ音（8分・13分は表示のみ・初回ロードでは鳴らさない） */
+  useEffect(() => {
+    const foodLevel = foodStale.level;
+    if (foodStaleLevelRef.current === null) {
+      foodStaleLevelRef.current = foodLevel;
+      return;
+    }
+    const prevFood = foodStaleLevelRef.current;
+    foodStaleLevelRef.current = foodLevel;
+    const lateHit = foodLevel === 'critical' && prevFood !== 'critical';
+    if (lateHit) playFoodStaleForgotAlert();
+  }, [foodStale.level]);
 
   useEffect(() => {
     const next = new Set(guestNomihodaiIntentLabels.map(String));
