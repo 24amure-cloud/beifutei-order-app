@@ -120,32 +120,56 @@ function playKitchenNomihodaiIntentAlert() {
   }
 }
 
-/** 出し忘れが最長段階（15分+/18分+）に達したときの短い注意音 */
-function playKitchenStaleForgotAlert() {
+/**
+ * ドリンク出し忘れの注意音（5分＝軽い1音 / 15分＝低く下がる2音）
+ * @param {'early'|'late'} timing
+ */
+function playDrinkStaleForgotAlert(timing) {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     const ctx = new AC();
-    const t0 = ctx.currentTime + 0.02;
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(440, t0);
-    osc.frequency.exponentialRampToValueAtTime(330, t0 + 0.35);
-    g.gain.setValueAtTime(0.001, t0);
-    g.gain.exponentialRampToValueAtTime(0.08, t0 + 0.03);
-    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.4);
-    osc.connect(g);
-    g.connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + 0.42);
+    const beep = (when, freq, { type = 'sine', peak = 0.1, dur = 0.18 } = {}) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, when);
+      g.gain.setValueAtTime(0.001, when);
+      g.gain.exponentialRampToValueAtTime(peak, when + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, when + dur);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(when);
+      osc.stop(when + dur + 0.02);
+    };
+    const slide = (when, fromHz, toHz, { peak = 0.1, dur = 0.35 } = {}) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(fromHz, when);
+      osc.frequency.exponentialRampToValueAtTime(toHz, when + dur);
+      g.gain.setValueAtTime(0.001, when);
+      g.gain.exponentialRampToValueAtTime(peak, when + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, when + dur + 0.05);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(when);
+      osc.stop(when + dur + 0.07);
+    };
+    const t0 = ctx.currentTime + 0.03;
+    if (timing === 'early') {
+      beep(t0, 392, { peak: 0.07, dur: 0.14 });
+    } else {
+      slide(t0, 523, 349, { peak: 0.11, dur: 0.38 });
+      slide(t0 + 0.48, 440, 294, { peak: 0.12, dur: 0.42 });
+    }
     setTimeout(() => {
       try {
         ctx.close();
       } catch {
         /* ignore */
       }
-    }, 600);
+    }, timing === 'late' ? 1200 : 500);
   } catch {
     /* ignore */
   }
@@ -302,7 +326,6 @@ export default function KitchenApp() {
   const pendingIdsForSoundRef = useRef(null);
   const nhIntentLabelsForSoundRef = useRef(null);
   const drinkStaleLevelRef = useRef(null);
-  const foodStaleLevelRef = useRef(null);
 
   const goToOrdersTab = useCallback(() => {
     setStaffTab(STAFF_TABS.orders);
@@ -783,21 +806,20 @@ export default function KitchenApp() {
     if (hasNew) playKitchenNewOrderAlert();
   }, [pendingOrders]);
 
-  /** 出し忘れが最長段階に初めて達したときだけ短い音（初回ロードでは鳴らさない） */
+  /** ドリンク出し忘れ：5分・15分だけ音（10分は表示のみ・初回ロードでは鳴らさない） */
   useEffect(() => {
     const drinkLevel = drinkStale.level;
-    const foodLevel = foodStale.level;
     if (drinkStaleLevelRef.current === null) {
       drinkStaleLevelRef.current = drinkLevel;
-      foodStaleLevelRef.current = foodLevel;
       return;
     }
-    const drinkHit = drinkLevel === 'critical' && drinkStaleLevelRef.current !== 'critical';
-    const foodHit = foodLevel === 'critical' && foodStaleLevelRef.current !== 'critical';
+    const prevDrink = drinkStaleLevelRef.current;
     drinkStaleLevelRef.current = drinkLevel;
-    foodStaleLevelRef.current = foodLevel;
-    if (drinkHit || foodHit) playKitchenStaleForgotAlert();
-  }, [drinkStale.level, foodStale.level]);
+    const earlyHit = prevDrink === 'ok' && drinkLevel !== 'ok';
+    const lateHit = drinkLevel === 'critical' && prevDrink !== 'critical';
+    if (earlyHit) playDrinkStaleForgotAlert('early');
+    else if (lateHit) playDrinkStaleForgotAlert('late');
+  }, [drinkStale.level]);
 
   useEffect(() => {
     const next = new Set(guestNomihodaiIntentLabels.map(String));
