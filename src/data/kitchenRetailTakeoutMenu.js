@@ -16,7 +16,7 @@ export const KITCHEN_ABURASOBA_TAKEOUT = [
     key: 'cheese',
     name: 'チーズ 油そば',
     note: 'お持ち帰り',
-    prices: { 小: 980, 並: 1180, 大: 1380 },
+    prices: { 小: 1000, 並: 1200, 大: 1400 },
   },
 ];
 
