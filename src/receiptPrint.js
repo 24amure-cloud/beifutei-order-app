@@ -1,5 +1,5 @@
-import { formatLedgerPaymentJa } from './dailyLedger.js';
 import { getAlcoholTableCharge } from './alcoholTableCharge.js';
+import { getNomihodaiForTable } from './nomihodaiSession.js';
 
 /** レシート・会計伝票の店舗ヘッダー */
 export const RECEIPT_STORE = {
@@ -36,6 +36,29 @@ function formatYen(n) {
   return `￥${Math.max(0, Number(n) || 0).toLocaleString()}`;
 }
 
+/** レシート印刷用の支払い表示（5%は別行で表示） */
+function formatReceiptPaymentJa(payment) {
+  if (payment === 'card' || payment === 'card_5pct') return 'カード';
+  if (payment === 'detail') return '明細のみ';
+  return '現金';
+}
+
+function formatReceiptTimeRange(startMs, endMs) {
+  const start = Number(startMs);
+  const end = Number(endMs);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0 || end <= 0) return null;
+  const fmt = (ms) =>
+    new Date(ms).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return `${fmt(start)}〜${fmt(end)}`;
+}
+
+function buildReceiptTotals(pay, baseTotal) {
+  const base = Math.max(0, Number(baseTotal) || 0);
+  const total = pay === 'card_5pct' ? Math.ceil(base * 1.05) : base;
+  const cardFee = pay === 'card_5pct' ? total - base : 0;
+  return { baseTotal: base, total, cardFee };
+}
+
 /**
  * 会計ページの伝票からレシート用データを組み立てる
  * @param {{
@@ -59,17 +82,21 @@ export function buildSlipReceiptPayload({ checkoutSlip, session, tableLabel, mem
     if (o.isNomihodai) {
       if (yen > 0) {
         lines.push({ name, priceLabel: formatYen(yen), sub: '飲み放題・別料金' });
-      } else {
-        lines.push({ name, priceLabel: 'プラン内', sub: '飲み放題' });
       }
-    } else {
-      lines.push({ name, priceLabel: formatYen(yen), sub: null });
+      continue;
     }
+    lines.push({ name, priceLabel: formatYen(yen), sub: null });
   }
 
+  const nh = getNomihodaiForTable(session, tl);
   const planYen = Math.max(0, Number(checkoutSlip?.nomihodaiPlanYen) || 0);
   if (planYen > 0) {
-    lines.push({ name: '飲み放題プラン', priceLabel: formatYen(planYen), sub: null });
+    const planTime = formatReceiptTimeRange(nh?.startMs, nh?.endMs);
+    lines.push({
+      name: '飲み放題プラン',
+      priceLabel: formatYen(planYen),
+      sub: planTime,
+    });
   }
 
   const acYen = Math.max(0, Number(checkoutSlip?.alcoholChargeYen) || 0);
@@ -78,21 +105,20 @@ export function buildSlipReceiptPayload({ checkoutSlip, session, tableLabel, mem
     lines.push({ name: ac.lineName || '卓チャージ', priceLabel: formatYen(acYen), sub: null });
   }
 
-  const baseTotal = Math.max(0, Number(checkoutSlip?.slipGrandTotal) || 0);
-  const total = pay === 'card_5pct' ? Math.ceil(baseTotal * 1.05) : baseTotal;
+  const { baseTotal, total, cardFee } = buildReceiptTotals(pay, checkoutSlip?.slipGrandTotal);
 
   void memo;
   return {
     storeName: STORE_NAME,
     tableLabel: tl,
     payment: pay,
-    paymentLabel: pay === 'detail' ? '明細のみ' : formatLedgerPaymentJa(pay),
+    paymentLabel: formatReceiptPaymentJa(pay),
     recordedAt: recordedAt ?? Date.now(),
     lines,
-    normalCount: checkoutSlip?.normalCount ?? 0,
-    nomihodaiCount: checkoutSlip?.nomihodaiCount ?? 0,
     normalSubtotal: checkoutSlip?.normalSubtotal ?? 0,
     nomihodaiPlanYen: planYen,
+    baseTotal,
+    cardFee,
     total,
     detailOnly: pay === 'detail',
   };
@@ -110,9 +136,8 @@ export function buildLedgerReceiptPayload(entry) {
     const kind = line?.kind;
     const name = itemDisplayName(line?.name);
     if (!name) continue;
-    if (kind === 'nh') {
-      lines.push({ name, priceLabel: 'プラン内', sub: '飲み放題' });
-    } else if (kind === 'nh_extra') {
+    if (kind === 'nh') continue;
+    if (kind === 'nh_extra') {
       lines.push({
         name,
         priceLabel: formatYen(line.price),
@@ -127,21 +152,32 @@ export function buildLedgerReceiptPayload(entry) {
 
   const planYen = Math.max(0, Number(entry.nomihodaiPlanYen) || 0);
   if (planYen > 0 && !lines.some((l) => l.name === '飲み放題プラン')) {
-    lines.push({ name: '飲み放題プラン', priceLabel: formatYen(planYen), sub: null });
+    const planTime = formatReceiptTimeRange(entry.nhStartMs, entry.nhEndMsAtCheckout);
+    lines.push({
+      name: '飲み放題プラン',
+      priceLabel: formatYen(planYen),
+      sub: planTime,
+    });
   }
+
+  const baseTotal =
+    Math.max(0, Number(entry.normalSubtotal) || 0) +
+    planYen +
+    Math.max(0, Number(entry.alcoholChargeYen) || 0);
+  const { total, cardFee } = buildReceiptTotals(pay, baseTotal);
 
   return {
     storeName: STORE_NAME,
     tableLabel: String(entry.tableLabel ?? '?'),
     payment: pay,
-    paymentLabel: formatLedgerPaymentJa(pay),
+    paymentLabel: formatReceiptPaymentJa(pay),
     recordedAt: entry.recordedAt ?? Date.now(),
     lines,
-    normalCount: entry.normalCount ?? 0,
-    nomihodaiCount: entry.nomihodaiCount ?? 0,
     normalSubtotal: entry.normalSubtotal ?? 0,
     nomihodaiPlanYen: planYen,
-    total: Math.max(0, Number(entry.total) || 0),
+    baseTotal,
+    cardFee,
+    total: Math.max(0, Number(entry.total) || total),
     detailOnly: false,
   };
 }
@@ -153,6 +189,14 @@ function capReceiptLines(lines) {
   const rest = list.length - RECEIPT_LINE_CAP;
   kept.push({ name: `…他 ${rest}品`, priceLabel: '', sub: null });
   return { lines: kept, truncated: rest };
+}
+
+function summaryRow(label, value, bodySize) {
+  if (!value) return '';
+  return `<div class="sum-row" style="font-size:${bodySize}px">
+    <span class="sum-label">${escapeHtml(label)}</span>
+    <span class="sum-value">${escapeHtml(value)}</span>
+  </div>`;
 }
 
 /**
@@ -175,12 +219,12 @@ export function buildReceiptHtml(payload, opts = {}) {
   const lineRows = lines
     .map((ln) => {
       const sub = ln.sub
-        ? `<div style="font-size:${bodySize - 4}px;color:#444">${escapeHtml(ln.sub)}</div>`
+        ? `<div class="line-sub" style="font-size:${bodySize - 4}px">${escapeHtml(ln.sub)}</div>`
         : '';
       const priceCell = ln.priceLabel
         ? `<div class="price">${escapeHtml(ln.priceLabel)}</div>`
         : '<div class="price"></div>';
-      return `<div class="row" style="margin-bottom:5px">
+      return `<div class="row">
         <div class="name">${escapeHtml(ln.name)}${sub}</div>
         ${priceCell}
       </div>`;
@@ -188,54 +232,77 @@ export function buildReceiptHtml(payload, opts = {}) {
     .join('');
 
   const detailNote = payload.detailOnly
-    ? '<div style="margin-top:10px;font-size:18px">※お支払いはスマレジ等で承ります（明細のみ）</div>'
+    ? '<p class="note">※お支払いはスマレジ等で承ります（明細のみ）</p>'
     : '';
 
-  const planLine =
-    payload.nomihodaiPlanYen > 0
-      ? `<div class="meta">飲み放題プラン ${formatYen(payload.nomihodaiPlanYen)}</div>`
+  const cardFeeRow =
+    payload.cardFee > 0
+      ? summaryRow('TAX5％', formatYen(payload.cardFee), bodySize - 1)
       : '';
+
+  const taxNote = payload.detailOnly ? '' : '<p class="tax-note">※表示金額は税込です</p>';
 
   return `<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="format-detection" content="telephone=no">
 <style>
-body{font-family:Helvetica,'Hiragino Sans',sans-serif;width:384px;margin:0;padding:10px 8px;font-size:${bodySize}px;line-height:1.35;color:#000}
-.h{text-align:center;font-weight:700;font-size:26px;margin:0 0 2px}
-.brand{text-align:center;font-size:17px;font-weight:700;margin:0 0 6px;letter-spacing:0.02em}
-.shop{text-align:center;font-size:15px;margin:0 0 2px;color:#222}
-.subh{text-align:center;font-size:20px;margin:10px 0 8px;font-weight:700}
-.row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+body{font-family:Helvetica,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;width:384px;margin:0;padding:12px 10px;font-size:${bodySize}px;line-height:1.4;color:#000;background:#fff}
+.store{text-align:center;font-weight:700;font-size:24px;margin:0 0 4px;letter-spacing:0.03em}
+.shop{text-align:center;font-size:14px;margin:0 0 2px;color:#222}
+.doc-title{text-align:center;font-size:28px;font-weight:800;margin:14px 0 10px;letter-spacing:0.35em;padding-left:0.35em;border:2px solid #000;padding:8px 4px}
+.meta{font-size:17px;color:#222;margin:2px 0}
+.meta-pay{display:flex;justify-content:space-between;align-items:center;margin:8px 0 2px;font-size:18px}
+.pay-badge{border:1px solid #000;padding:2px 10px;font-weight:700}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
 .name{flex:1;word-break:break-all}
-.price{white-space:nowrap;font-weight:700;text-align:right}
-hr{border:none;border-top:2px dashed #000;margin:10px 0}
-.total{font-size:26px;font-weight:800;text-align:right;margin-top:8px}
-.meta{font-size:18px;color:#333}
+.line-sub{color:#444;margin-top:2px}
+.price{white-space:nowrap;font-weight:700;text-align:right;min-width:5.5em}
+hr{border:none;border-top:1px dashed #000;margin:10px 0}
+hr.solid{border-top:2px solid #000}
+.sum-row{display:flex;justify-content:space-between;align-items:center;margin:4px 0}
+.sum-label{color:#333}
+.sum-value{font-weight:700;white-space:nowrap}
+.total-box{border:2px solid #000;margin-top:10px;padding:10px 8px}
+.total-label{font-size:17px;margin:0 0 4px}
+.total-yen{font-size:30px;font-weight:800;text-align:right;margin:0;letter-spacing:0.02em}
+.receipt-stamp{text-align:center;font-size:17px;margin:14px 0 6px;font-weight:700}
+.thanks{text-align:center;font-size:17px;margin:8px 0 0}
+.note{margin-top:10px;font-size:16px;color:#333}
+.tax-note{text-align:center;font-size:15px;color:#444;margin:10px 0 0}
 </style>
 </head><body>
-<p class="h">${escapeHtml(RECEIPT_STORE.title)}</p>
-${RECEIPT_STORE.subtitle ? `<p class="brand">${escapeHtml(RECEIPT_STORE.subtitle)}</p>` : ''}
-<p class="shop">${escapeHtml(RECEIPT_STORE.phone)}</p>
+<p class="store">${escapeHtml(RECEIPT_STORE.title)}</p>
+${RECEIPT_STORE.subtitle ? `<p class="shop">${escapeHtml(RECEIPT_STORE.subtitle)}</p>` : ''}
+<p class="shop">TEL ${escapeHtml(RECEIPT_STORE.phone)}</p>
 <p class="shop">${escapeHtml(RECEIPT_STORE.address)}</p>
-<p class="subh">お会計明細</p>
+<p class="doc-title">領収書</p>
 <p class="meta">${escapeHtml(when)}</p>
-<p class="meta">卓 ${escapeHtml(payload.tableLabel)}　${escapeHtml(payload.paymentLabel)}</p>
+<div class="meta-pay">
+  <span>卓 ${escapeHtml(payload.tableLabel)}</span>
+  <span class="pay-badge">${escapeHtml(payload.paymentLabel)}</span>
+</div>
 <hr>
-${lineRows || '<p>（明細行なし）</p>'}
-<hr>
-<p class="meta">通常 ${payload.normalCount}点 / 飲み放題 ${payload.nomihodaiCount}点</p>
-<p class="meta">通常小計 ${formatYen(payload.normalSubtotal)}</p>
-${planLine}
-<p class="total">合計 ${formatYen(payload.total)}</p>
+${lineRows || '<p class="meta">（明細行なし）</p>'}
+<hr class="solid">
+${summaryRow('小計', formatYen(payload.baseTotal), bodySize - 1)}
+${cardFeeRow}
+<div class="total-box">
+  <p class="total-label">合計金額（税込）</p>
+  <p class="total-yen">${escapeHtml(formatYen(payload.total))}</p>
+</div>
+${taxNote}
 ${detailNote}
-<p style="text-align:center;margin-top:14px;font-size:18px">ありがとうございました</p>
+<p class="receipt-stamp">上記正に領収いたしました</p>
+<p class="thanks">ありがとうございました</p>
 </body></html>`;
 }
 
 
 /** プレビュー用のサンプル伝票（実際の印刷イメージ確認用） */
 export function buildSampleReceiptPayload() {
+  const startMs = Date.now() - 75 * 60 * 1000;
+  const endMs = startMs + 90 * 60 * 1000;
   return buildSlipReceiptPayload({
     checkoutSlip: {
       orders: [
@@ -250,9 +317,13 @@ export function buildSampleReceiptPayload() {
       alcoholChargeYen: 500,
       slipGrandTotal: 5560,
     },
-    session: {},
+    session: {
+      nomihodaiByLabel: {
+        3: { active: true, startMs, endMs, billTotal: 3500 },
+      },
+    },
     tableLabel: '3',
-    payment: 'cash',
+    payment: 'card_5pct',
   });
 }
 
@@ -351,4 +422,3 @@ export function printReceiptWithFeedback(payload, { openDrawer = false, silentNo
   }
   return res;
 }
-
