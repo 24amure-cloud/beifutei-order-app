@@ -39,6 +39,7 @@ export const SWEETS_INVENTORY_MASTER = {
   'ts-sc-caramel': 8,
   'ts-sc-maple': 13,
   'ts-sc-namacream': 10,
+  'ts-sc-wakeari': 20,
   'ts-rt-1': 50,
   'ts-rt-4': 12,
 };

@@ -7,6 +7,14 @@ const TAKEOUT_KUKKI_LABEL_FIX_KEY = 'beifutei-takeout-kukki-label-fix-v3';
 const TAKEOUT_KUKKI_NUTS_RESTORE_KEY = 'beifutei-takeout-kukki-nuts-restore-v4';
 const TAKEOUT_KUKKI_CHOCO_NUTS_KEY = 'beifutei-takeout-kukki-choco-nuts-v5';
 const TAKEOUT_MISSING_IMAGES_KEY = 'beifutei-takeout-missing-images-v6';
+const TAKEOUT_WAKEARI_SCONE_KEY = 'beifutei-takeout-wakeari-scone-v7';
+
+const WAKEARI_SCONE_ITEM = {
+  id: 'ts-sc-wakeari',
+  name: '訳アリスコーン',
+  price: 680,
+  image: '',
+};
 
 const TAKEOUT_ITEM_IMAGE_PATCHES = {
   'ts-kk-hasukappu': 'kukki-hasukappu.png',
@@ -170,6 +178,23 @@ function migrateTakeoutKukkiChocoAndNuts(sections) {
   return next;
 }
 
+/** 訳アリスコーンをスコーンカテゴリに追加 */
+function migrateTakeoutWakeariScone(sections) {
+  if (localStorage.getItem(TAKEOUT_WAKEARI_SCONE_KEY)) return sections;
+  let changed = false;
+  const next = (sections || []).map((sec) => {
+    if (sec.id !== 'ts-sec-scone') return sec;
+    const items = [...(sec.items || [])];
+    if (items.some((it) => it.id === WAKEARI_SCONE_ITEM.id)) return sec;
+    items.push(WAKEARI_SCONE_ITEM);
+    changed = true;
+    return { ...sec, items };
+  });
+  localStorage.setItem(TAKEOUT_WAKEARI_SCONE_KEY, '1');
+  if (changed) saveTakeoutSweetsSections(next);
+  return next;
+}
+
 /** ハスカップ・キウイMIX・オレンジの画像を反映（yum フォルダ分） */
 function migrateTakeoutMissingImages(sections) {
   if (localStorage.getItem(TAKEOUT_MISSING_IMAGES_KEY)) return sections;
@@ -240,20 +265,24 @@ export function loadTakeoutSweetsSections() {
       items: sec.items.filter(isValidItem),
     }));
     const loaded = cleaned.length ? cleaned : structuredClone(DEFAULT_TAKEOUT_SWEETS_SECTIONS);
-    return migrateTakeoutMissingImages(
-      migrateTakeoutKukkiChocoAndNuts(
-        migrateTakeoutKukkiNutsAndChoco(
-          migrateTakeoutKukkiLabels(migrateTakeoutMenuLabels(migrateKukkiCookieImages(loaded))),
+    return migrateTakeoutWakeariScone(
+      migrateTakeoutMissingImages(
+        migrateTakeoutKukkiChocoAndNuts(
+          migrateTakeoutKukkiNutsAndChoco(
+            migrateTakeoutKukkiLabels(migrateTakeoutMenuLabels(migrateKukkiCookieImages(loaded))),
+          ),
         ),
       ),
     );
   } catch {
-    return migrateTakeoutMissingImages(
-      migrateTakeoutKukkiChocoAndNuts(
-        migrateTakeoutKukkiNutsAndChoco(
-          migrateTakeoutKukkiLabels(
-            migrateTakeoutMenuLabels(
-              migrateKukkiCookieImages(structuredClone(DEFAULT_TAKEOUT_SWEETS_SECTIONS)),
+    return migrateTakeoutWakeariScone(
+      migrateTakeoutMissingImages(
+        migrateTakeoutKukkiChocoAndNuts(
+          migrateTakeoutKukkiNutsAndChoco(
+            migrateTakeoutKukkiLabels(
+              migrateTakeoutMenuLabels(
+                migrateKukkiCookieImages(structuredClone(DEFAULT_TAKEOUT_SWEETS_SECTIONS)),
+              ),
             ),
           ),
         ),

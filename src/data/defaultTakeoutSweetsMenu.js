@@ -46,6 +46,7 @@ export const DEFAULT_TAKEOUT_SWEETS_SECTIONS = [
       { id: 'ts-sc-caramel', name: 'キャラメルスコーン', price: 360, image: 'kyarameru.png' },
       { id: 'ts-sc-maple', name: 'メープルスコーン', price: 360, image: 'meipuru.png' },
       { id: 'ts-sc-namacream', name: '生クリームスコーン', price: 360, image: 'namakuri-mu.png' },
+      { id: 'ts-sc-wakeari', name: '訳アリスコーン', price: 680, image: '' },
     ],
   },
   {

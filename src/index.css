@@ -13196,6 +13196,196 @@ button.kitchen-guest-intent--nav {
   color: #777;
 }
 
+.kretail-soft-list__subtitle {
+  margin: 14px 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4a3f35;
+}
+
+.kretail-soft-list__section {
+  margin-bottom: 12px;
+}
+
+.kretail-soft-row--soldout {
+  opacity: 0.55;
+}
+
+.kretail-soft-row--soldout .kretail-soft-row__add {
+  pointer-events: none;
+}
+
+.kretail-verbal {
+  margin: 12px 0 8px;
+  border: 1px dashed #c9b8a8;
+  border-radius: 10px;
+  background: #fffaf5;
+}
+
+.kretail-verbal__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.kretail-verbal__toggle-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5c4033;
+}
+
+.kretail-verbal__toggle-hint {
+  font-size: 11px;
+  color: #888;
+}
+
+.kretail-verbal__body {
+  padding: 0 12px 12px;
+  border-top: 1px solid #eee4da;
+}
+
+.kretail-verbal__custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.kretail-verbal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 120px;
+  font-size: 11px;
+  color: #666;
+}
+
+.kretail-verbal__field--price {
+  flex: 0 1 88px;
+}
+
+.kretail-verbal__input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.kretail-verbal__add-btn {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #5c4033;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.kretail-verbal__picks-label {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  color: #888;
+}
+
+.kretail-verbal__picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+}
+
+.kretail-verbal__pick {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid #e5ddd4;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.kretail-verbal__pick-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.3;
+}
+
+.kretail-verbal__pick-price {
+  font-size: 11px;
+  color: #666;
+}
+
+.kretail-verbal__msg {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #b00020;
+}
+
+.kitchen-retail-hub__tab--aburasoba.is-active {
+  background: linear-gradient(180deg, #fff8ee 0%, #ffe8cc 100%);
+  border-color: #d4a574;
+  color: #5c4033;
+}
+
+.kretail-abu-row {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #e8dfd6;
+}
+
+.kretail-abu-row__tops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0 0 4px;
+  padding: 0 4px;
+}
+
+.kretail-abu-row__top {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px 8px;
+  border: 1px solid #e0d6cc;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.kretail-abu-row__top--on {
+  border-color: #c4956a;
+  background: #fff4e8;
+  box-shadow: inset 0 0 0 1px #c4956a;
+}
+
+.kretail-abu-row__top-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.2;
+}
+
+.kretail-abu-row__top-price {
+  font-size: 10px;
+  color: #888;
+}
+
 .kretail-soft-row {
   display: flex;
   flex-wrap: wrap;
