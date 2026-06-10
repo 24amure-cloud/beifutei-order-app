@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { buildDailyReport } from './dailyLedgerAnalytics.js';
 import {
+  DAILY_LEDGER_DELETED_IDS_KEY,
   DAILY_LEDGER_STORAGE_KEY,
   LEDGER_SETTINGS_KEY,
   formatLedgerPaymentJa,
@@ -73,7 +74,14 @@ export default function OwnerSalesCalendar() {
   useEffect(() => {
     const onLed = () => setTick((x) => x + 1);
     const onStorage = (e) => {
-      if (e.key === DAILY_LEDGER_STORAGE_KEY || e.key === LEDGER_SETTINGS_KEY || e.key === null) onLed();
+      if (
+        e.key === DAILY_LEDGER_STORAGE_KEY ||
+        e.key === DAILY_LEDGER_DELETED_IDS_KEY ||
+        e.key === LEDGER_SETTINGS_KEY ||
+        e.key === null
+      ) {
+        onLed();
+      }
     };
     window.addEventListener('beifutei-daily-ledger-updated', onLed);
     window.addEventListener('beifutei-daily-ledger-synced', onLed);

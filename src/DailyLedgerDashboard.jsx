@@ -7,6 +7,7 @@ import LedgerDemographicsCards from './LedgerDemographicsCards.jsx';
 import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
 import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
 import {
+  DAILY_LEDGER_DELETED_IDS_KEY,
   DAILY_LEDGER_STORAGE_KEY,
   LEDGER_SETTINGS_KEY,
   formatLedgerPaymentJa,
@@ -37,7 +38,12 @@ export default function DailyLedgerDashboard() {
     const onLed = () => setTick((x) => x + 1);
     const onSt = () => setCogsPercent(loadLedgerSettings().cogsPercent);
     const onStorage = (e) => {
-      if (e.key === DAILY_LEDGER_STORAGE_KEY || e.key === LEDGER_SETTINGS_KEY || e.key === null) {
+      if (
+        e.key === DAILY_LEDGER_STORAGE_KEY ||
+        e.key === DAILY_LEDGER_DELETED_IDS_KEY ||
+        e.key === LEDGER_SETTINGS_KEY ||
+        e.key === null
+      ) {
         onLed();
         if (e.key === LEDGER_SETTINGS_KEY || e.key === null) onSt();
       }

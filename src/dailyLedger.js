@@ -20,15 +20,31 @@ export function loadDeletedLedgerIds() {
   }
 }
 
-function persistDeletedLedgerIds(deletedIds) {
+export function persistDeletedLedgerIds(deletedIds) {
   const ids = [...deletedIds].slice(-MAX_DELETED_LEDGER_IDS);
   localStorage.setItem(DAILY_LEDGER_DELETED_IDS_KEY, JSON.stringify(ids));
 }
 
-function recordDeletedLedgerId(entryId) {
+/** クラウド由来の削除 ID をローカル tombstone に取り込む */
+export function mergeDeletedLedgerIds(remoteIds) {
+  if (!remoteIds?.size) return loadDeletedLedgerIds();
+  const deletedIds = loadDeletedLedgerIds();
+  let changed = false;
+  for (const id of remoteIds) {
+    const s = String(id || '').trim();
+    if (!s || deletedIds.has(s)) continue;
+    deletedIds.add(s);
+    changed = true;
+  }
+  if (changed) persistDeletedLedgerIds(deletedIds);
+  return deletedIds;
+}
+
+export function recordDeletedLedgerId(entryId) {
   const id = String(entryId || '').trim();
   if (!id) return;
   const deletedIds = loadDeletedLedgerIds();
+  if (deletedIds.has(id)) return;
   deletedIds.add(id);
   persistDeletedLedgerIds(deletedIds);
 }
@@ -154,7 +170,11 @@ export function loadDailyLedger() {
 
 /** @param {LedgerEntry[]} entries */
 export function persistDailyLedgerEntries(entries) {
-  const next = { version: 2, entries: entries.filter(isValidEntry) };
+  const deletedIds = loadDeletedLedgerIds();
+  const next = {
+    version: 2,
+    entries: entries.filter((e) => isValidEntry(e) && !deletedIds.has(e.id)),
+  };
   const body = JSON.stringify(next);
   localStorage.setItem(DAILY_LEDGER_STORAGE_KEY, body);
   try {
@@ -246,8 +266,8 @@ export function removeDailyLedgerEntry(entryId) {
   if (next.length === prev.entries.length) return false;
   recordDeletedLedgerId(id);
   persistDailyLedgerEntries(next);
-  import('./dailyLedgerSync.js').then(({ deleteDailyLedgerEntryFromSupabase }) => {
-    deleteDailyLedgerEntryFromSupabase(id);
+  import('./dailyLedgerSync.js').then(({ purgeDailyLedgerEntryFromSupabase }) => {
+    purgeDailyLedgerEntryFromSupabase(id);
   });
   return true;
 }
