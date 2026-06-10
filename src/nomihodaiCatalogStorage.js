@@ -37,12 +37,10 @@ const REQUIRED_SECTION_IDS = [
 const REQUIRED_ITEM_IDS = [
   'nh-beer-glass',
   'nh-sour-mango',
-  'nh-ck-gin',
-  'nh-ck-vodka',
-  'nh-ck-rum-white',
+  'nh-ck-gin-tonic',
+  'nh-ck-kitty',
+  'nh-ck-wine-white',
   'nh-ck-cassis-soda',
-  'nh-ck-elderflower',
-  'nh-ck-green-tea-liq',
   ...NOMIHODAI_NONALCOHOL_ITEM_IDS,
 ];
 
@@ -72,8 +70,22 @@ const LEGACY_ITEM_NAME_MARKERS = ['（緑ハイ）', '（ジャスハイ）', '�
 
 const LEGACY_SECTION_IDS = new Set(['nh-cat-soft']);
 
-/** 廃止品（残っていれば既定カタログへ差し替え） */
-const REMOVED_NOMIHODAI_ITEM_IDS = new Set(['nh-ck-rum-dark']);
+/** 廃止品：旧基酒カクテル欄（残っていれば既定カタログへ差し替え） */
+const REMOVED_NOMIHODAI_ITEM_IDS = new Set([
+  'nh-ck-rum-dark',
+  'nh-ck-gin',
+  'nh-ck-vodka',
+  'nh-ck-rum-white',
+  'nh-ck-elderflower',
+  'nh-ck-campari',
+  'nh-ck-malibu',
+  'nh-ck-kahlua',
+  'nh-ck-passoa',
+  'nh-ck-brandy-xo-deluxe',
+  'nh-ck-brandy-xo',
+  'nh-ck-green-tea-liq',
+  'nh-ck-wine-glass',
+]);
 
 function catalogHasRemovedItems(catalog) {
   for (const sec of catalog || []) {

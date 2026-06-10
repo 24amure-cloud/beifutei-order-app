@@ -71,3 +71,12 @@ export const DEFAULT_DRINK_COCKTAIL_ITEMS = [
   { id: 'pd-ck-wine-red', name: 'グラスワイン（赤）', nameEn: 'Glass wine (red)', price: 700 },
   { id: 'pd-ck-wine-white', name: 'グラスワイン（白）', nameEn: 'Glass wine (white)', price: 700 },
 ];
+
+/** 客席ドリンクカクテル → 飲み放題カクテル欄（品名のみ・別料金なし） */
+export function drinkCocktailItemsToNomihodaiCatalog(items = DEFAULT_DRINK_COCKTAIL_ITEMS) {
+  return items.map(({ id, name, nameEn }) => ({
+    id: id.replace(/^pd-ck-/, 'nh-ck-'),
+    name,
+    nameEn: nameEn || '',
+  }));
+}

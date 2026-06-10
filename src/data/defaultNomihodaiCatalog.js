@@ -4,6 +4,8 @@
  * `name` … 厨房・伝票・注文行（日本語）
  * `nameEn` … 客席タブレットが英語 UI のときの表示（未設定時は `name` を表示）
  */
+import { drinkCocktailItemsToNomihodaiCatalog } from './defaultDrinkCocktailItems.js';
+
 export const DEFAULT_NOMIHODAI_CATALOG = [
   {
     id: 'nh-cat-beer',
@@ -61,26 +63,8 @@ export const DEFAULT_NOMIHODAI_CATALOG = [
     id: 'nh-cat-cocktail',
     titleJa: 'カクテル',
     titleEn: 'COCKTAIL',
-    /** 飲み放題専用ラインナップ（客席ドリンク一覧とは別・サンジェルマンのみ別料金800円） */
-    items: [
-      { id: 'nh-ck-gin', name: 'ウィルキンソン・ジン', nameEn: 'Wilkinson gin' },
-      { id: 'nh-ck-vodka', name: 'ギルビーズ・ウォッカ', nameEn: "Gilbey's vodka" },
-      { id: 'nh-ck-rum-white', name: 'バカルディ・スペリオール（ホワイトラム）', nameEn: 'Bacardi Superior' },
-      { id: 'nh-ck-elderflower', name: 'サンジェルマン（エルダーフラワー）', nameEn: 'St-Germain', price: 800 },
-      { id: 'nh-ck-campari', name: 'カンパリ', nameEn: 'Campari' },
-      { id: 'nh-ck-malibu', name: 'マリブ', nameEn: 'Malibu' },
-      { id: 'nh-ck-kahlua', name: 'カルーア', nameEn: 'Kahlúa' },
-      { id: 'nh-ck-passoa', name: 'パッソア', nameEn: 'Passoã' },
-      { id: 'nh-ck-brandy-xo-deluxe', name: 'ニッカ・ブランデー X.O デラックス', nameEn: 'Nikka brandy X.O Deluxe' },
-      { id: 'nh-ck-brandy-xo', name: 'ニッカ・ブランデー X.O', nameEn: 'Nikka brandy X.O' },
-      { id: 'nh-ck-green-tea-liq', name: 'ヘルメス・グリーンティ・リキュール', nameEn: 'Hermès green tea liqueur' },
-      { id: 'nh-ck-wine-glass', name: 'グラスワイン（赤・白）', nameEn: 'Glass wine (red / white)' },
-      { id: 'nh-ck-cassis-soda', name: 'カシスソーダ', nameEn: 'Cassis soda' },
-      { id: 'nh-ck-cassis-orange', name: 'カシスオレンジ', nameEn: 'Cassis orange' },
-      { id: 'nh-ck-cassis-oolong', name: 'カシスウーロン', nameEn: 'Cassis oolong' },
-      { id: 'nh-ck-fuzzy', name: 'ファジーネーブル', nameEn: 'Fuzzy navel' },
-      { id: 'nh-ck-peach-oolong', name: 'ピーチウーロン', nameEn: 'Peach oolong' },
-    ],
+    /** 客席ドリンク「カクテル」作成一覧と同一品名（飲み放題内・別料金なし） */
+    items: drinkCocktailItemsToNomihodaiCatalog(),
   },
   {
     id: 'nh-cat-wine',
@@ -136,7 +120,7 @@ export const NOMIHODAI_GUEST_TAB_ORDER = [
 ];
 
 /** 既定カタログの版（localStorage がこれより古い場合は既定へ差し替え） */
-export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 15;
+export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 16;
 
 /** ノンアル統合ラインナップ（15品） */
 export const NOMIHODAI_NONALCOHOL_ITEM_IDS = [
