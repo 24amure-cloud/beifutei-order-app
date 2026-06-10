@@ -1896,6 +1896,10 @@ body.guest-screensaver-active .cart-drawer-panel {
   .drink-page__row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .drink-page__row--full {
+    grid-template-columns: 1fr;
+  }
 }
 
 .drink-page-cat {
@@ -2009,37 +2013,74 @@ body.guest-screensaver-active .cart-drawer-panel {
   word-break: break-word;
 }
 
-/* カクテル：品名が長いため1列・各行は名称→価格+追加の2段（横並び3列だと隣行と重なる） */
-.drink-page-cat--cocktail .drink-page-list {
+/* カクテル：2ヒーロー・2列パネル */
+.drink-page-cocktail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .drink-page-cocktail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 18px;
+  }
+}
+
+.drink-page-cat--cocktail-panel {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-height: min(72vh, 640px);
 }
 
-.drink-page-cat--cocktail .drink-page-row {
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    'name name'
-    'price action';
-  row-gap: 4px;
-  column-gap: 10px;
-  overflow: hidden;
-  max-width: 100%;
+.drink-page-cat__head--cocktail-panel {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.drink-page-cat--cocktail .drink-page-row__name {
-  grid-area: name;
+.drink-page-cat__hero--cocktail-panel {
+  width: 100%;
+  max-height: 88px;
+  margin: 0;
+  aspect-ratio: 16 / 5;
+  border-radius: 8px;
 }
 
-.drink-page-cat--cocktail .drink-page-row__price {
-  grid-area: price;
-  align-self: center;
+.drink-page-cat__cocktail-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #777;
+  letter-spacing: 0.02em;
 }
 
-.drink-page-cat--cocktail .drink-page-row__add,
-.drink-page-cat--cocktail .drink-page-row__na {
-  grid-area: action;
-  justify-self: end;
-  align-self: center;
+.drink-page-list--cocktail-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+
+.drink-page-row--cocktail-compact {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: none;
+  padding: 6px 0;
+  font-size: 11px;
+  gap: 4px 6px;
+}
+
+.drink-page-row--cocktail-compact .drink-page-row__add {
+  font-size: 10px;
+  padding: 2px 8px;
 }
 
 .drink-page-row__price {

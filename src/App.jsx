@@ -28,6 +28,7 @@ import { isGuestPartyAcknowledgedOnDevice } from './guestPartyDemographics.js';
 import TakeoutSweetsMenuView from './TakeoutSweetsMenuView.jsx';
 import SideDishMenuGuest from './SideDishMenuGuest.jsx';
 import ShochuMenuGuest from './ShochuMenuGuest.jsx';
+import DrinkCocktailGuestPanels from './DrinkCocktailGuestPanels.jsx';
 import {
   retailAssetUrl,
   retailCssBgUrl,
@@ -593,8 +594,20 @@ function SideDishMenu({ addToCart }) {
 
 
 function DrinkMenuCategory({ sec, addToCart, nomihodaiActive, ut, locale }) {
+  if (sec.id === 'cocktail') {
+    return (
+      <DrinkCocktailGuestPanels
+        sec={sec}
+        addToCart={addToCart}
+        nomihodaiActive={nomihodaiActive}
+        ut={ut}
+        locale={locale}
+      />
+    );
+  }
+
   return (
-    <div className={`drink-page-cat${sec.id === 'cocktail' ? ' drink-page-cat--cocktail' : ''}`}>
+    <div className="drink-page-cat">
       <div className="drink-page-cat__head drink-page-cat__head--hero-inline">
         <div className="drink-page-cat__head-titles">
           {locale === 'en' ? (
@@ -688,7 +701,10 @@ function DrinkMenu({ addToCart }) {
 
           <div className="drink-page__grid">
             {drinkRows.map((row, rowIndex) => (
-              <div key={`drink-row-${rowIndex}`} className="drink-page__row">
+              <div
+                key={`drink-row-${rowIndex}`}
+                className={`drink-page__row${row.length === 1 && row[0]?.id === 'cocktail' ? ' drink-page__row--full' : ''}`}
+              >
                 {row.map((sec) => (
                   <DrinkMenuCategory
                     key={sec.id}
