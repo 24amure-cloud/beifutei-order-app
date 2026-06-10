@@ -2168,12 +2168,27 @@ body.guest-screensaver-active .cart-drawer-panel {
   max-width: 100%;
 }
 
+.shochu-menu-page__hotspot-desc {
+  font-size: clamp(7px, 1.65vw, 9px);
+  font-weight: 500;
+  line-height: 1.3;
+  color: #5c4a38;
+  text-align: center;
+  word-break: keep-all;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .shochu-menu-page__hotspot-price {
   font-size: clamp(8px, 1.9vw, 10px);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: #a91e1e;
   line-height: 1.1;
+  margin-top: 1px;
 }
 
 .shochu-menu-page__hotspot:hover:not(:disabled),
@@ -2213,6 +2228,11 @@ body.guest-screensaver-active .cart-drawer-panel {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.shochu-menu-page--en .shochu-menu-page__hotspot-desc {
+  font-size: clamp(6.5px, 1.5vw, 8.5px);
+  -webkit-line-clamp: 4;
 }
 
 .shochu-menu-page--en .shochu-menu-page__hotspot:hover:not(:disabled),

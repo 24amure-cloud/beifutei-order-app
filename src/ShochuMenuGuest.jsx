@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { SHOCHU_MENU_HOTSPOTS, SHOCHU_MENU_IMAGE_FILES } from './data/shochuMenuPage.js';
+import {
+  SHOCHU_MENU_HOTSPOTS,
+  SHOCHU_MENU_IMAGE_FILES,
+  shochuMenuItemDescription,
+} from './data/shochuMenuPage.js';
 import { useSideDishMenu } from './SideDishMenuContext.jsx';
 import { useGuestUiLocale } from './GuestUiLocaleContext.jsx';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
@@ -60,6 +64,7 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
           key: spot.drinkId,
           label,
           shortLabel: locale === 'en' ? label : shortenHotspotLabel(it.name),
+          description: shochuMenuItemDescription(spot.drinkId, locale),
           price: it.price,
           product: { id: it.id, name: it.name, price: it.price },
           rect: spot,
@@ -72,6 +77,7 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
         key: spot.sideId,
         label,
         shortLabel: locale === 'en' ? label : shortenHotspotLabel(it.name),
+        description: shochuMenuItemDescription(spot.sideId, locale),
         price: it.price,
         product: { id: it.id, name: it.name, price: it.price },
         rect: spot,
@@ -132,11 +138,18 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
                 height: `${spot.rect.height}%`,
               }}
               disabled={nomihodaiActive}
-              aria-label={ut('shochu_hotspot_aria', { name: spot.label })}
+              aria-label={
+                spot.description
+                  ? `${spot.label}。${spot.description}`
+                  : ut('shochu_hotspot_aria', { name: spot.label })
+              }
               onClick={() => onHotspot(spot)}
             >
               <span className="shochu-menu-page__hotspot-chip" aria-hidden="true">
                 <span className="shochu-menu-page__hotspot-name">{spot.shortLabel}</span>
+                {spot.description ? (
+                  <span className="shochu-menu-page__hotspot-desc">{spot.description}</span>
+                ) : null}
                 <span className="shochu-menu-page__hotspot-price">
                   {formatHotspotPrice(spot.price, locale)}
                 </span>

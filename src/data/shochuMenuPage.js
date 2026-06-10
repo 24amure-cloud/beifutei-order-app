@@ -20,3 +20,49 @@ export const SHOCHU_MENU_HOTSPOTS = [
   { kind: 'side', sideId: 'sd-jerky', left: 4, top: 71, width: 38, height: 22 },
   { kind: 'side', sideId: 'sd-wiener', left: 54, top: 71, width: 38, height: 22 },
 ];
+
+/** おすすめ①ページ：品名チップ用の説明文（厨房・注文名とは別） */
+export const SHOCHU_MENU_ITEM_COPY = {
+  'pd-shochu-rento': {
+    ja: 'すっきりとした飲みやすさの焼酎',
+    en: 'Light and easy to drink.',
+  },
+  'pd-shochu-yurubi': {
+    ja: '華やかな香りとやわらかな口当たり',
+    en: 'Floral aroma with a soft finish.',
+  },
+  'pd-shochu-kitazato': {
+    ja: '芋の優しい甘みが楽しめる焼酎',
+    en: 'Gentle sweet-potato sweetness.',
+  },
+  'pd-shochu-daiyame': {
+    ja: 'ライチのような華やかな香りの芋焼酎',
+    en: 'Lychee-like aroma; a modern imo shochu.',
+  },
+  'pd-shochu-nikaido': {
+    ja: '香ばしい麦の香り、料理に合う一杯',
+    en: 'Toasty barley notes; pairs with food.',
+  },
+  'pd-shochu-kuro': {
+    ja: '濃厚な甘みと清々しいキレ',
+    en: 'Rich sweetness with a clean finish.',
+  },
+  'pd-shochu-aka': {
+    ja: '華やかな香りの大人気霧島',
+    en: 'Popular Kirishima with a vivid aroma.',
+  },
+  'sd-jerky': {
+    ja: '燻製の香り、噛むほど旨味が広がる',
+    en: 'Smoky aroma; more umami as you chew.',
+  },
+  'sd-wiener': {
+    ja: 'ジューシーな串刺し、焼酎のお供に',
+    en: 'Juicy skewer; great with shochu.',
+  },
+};
+
+export function shochuMenuItemDescription(itemId, locale) {
+  const row = SHOCHU_MENU_ITEM_COPY[itemId];
+  if (!row) return '';
+  return locale === 'en' ? row.en : row.ja;
+}
