@@ -22792,7 +22792,7 @@ button.kitchen-guest-intent--nav {
 /* --- 伝票ボード：卓一覧 + 詳細（マスター／ディテール） --- */
 .kitchen-slip-board-layout {
   display: grid;
-  grid-template-columns: minmax(118px, 152px) minmax(0, 1fr);
+  grid-template-columns: minmax(148px, 196px) minmax(0, 1fr);
   gap: 8px;
   min-height: min(72vh, 680px);
   align-items: stretch;
@@ -22811,10 +22811,10 @@ button.kitchen-guest-intent--nav {
 .kitchen-slip-board-picker__btn {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2px;
+  gap: 3px;
   width: 100%;
   margin: 0;
-  padding: 8px 8px 7px;
+  padding: 7px 8px 6px;
   border-radius: 10px;
   border: 1px solid #ddd5c8;
   background: #fffdf9;
@@ -22843,17 +22843,60 @@ button.kitchen-guest-intent--nav {
   border-left: 3px solid #c45a52;
 }
 
+.kitchen-slip-board-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
 .kitchen-slip-board-picker__num {
   font-size: 15px;
   font-weight: 900;
   letter-spacing: 0.04em;
+  line-height: 1.1;
 }
 
 .kitchen-slip-board-picker__badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
-  min-height: 14px;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.kitchen-slip-board-picker__memo {
+  font-size: 10px;
+  font-weight: 700;
+  color: #5c4a32;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kitchen-slip-board-picker__preview {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.kitchen-slip-board-picker__preview-line {
+  font-size: 9px;
+  line-height: 1.3;
+  color: #6a6258;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kitchen-slip-board-picker__preview-line--pending {
+  color: #a04a32;
+  font-weight: 700;
+}
+
+.kitchen-slip-board-picker__preview-line--empty {
+  color: #b5aea3;
+  font-weight: 500;
 }
 
 .kitchen-slip-board-picker__badge {
@@ -23058,7 +23101,8 @@ button.kitchen-guest-intent--nav {
   }
 
   .kitchen-slip-board-picker__btn {
-    min-width: 88px;
+    min-width: 116px;
+    max-width: 148px;
     flex-shrink: 0;
   }
 }

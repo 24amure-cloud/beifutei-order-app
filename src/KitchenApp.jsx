@@ -684,12 +684,21 @@ export default function KitchenApp() {
       const pendingN = list.filter((o) => o.status === 'pending').length;
       const nh = getNomihodaiForTable(session, label);
       const slip = resolveSlipBundleForTableLabel(servedByTable, session, label);
+      const pending = list.filter((o) => o.status === 'pending');
+      const served = list.filter((o) => o.status === 'served');
+      const previewLines = [...pending, ...served].slice(0, 2).map((o) => {
+        const line = String(o.itemName || '').split('\n')[0].trim();
+        return o.status === 'pending' ? `未・${line}` : line;
+      });
+      const memo = String(session.tableMemoByLabel?.[label] ?? '').replace(/\s+/g, ' ').trim();
       meta.set(label, {
         pendingN,
         slipGrandTotal: slip.slipGrandTotal,
         isNh: !!nh?.active,
         hasCheckoutReq: !!session.checkoutRequestByLabel?.[label],
         intentGuest: guestNomihodaiIntentLabels.includes(String(label)) && !nh?.active,
+        memo,
+        previewLines,
       });
     }
     return meta;
@@ -977,29 +986,6 @@ export default function KitchenApp() {
       </header>
 
       <StoreEntryUrlsPanel variant="kitchen" />
-      <div className="kitchen-focus-bar" role="region" aria-label="操作中の卓">
-        <span className="kitchen-focus-bar__label">操作中の卓</span>
-        <select
-          className="kitchen-focus-bar__select"
-          value={staffFocusTableLabel || ''}
-          onChange={(e) => {
-            const v = normalizeTableLabelKey(e.target.value);
-            if (v) setSessionTableLabel(v);
-          }}
-        >
-          <option value="">（未選択・伝票の卓をタップ）</option>
-          {slipBoardTableLabels.map((lbl) => (
-            <option key={lbl} value={lbl}>
-              卓{lbl}
-            </option>
-          ))}
-        </select>
-        {!staffFocusTableLabel ? (
-          <span className="kitchen-focus-bar__hint kitchen-focus-bar__hint--warn">
-            卓を選ぶか、各卓・伝票で操作
-          </span>
-        ) : null}
-      </div>
 
       {guestNomihodaiIntentLabels.length > 0 ? (
         <div className="kitchen-nh-intent-sticky" role="alert" aria-live="assertive">

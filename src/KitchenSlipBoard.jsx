@@ -135,6 +135,13 @@ function KitchenSlipBoardPicker({ labels, pickerMeta, selectedLabel, onSelectLab
       {labels.map((label) => {
         const meta = pickerMeta.get(label) || {};
         const isSelected = selectedLabel === label;
+        const previewLines = meta.previewLines || [];
+        const ariaBits = [
+          `卓${label}`,
+          meta.memo ? `メモ ${meta.memo}` : '',
+          previewLines.length ? previewLines.join('、') : '注文なし',
+          meta.slipGrandTotal > 0 ? `合計${meta.slipGrandTotal}円` : '',
+        ].filter(Boolean);
         return (
           <button
             key={label}
@@ -150,14 +157,36 @@ function KitchenSlipBoardPicker({ labels, pickerMeta, selectedLabel, onSelectLab
               .filter(Boolean)
               .join(' ')}
             aria-current={isSelected ? 'true' : undefined}
+            aria-label={ariaBits.join(' ')}
             onClick={() => onSelectLabel(label)}
           >
-            <span className="kitchen-slip-board-picker__num">卓{label}</span>
-            <span className="kitchen-slip-board-picker__badges">
-              {meta.pendingN > 0 ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--pending">未{meta.pendingN}</span> : null}
-              {meta.hasCheckoutReq ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--checkout">会計</span> : null}
-              {meta.intentGuest ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--intent">NH</span> : null}
-              {meta.isNh ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--nh">放題</span> : null}
+            <span className="kitchen-slip-board-picker__head">
+              <span className="kitchen-slip-board-picker__num">卓{label}</span>
+              <span className="kitchen-slip-board-picker__badges">
+                {meta.pendingN > 0 ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--pending">未{meta.pendingN}</span> : null}
+                {meta.hasCheckoutReq ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--checkout">会計</span> : null}
+                {meta.intentGuest ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--intent">NH</span> : null}
+                {meta.isNh ? <span className="kitchen-slip-board-picker__badge kitchen-slip-board-picker__badge--nh">放題</span> : null}
+              </span>
+            </span>
+            {meta.memo ? <span className="kitchen-slip-board-picker__memo">{meta.memo}</span> : null}
+            <span className="kitchen-slip-board-picker__preview">
+              {previewLines.length ? (
+                previewLines.map((line, i) => (
+                  <span
+                    key={`${label}-${i}-${line}`}
+                    className={
+                      line.startsWith('未・')
+                        ? 'kitchen-slip-board-picker__preview-line kitchen-slip-board-picker__preview-line--pending'
+                        : 'kitchen-slip-board-picker__preview-line'
+                    }
+                  >
+                    {line}
+                  </span>
+                ))
+              ) : (
+                <span className="kitchen-slip-board-picker__preview-line kitchen-slip-board-picker__preview-line--empty">注文なし</span>
+              )}
             </span>
             <span className="kitchen-slip-board-picker__yen">
               {meta.slipGrandTotal > 0 ? `￥${meta.slipGrandTotal.toLocaleString()}` : '—'}
