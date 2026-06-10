@@ -1884,7 +1884,7 @@ body.guest-screensaver-active .cart-drawer-panel {
   gap: 20px;
 }
 
-/* 1行3カテゴリ（ハイボール・ビール・日本酒 ／ 焼酎・サワー ／ カクテル単独行 ／ ソフト） */
+/* 1行3カテゴリ（ハイボール・ビール・日本酒 ／ 焼酎・サワー・ソフト ／ カクテル単独行） */
 .drink-page__row {
   display: grid;
   grid-template-columns: 1fr;

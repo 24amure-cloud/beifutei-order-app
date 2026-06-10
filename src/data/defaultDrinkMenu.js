@@ -5,12 +5,11 @@ import { DEFAULT_DRINK_COCKTAIL_ITEMS } from './defaultDrinkCocktailItems.js';
 
 export const DEFAULT_DRINK_MENU_VERSION = 8;
 
-/** 客席ドリンク：1行3カテゴリ（カクテルは品数・名称が長いため単独行） */
+/** 客席ドリンク：1行3カテゴリ（カクテルは単独行・2ヒーロー） */
 export const DRINK_MENU_GUEST_ROWS = [
   ['whisky', 'beer', 'sake'],
-  ['shochu', 'sour'],
+  ['shochu', 'sour', 'soft'],
   ['cocktail'],
-  ['soft'],
 ];
 
 export const DEFAULT_DRINK_MENU_SECTIONS = [
