@@ -18,6 +18,18 @@ function assetUrl(path) {
   return `${prefix}${encoded}`;
 }
 
+function shortenHotspotLabel(name) {
+  const raw = String(name || '').split('\n')[0].trim();
+  const paren = raw.indexOf('（');
+  const base = paren > 0 ? raw.slice(0, paren).trim() : raw;
+  return base.length > 14 ? `${base.slice(0, 13)}…` : base;
+}
+
+function formatHotspotPrice(yen, locale) {
+  const n = Math.max(0, Number(yen) || 0);
+  return locale === 'en' ? `¥${n.toLocaleString('en-US')}` : `￥${n.toLocaleString('ja-JP')}`;
+}
+
 function findSideItem(sections, id) {
   for (const sec of sections || []) {
     const hit = (sec.items || []).find((it) => it.id === id);
@@ -46,6 +58,8 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
         return {
           key: spot.drinkId,
           label: guestDrinkRowName(it, locale),
+          shortLabel: shortenHotspotLabel(it.name),
+          price: it.price,
           product: { id: it.id, name: it.name, price: it.price },
           rect: spot,
         };
@@ -55,6 +69,8 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
       return {
         key: spot.sideId,
         label: it.name,
+        shortLabel: shortenHotspotLabel(it.name),
+        price: it.price,
         product: { id: it.id, name: it.name, price: it.price },
         rect: spot,
       };
@@ -115,9 +131,15 @@ export default function ShochuMenuGuest({ addToCart, onNotify, onOpenDrinkTab })
               }}
               disabled={nomihodaiActive}
               aria-label={ut('shochu_hotspot_aria', { name: spot.label })}
-              title={spot.label}
               onClick={() => onHotspot(spot)}
-            />
+            >
+              <span className="shochu-menu-page__hotspot-chip" aria-hidden="true">
+                <span className="shochu-menu-page__hotspot-name">{spot.shortLabel}</span>
+                <span className="shochu-menu-page__hotspot-price">
+                  {formatHotspotPrice(spot.price, locale)}
+                </span>
+              </span>
+            </button>
           ))}
         </div>
 
