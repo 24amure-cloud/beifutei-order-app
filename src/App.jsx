@@ -141,9 +141,9 @@ function AburasobaHeroPhoto() {
 }
 
 const ABURASOBA_PRICES = {
-  normal: { 小: 980, 並: 1130, 大: 1330 },
-  spicy: { 小: 1100, 並: 1300, 大: 1500 },
-  cheese: { 小: 1000, 並: 1200, 大: 1400 },
+  normal: { 小: 980, 並: 1180, 大: 1380 },
+  spicy: { 小: 1180, 並: 1380, 大: 1580 },
+  cheese: { 小: 1130, 並: 1330, 大: 1530 },
 };
 
 const ABURASOBA_BOWL_META = {
@@ -172,9 +172,9 @@ function AburasobaMenu({ addToCart }) {
   const { t: ut, locale } = useGuestUiLocale();
 
   const [opts, setOpts] = useState({
-    normal: { size: '並', price: 1130 },
-    spicy: { size: '並', price: 1300 },
-    cheese: { size: '並', price: 1200 },
+    normal: { size: '並', price: 1180 },
+    spicy: { size: '並', price: 1380 },
+    cheese: { size: '並', price: 1330 },
   });
 
   /** 'normal' | 'spicy' | 'cheese' | null */
