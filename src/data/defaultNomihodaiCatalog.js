@@ -61,7 +61,7 @@ export const DEFAULT_NOMIHODAI_CATALOG = [
     id: 'nh-cat-cocktail',
     titleJa: 'カクテル',
     titleEn: 'COCKTAIL',
-    /** 客席ドリンク「カクテル」と同一ラインナップ（サンジェルマンのみ別料金800円） */
+    /** 飲み放題専用ラインナップ（客席ドリンク一覧とは別・サンジェルマンのみ別料金800円） */
     items: [
       { id: 'nh-ck-gin', name: 'ウィルキンソン・ジン', nameEn: 'Wilkinson gin' },
       { id: 'nh-ck-vodka', name: 'ギルビーズ・ウォッカ', nameEn: "Gilbey's vodka" },
@@ -136,7 +136,7 @@ export const NOMIHODAI_GUEST_TAB_ORDER = [
 ];
 
 /** 既定カタログの版（localStorage がこれより古い場合は既定へ差し替え） */
-export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 14;
+export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 15;
 
 /** ノンアル統合ラインナップ（15品） */
 export const NOMIHODAI_NONALCOHOL_ITEM_IDS = [

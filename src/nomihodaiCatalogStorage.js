@@ -37,8 +37,12 @@ const REQUIRED_SECTION_IDS = [
 const REQUIRED_ITEM_IDS = [
   'nh-beer-glass',
   'nh-sour-mango',
+  'nh-ck-gin',
+  'nh-ck-vodka',
+  'nh-ck-rum-white',
   'nh-ck-cassis-soda',
   'nh-ck-elderflower',
+  'nh-ck-green-tea-liq',
   ...NOMIHODAI_NONALCOHOL_ITEM_IDS,
 ];
 
