@@ -554,32 +554,20 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
     <RetailStaffCartContext.Provider value={cartCtx}>
       <div className="kitchen-retail-root">
         <div className="kitchen-retail-hub">
-          {retailStats ? (
-            <div className="kitchen-retail-hub__stats-bar">
-              <div className="kitchen-retail-hub__stats-chips" aria-label="入力済み人数">
-                <span className={`iou-chip iou-chip--locale-${retailStats.locale}`}>
-                  {retailStats.locale === 'en' ? '外' : '日'}
-                </span>
-                <span className="iou-chip">男{retailStats.men}</span>
-                <span className="iou-chip">女{retailStats.women}</span>
-                <span className="iou-chip">子{retailStats.children}</span>
-              </div>
-              <button
-                type="button"
-                className="kitchen-retail-hub__stats-reset"
-                onClick={() => setRetailStats(null)}
-                aria-label="人数を入れ直す"
-                title="入れ直す"
-              >
-                ↺
-              </button>
-            </div>
-          ) : null}
           <div className="kitchen-retail-hub__top">
             <div className="kitchen-retail-hub__toolbar">
               <div className="kitchen-retail-hub__toolbar-row">
                 <span className="kitchen-retail-hub__label">会計の登録区分</span>
                 <strong className="kitchen-retail-hub__current kitchen-retail-hub__current--pill">{LEDGER_TAKEOUT_GUEST_LABEL}</strong>
+                {retailStats ? (
+                  <button
+                    type="button"
+                    className="kitchen-retail-hub__stats-reset-inline"
+                    onClick={() => setRetailStats(null)}
+                  >
+                    人数を入れ直す
+                  </button>
+                ) : null}
               </div>
             </div>
 

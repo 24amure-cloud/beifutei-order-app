@@ -22,7 +22,7 @@ export const KITCHEN_ABURASOBA_TAKEOUT = [
 
 export const KITCHEN_TAKEOUT_CONTAINER_ITEMS = [
   { id: 'to-container-100', name: 'お持ち帰り容器（小）', price: 100 },
-  { id: 'to-container-200', name: 'お持ち帰り容器（大）', price: 200 },
+  { id: 'to-container-200', name: 'お持ち帰り容器（大）', price: 150 },
 ];
 
 /** 油そばトッピング（店内と同価格） */
