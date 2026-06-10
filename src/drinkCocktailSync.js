@@ -5,7 +5,6 @@ export const NH_TO_DRINK_COCKTAIL_ID = {
   'nh-ck-gin': 'pd-sp-gin',
   'nh-ck-vodka': 'pd-sp-vodka',
   'nh-ck-rum-white': 'pd-sp-rum-white',
-  'nh-ck-rum-dark': 'pd-sp-rum-dark',
   'nh-ck-elderflower': 'pd-sp-elderflower',
   'nh-ck-campari': 'pd-sp-campari',
   'nh-ck-malibu': 'pd-sp-malibu',
@@ -27,13 +26,14 @@ const DEFAULT_COCKTAIL_PRICES = Object.fromEntries(
   (DEFAULT_COCKTAIL_SECTION?.items || []).map((it) => [it.id, it.price])
 );
 
-/** 旧カクテル欄（ジントニック等）が残っていないか */
+/** 旧カクテル欄（ジントニック等）・廃止品が残っていないか */
 export const LEGACY_DRINK_COCKTAIL_ITEM_IDS = new Set([
   'pd-ck-gin-tonic',
   'pd-ck-gin-buck',
   'pd-ck-moscow',
   'pd-ck-screwdriver',
   'pd-ck-rum-coke',
+  'pd-sp-rum-dark',
 ]);
 
 /** 新カクテル欄に含まれるべき代表 id */

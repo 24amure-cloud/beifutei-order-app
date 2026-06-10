@@ -66,7 +66,6 @@ export const DEFAULT_NOMIHODAI_CATALOG = [
       { id: 'nh-ck-gin', name: 'ウィルキンソン・ジン', nameEn: 'Wilkinson gin' },
       { id: 'nh-ck-vodka', name: 'ギルビーズ・ウォッカ', nameEn: "Gilbey's vodka" },
       { id: 'nh-ck-rum-white', name: 'バカルディ・スペリオール（ホワイトラム）', nameEn: 'Bacardi Superior' },
-      { id: 'nh-ck-rum-dark', name: 'マイヤーズ・ラム オリジナルダーク', nameEn: "Myers's Original Dark" },
       { id: 'nh-ck-elderflower', name: 'サンジェルマン（エルダーフラワー）', nameEn: 'St-Germain', price: 800 },
       { id: 'nh-ck-campari', name: 'カンパリ', nameEn: 'Campari' },
       { id: 'nh-ck-malibu', name: 'マリブ', nameEn: 'Malibu' },
@@ -137,7 +136,7 @@ export const NOMIHODAI_GUEST_TAB_ORDER = [
 ];
 
 /** 既定カタログの版（localStorage がこれより古い場合は既定へ差し替え） */
-export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 13;
+export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 14;
 
 /** ノンアル統合ラインナップ（15品） */
 export const NOMIHODAI_NONALCOHOL_ITEM_IDS = [

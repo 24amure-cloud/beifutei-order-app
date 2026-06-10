@@ -1,7 +1,7 @@
 /** ドリンクメニュー初期データ（店頭メニュー準拠・税込） */
 /** `nameEn` … 卓タブレット英語 UI 用（未設定時は `name` を表示）。厨房・注文は `name`（日本語）のまま。 */
 
-export const DEFAULT_DRINK_MENU_VERSION = 5;
+export const DEFAULT_DRINK_MENU_VERSION = 6;
 
 /** 客席ドリンク：1行3カテゴリ（カクテルは品数・名称が長いため単独行） */
 export const DRINK_MENU_GUEST_ROWS = [
@@ -105,7 +105,6 @@ export const DEFAULT_DRINK_MENU_SECTIONS = [
       { id: 'pd-sp-gin', name: 'ウィルキンソン・ジン', nameEn: 'Wilkinson gin', price: 700 },
       { id: 'pd-sp-vodka', name: 'ギルビーズ・ウォッカ', nameEn: 'Gilbey\'s vodka', price: 700 },
       { id: 'pd-sp-rum-white', name: 'バカルディ・スペリオール（ホワイトラム）', nameEn: 'Bacardi Superior', price: 700 },
-      { id: 'pd-sp-rum-dark', name: 'マイヤーズ・ラム オリジナルダーク', nameEn: 'Myers\'s Original Dark', price: 700 },
       { id: 'pd-sp-elderflower', name: 'サンジェルマン（エルダーフラワー）', nameEn: 'St-Germain', price: 800 },
       { id: 'pd-sp-campari', name: 'カンパリ', nameEn: 'Campari', price: 700 },
       { id: 'pd-sp-malibu', name: 'マリブ', nameEn: 'Malibu', price: 700 },

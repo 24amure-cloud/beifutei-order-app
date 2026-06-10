@@ -68,6 +68,18 @@ const LEGACY_ITEM_NAME_MARKERS = ['（緑ハイ）', '（ジャスハイ）', '�
 
 const LEGACY_SECTION_IDS = new Set(['nh-cat-soft']);
 
+/** 廃止品（残っていれば既定カタログへ差し替え） */
+const REMOVED_NOMIHODAI_ITEM_IDS = new Set(['nh-ck-rum-dark']);
+
+function catalogHasRemovedItems(catalog) {
+  for (const sec of catalog || []) {
+    for (const it of sec.items || []) {
+      if (REMOVED_NOMIHODAI_ITEM_IDS.has(it.id)) return true;
+    }
+  }
+  return false;
+}
+
 function catalogHasCombinedLineItems(catalog) {
   for (const sec of catalog || []) {
     for (const it of sec.items || []) {
@@ -93,6 +105,7 @@ function catalogNeedsRefresh(catalog) {
   const expectedOrder = NOMIHODAI_GUEST_TAB_ORDER.filter((id) => id !== NOMIHODAI_GUEST_SHOTS_TAB_ID).join('|');
   if (catalogSectionOrderKey(catalog) !== expectedOrder) return true;
   if (catalogHasCombinedLineItems(catalog)) return true;
+  if (catalogHasRemovedItems(catalog)) return true;
   return false;
 }
 
