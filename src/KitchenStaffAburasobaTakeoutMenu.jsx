@@ -4,6 +4,7 @@ import {
   KITCHEN_ABURASOBA_TOPPINGS,
   KITCHEN_TAKEOUT_CONTAINER_ITEMS,
 } from './data/kitchenRetailTakeoutMenu.js';
+import { aburasobaTakeoutContainerForSize } from './data/kitchenRetailTakeoutMenu.js';
 
 const SIZE_KEYS = ['小', '並', '大'];
 
@@ -23,7 +24,9 @@ export default function KitchenStaffAburasobaTakeoutMenu({ addToCart }) {
     [toppingIds],
   );
   const topsPrice = tops.reduce((s, t) => s + t.price, 0);
-  const totalPrice = sizePrice + topsPrice;
+  const container = aburasobaTakeoutContainerForSize(size);
+  const containerPrice = container?.price ?? 0;
+  const totalPrice = sizePrice + topsPrice + containerPrice;
 
   const toggleTop = (id) => {
     setToppingIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -34,8 +37,11 @@ export default function KitchenStaffAburasobaTakeoutMenu({ addToCart }) {
     addToCart({
       id: `to-abu-${bowl.key}-${size}${tops.length ? `-${tops.map((t) => t.id).join('-')}` : ''}`,
       name: `${bowl.name}（${size}${topLabel ? ` ${topLabel}` : ''}）`,
-      price: totalPrice,
+      price: sizePrice + topsPrice,
     });
+    if (container) {
+      addToCart({ id: container.id, name: container.name, price: container.price });
+    }
     setToppingIds([]);
   };
 
@@ -51,7 +57,7 @@ export default function KitchenStaffAburasobaTakeoutMenu({ addToCart }) {
     <div className="kitchen-staff-retail-menu kitchen-staff-retail-menu--aburasoba kretail-abu-board">
       <div className="kretail-abu-board__head">
         <h2 className="kretail-abu-board__title">油そば お持ち帰り</h2>
-        <p className="kretail-abu-board__lead">種類 → サイズ → トッピング → 追加</p>
+        <p className="kretail-abu-board__lead">種類 → サイズ → トッピング → 追加（容器は小/並→小・大→大を自動追加）</p>
       </div>
 
       <section className="kretail-abu-board__section" aria-label="種類">
@@ -120,6 +126,7 @@ export default function KitchenStaffAburasobaTakeoutMenu({ addToCart }) {
           <span className="kretail-abu-board__preview-name">
             {bowl.name}（{size}）
             {tops.length ? ` ＋${tops.length}種` : ''}
+            {container ? ` ＋${container.name.replace('お持ち帰り', '')}` : ''}
           </span>
           <strong className="kretail-abu-board__preview-price">￥{totalPrice.toLocaleString()}</strong>
         </div>

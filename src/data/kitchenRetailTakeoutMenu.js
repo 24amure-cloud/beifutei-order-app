@@ -48,3 +48,9 @@ export const KITCHEN_RETAIL_VERBAL_PICKS = [
   { itemId: 'to-abu-normal-並', itemName: '米風亭 油そば（並）', price: 1130 },
   { itemId: 'to-abu-spicy-並', itemName: '辛々担々 油そば（並）', price: 1180 },
 ];
+
+/** 油そばサイズに対応するお持ち帰り容器（小・並→小、大→大） */
+export function aburasobaTakeoutContainerForSize(size) {
+  if (size === '大') return KITCHEN_TAKEOUT_CONTAINER_ITEMS.find((c) => c.id === 'to-container-200') ?? null;
+  return KITCHEN_TAKEOUT_CONTAINER_ITEMS.find((c) => c.id === 'to-container-100') ?? null;
+}

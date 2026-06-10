@@ -1,5 +1,16 @@
-/** 出し忘れ警告：5分刻み（5 / 10 / 15分〜） */
-export const STALE_ALERT_THRESHOLDS_MIN = [5, 10, 15];
+/** 出し忘れ警告：種類別しきい値（ドリンクは早め・フードはやや長め） */
+export const STALE_KIND_CONFIG = {
+  drink: {
+    /** 表示バケット（warn / high / critical の境界） */
+    thresholds: [5, 10, 15],
+    /** 件数バッジに含める「遅延」の下限（分） */
+    staleAfterMin: 5,
+  },
+  food: {
+    thresholds: [8, 13, 18],
+    staleAfterMin: 8,
+  },
+};
 
 /**
  * 未提供ライブ帯の「フード」判定。それ以外はドリンク扱い。
@@ -31,6 +42,8 @@ export function pendingKitchenOrderIsFood(o) {
  * @param {number} nowMs
  */
 export function summarizePendingStale(pendingOrders, kind, nowMs) {
+  const cfg = STALE_KIND_CONFIG[kind];
+  const [warnMin, highMin, criticalMin] = cfg.thresholds;
   const wantFood = kind === 'food';
   let total = 0;
   let worstMin = 0;
@@ -42,21 +55,27 @@ export function summarizePendingStale(pendingOrders, kind, nowMs) {
     total += 1;
     const ageMin = Math.max(0, Math.floor((nowMs - (Number(o.createdAt) || 0)) / 60000));
     if (ageMin > worstMin) worstMin = ageMin;
-    if (ageMin >= STALE_ALERT_THRESHOLDS_MIN[0]) staleCount += 1;
+    if (ageMin >= cfg.staleAfterMin) staleCount += 1;
   }
 
   /** @type {StaleAlertLevel} */
   let level = 'ok';
-  if (worstMin >= 15) level = 'critical';
-  else if (worstMin >= 10) level = 'high';
-  else if (worstMin >= 5) level = 'warn';
+  if (worstMin >= criticalMin) level = 'critical';
+  else if (worstMin >= highMin) level = 'high';
+  else if (worstMin >= warnMin) level = 'warn';
 
-  /** 表示用：次の5分刻みラベル（5分→「5分+」、12分→「10分+」） */
   let bucketLabel = '';
   if (level !== 'ok') {
-    const bucket = STALE_ALERT_THRESHOLDS_MIN.filter((m) => worstMin >= m).pop() ?? 5;
+    const bucket = cfg.thresholds.filter((m) => worstMin >= m).pop() ?? warnMin;
     bucketLabel = `${bucket}分+`;
   }
 
-  return { total, worstMin, staleCount, level, bucketLabel };
+  return {
+    total,
+    worstMin,
+    staleCount,
+    level,
+    bucketLabel,
+    staleAfterMin: cfg.staleAfterMin,
+  };
 }

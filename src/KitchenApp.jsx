@@ -120,6 +120,37 @@ function playKitchenNomihodaiIntentAlert() {
   }
 }
 
+/** 出し忘れが最長段階（15分+/18分+）に達したときの短い注意音 */
+function playKitchenStaleForgotAlert() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const t0 = ctx.currentTime + 0.02;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, t0);
+    osc.frequency.exponentialRampToValueAtTime(330, t0 + 0.35);
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.exponentialRampToValueAtTime(0.08, t0 + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.4);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.42);
+    setTimeout(() => {
+      try {
+        ctx.close();
+      } catch {
+        /* ignore */
+      }
+    }, 600);
+  } catch {
+    /* ignore */
+  }
+}
+
 function orderKitchenEmoji(o) {
   return orderKindMeta(o).emoji;
 }
@@ -270,6 +301,8 @@ export default function KitchenApp() {
   const ordersHubRef = useRef(null);
   const pendingIdsForSoundRef = useRef(null);
   const nhIntentLabelsForSoundRef = useRef(null);
+  const drinkStaleLevelRef = useRef(null);
+  const foodStaleLevelRef = useRef(null);
 
   const goToOrdersTab = useCallback(() => {
     setStaffTab(STAFF_TABS.orders);
@@ -749,6 +782,22 @@ export default function KitchenApp() {
     pendingIdsForSoundRef.current = next;
     if (hasNew) playKitchenNewOrderAlert();
   }, [pendingOrders]);
+
+  /** 出し忘れが最長段階に初めて達したときだけ短い音（初回ロードでは鳴らさない） */
+  useEffect(() => {
+    const drinkLevel = drinkStale.level;
+    const foodLevel = foodStale.level;
+    if (drinkStaleLevelRef.current === null) {
+      drinkStaleLevelRef.current = drinkLevel;
+      foodStaleLevelRef.current = foodLevel;
+      return;
+    }
+    const drinkHit = drinkLevel === 'critical' && drinkStaleLevelRef.current !== 'critical';
+    const foodHit = foodLevel === 'critical' && foodStaleLevelRef.current !== 'critical';
+    drinkStaleLevelRef.current = drinkLevel;
+    foodStaleLevelRef.current = foodLevel;
+    if (drinkHit || foodHit) playKitchenStaleForgotAlert();
+  }, [drinkStale.level, foodStale.level]);
 
   useEffect(() => {
     const next = new Set(guestNomihodaiIntentLabels.map(String));

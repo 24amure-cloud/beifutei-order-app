@@ -12,9 +12,10 @@ export default function KitchenStaleAlertCell({ kind, summary, onClick }) {
   const icon = kind === 'drink' ? '🥤' : '🍜';
   const kindLabel = kind === 'drink' ? 'ドリンク' : 'フード';
   const active = summary.level !== 'ok' && summary.total > 0;
+  const afterMin = summary.staleAfterMin ?? 5;
   const aria = active
-    ? `${kindLabel}の出し忘れ注意：最長${summary.worstMin}分、${summary.staleCount}件が5分以上未提供`
-    : `${kindLabel}：5分超の未提供はありません`;
+    ? `${kindLabel}の出し忘れ注意：最長${summary.worstMin}分、${summary.staleCount}件が${afterMin}分以上未提供`
+    : `${kindLabel}：${afterMin}分超の未提供はありません`;
 
   return (
     <button
