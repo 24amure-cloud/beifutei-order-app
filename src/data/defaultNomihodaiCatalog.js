@@ -61,30 +61,26 @@ export const DEFAULT_NOMIHODAI_CATALOG = [
     id: 'nh-cat-cocktail',
     titleJa: 'カクテル',
     titleEn: 'COCKTAIL',
+    /** 客席ドリンク「カクテル」と同一ラインナップ（サンジェルマンのみ別料金800円） */
     items: [
-      { id: 'nh-ck-martini', name: 'マティーニ', nameEn: 'Martini' },
-      { id: 'nh-ck-gin-tonic', name: 'ジントニック', nameEn: 'Gin & Tonic' },
-      { id: 'nh-ck-gin-buck', name: 'ジンバック', nameEn: 'Gin Buck' },
-      { id: 'nh-ck-vodka-tonic', name: 'ウォッカトニック', nameEn: 'Vodka Tonic' },
-      { id: 'nh-ck-moscow-mule', name: 'モスコミュール', nameEn: 'Moscow Mule' },
-      { id: 'nh-ck-rum-coke', name: 'ラムコーク', nameEn: 'Rum & Coke' },
-      { id: 'nh-ck-ginger-rum', name: 'ジンジャーラム', nameEn: 'Dark ’n’ Stormy' },
-      { id: 'nh-ck-campari-mohito', name: 'カンパリモヒート', nameEn: 'Campari Mojito' },
-      { id: 'nh-ck-malibu-mohito', name: 'マリブモヒート', nameEn: 'Malibu Mojito' },
+      { id: 'nh-ck-gin', name: 'ウィルキンソン・ジン', nameEn: 'Wilkinson gin' },
+      { id: 'nh-ck-vodka', name: 'ギルビーズ・ウォッカ', nameEn: "Gilbey's vodka" },
+      { id: 'nh-ck-rum-white', name: 'バカルディ・スペリオール（ホワイトラム）', nameEn: 'Bacardi Superior' },
+      { id: 'nh-ck-rum-dark', name: 'マイヤーズ・ラム オリジナルダーク', nameEn: "Myers's Original Dark" },
+      { id: 'nh-ck-elderflower', name: 'サンジェルマン（エルダーフラワー）', nameEn: 'St-Germain', price: 800 },
+      { id: 'nh-ck-campari', name: 'カンパリ', nameEn: 'Campari' },
+      { id: 'nh-ck-malibu', name: 'マリブ', nameEn: 'Malibu' },
+      { id: 'nh-ck-kahlua', name: 'カルーア', nameEn: 'Kahlúa' },
+      { id: 'nh-ck-passoa', name: 'パッソア', nameEn: 'Passoã' },
+      { id: 'nh-ck-brandy-xo-deluxe', name: 'ニッカ・ブランデー X.O デラックス', nameEn: 'Nikka brandy X.O Deluxe' },
+      { id: 'nh-ck-brandy-xo', name: 'ニッカ・ブランデー X.O', nameEn: 'Nikka brandy X.O' },
+      { id: 'nh-ck-green-tea-liq', name: 'ヘルメス・グリーンティ・リキュール', nameEn: 'Hermès green tea liqueur' },
+      { id: 'nh-ck-wine-glass', name: 'グラスワイン（赤・白）', nameEn: 'Glass wine (red / white)' },
       { id: 'nh-ck-cassis-soda', name: 'カシスソーダ', nameEn: 'Cassis soda' },
       { id: 'nh-ck-cassis-orange', name: 'カシスオレンジ', nameEn: 'Cassis orange' },
       { id: 'nh-ck-cassis-oolong', name: 'カシスウーロン', nameEn: 'Cassis oolong' },
-      { id: 'nh-ck-peach-fuzzy', name: 'ピーチファジーネーブル', nameEn: 'Fuzzy Navel' },
+      { id: 'nh-ck-fuzzy', name: 'ファジーネーブル', nameEn: 'Fuzzy navel' },
       { id: 'nh-ck-peach-oolong', name: 'ピーチウーロン', nameEn: 'Peach oolong' },
-      { id: 'nh-ck-campari-soda', name: 'カンパリソーダ', nameEn: 'Campari soda' },
-      { id: 'nh-ck-campari-orange', name: 'カンパリオレンジ', nameEn: 'Campari orange' },
-      { id: 'nh-ck-malibu-coke', name: 'マリブコーク', nameEn: 'Malibu & Coke' },
-      { id: 'nh-ck-malibu-milk', name: 'マリブミルク', nameEn: 'Malibu milk' },
-      { id: 'nh-ck-kahlua-milk', name: 'カルアミルク', nameEn: 'Kahlúa milk' },
-      { id: 'nh-ck-passoa-orange', name: 'パッソアオレンジ', nameEn: 'Passoã orange' },
-      { id: 'nh-ck-passoa-soda', name: 'パッソアソーダ', nameEn: 'Passoã soda' },
-      { id: 'nh-ck-umeshu-rock', name: '梅酒ロック', nameEn: 'Plum wine (on the rocks)' },
-      { id: 'nh-ck-umeshu-soda', name: '梅酒ソーダ', nameEn: 'Plum wine soda' },
     ],
   },
   {
@@ -141,7 +137,7 @@ export const NOMIHODAI_GUEST_TAB_ORDER = [
 ];
 
 /** 既定カタログの版（localStorage がこれより古い場合は既定へ差し替え） */
-export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 12;
+export const DEFAULT_NOMIHODAI_CATALOG_VERSION = 13;
 
 /** ノンアル統合ラインナップ（15品） */
 export const NOMIHODAI_NONALCOHOL_ITEM_IDS = [

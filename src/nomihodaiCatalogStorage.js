@@ -12,6 +12,7 @@ export const NOMIHODAI_CATALOG_VERSION_KEY = 'beifutei-nomihodai-catalog-version
 function isValidItem(it) {
   if (!it || typeof it.id !== 'string' || it.id.length === 0 || typeof it.name !== 'string') return false;
   if (it.nameEn != null && typeof it.nameEn !== 'string') return false;
+  if (it.price != null && (!Number.isFinite(Number(it.price)) || Number(it.price) < 0)) return false;
   return true;
 }
 
@@ -33,7 +34,13 @@ const REQUIRED_SECTION_IDS = [
   'nh-cat-nonalcoholic',
 ];
 
-const REQUIRED_ITEM_IDS = ['nh-beer-glass', 'nh-sour-mango', 'nh-ck-cassis-soda', ...NOMIHODAI_NONALCOHOL_ITEM_IDS];
+const REQUIRED_ITEM_IDS = [
+  'nh-beer-glass',
+  'nh-sour-mango',
+  'nh-ck-cassis-soda',
+  'nh-ck-elderflower',
+  ...NOMIHODAI_NONALCOHOL_ITEM_IDS,
+];
 
 /** 旧データ：スラッシュ区切りで1行にまとめていた品目 */
 const LEGACY_COMBINED_ITEM_IDS = new Set([

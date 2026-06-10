@@ -152,11 +152,23 @@ export default function NomihodaiGuestMenuPanel({
         ) : activeTab ? (
           <div className="nh-guest-menu__browse-panel" role="tabpanel">
             <ul className="nh-guest-menu__browse-grid">
-              {(activeTab.items || []).map((it) => (
-                <li key={it.id} className="nh-guest-menu__browse-item">
-                  {nomihodaiGuestItemLabelFromItem(it, locale)}
-                </li>
-              ))}
+              {(activeTab.items || []).map((it) => {
+                const extraYen = Number(it.price);
+                const priced = Number.isFinite(extraYen) && extraYen > 0;
+                return (
+                  <li
+                    key={it.id}
+                    className={`nh-guest-menu__browse-item${priced ? ' nh-guest-menu__browse-item--priced' : ''}`}
+                  >
+                    <span>{nomihodaiGuestItemLabelFromItem(it, locale)}</span>
+                    {priced ? (
+                      <span className="nh-guest-menu__browse-price">
+                        ￥{extraYen.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+                      </span>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ) : null}
@@ -195,9 +207,20 @@ export default function NomihodaiGuestMenuPanel({
                 {locale !== 'en' ? <p className="nh-guest-menu__section-sub">{tab.titleEn}</p> : null}
               </header>
               <ul className="nh-guest-menu__browse-list">
-                {(tab.items || []).map((it) => (
-                  <li key={it.id}>{nomihodaiGuestItemLabelFromItem(it, locale)}</li>
-                ))}
+                {(tab.items || []).map((it) => {
+                  const extraYen = Number(it.price);
+                  const priced = Number.isFinite(extraYen) && extraYen > 0;
+                  return (
+                    <li key={it.id}>
+                      {nomihodaiGuestItemLabelFromItem(it, locale)}
+                      {priced ? (
+                        <span className="nh-guest-menu__browse-price">
+                          ￥{extraYen.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+                        </span>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           )
@@ -255,18 +278,29 @@ export default function NomihodaiGuestMenuPanel({
             </p>
           </header>
           <ul className="nh-guest-menu__order-list">
-            {(activeTab.items || []).map((it) => (
-              <li key={it.id} className="nh-guest-menu__order-row">
-                <span className="nh-guest-menu__order-name">{nomihodaiGuestItemLabelFromItem(it, locale)}</span>
-                <button
-                  type="button"
-                  className="nh-guest-menu__order-btn"
-                  onClick={() => onOrder?.({ id: it.id, name: it.name, price: it.price })}
-                >
-                  {orderLabel}
-                </button>
-              </li>
-            ))}
+            {(activeTab.items || []).map((it) => {
+              const extraYen = Number(it.price);
+              const priced = Number.isFinite(extraYen) && extraYen > 0;
+              return (
+                <li key={it.id} className="nh-guest-menu__order-row">
+                  <span className="nh-guest-menu__order-name">
+                    {nomihodaiGuestItemLabelFromItem(it, locale)}
+                    {priced ? (
+                      <span className="nh-guest-menu__order-price">
+                        ￥{extraYen.toLocaleString(locale === 'en' ? 'en-US' : 'ja-JP')}
+                      </span>
+                    ) : null}
+                  </span>
+                  <button
+                    type="button"
+                    className="nh-guest-menu__order-btn"
+                    onClick={() => onOrder?.({ id: it.id, name: it.name, price: it.price })}
+                  >
+                    {orderLabel}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}
