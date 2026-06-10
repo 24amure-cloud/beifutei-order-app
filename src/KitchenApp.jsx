@@ -43,7 +43,7 @@ import {
   orderLineTaxInLabel,
 } from './kitchenOrderDisplay.js';
 import KitchenStaleAlertCell from './KitchenStaleAlertCell.jsx';
-import { summarizePendingStale } from './kitchenPendingStale.js';
+import { pendingKitchenOrderIsFood, summarizePendingStale } from './kitchenPendingStale.js';
 
 function fmtTime(ms) {
   const d = new Date(ms);
