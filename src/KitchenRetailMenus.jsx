@@ -608,6 +608,15 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
               >
                 油そば
               </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sub === 'verbal'}
+                className={`kitchen-retail-hub__tab kitchen-retail-hub__tab--verbal${sub === 'verbal' ? ' is-active' : ''}`}
+                onClick={() => setSub('verbal')}
+              >
+                口頭注文
+              </button>
             </div>
           </div>
 
@@ -622,7 +631,7 @@ export function KitchenStaffRetailHub({ onRetailCheckoutComplete }) {
               {retailStats && sub === 'cafe' ? <KitchenStaffCafeMenu /> : null}
               {retailStats && sub === 'takeout' ? <KitchenStaffTakeoutSweetsMenu /> : null}
               {retailStats && sub === 'aburasoba' ? <KitchenStaffAburasobaTakeoutMenu addToCart={addToCart} /> : null}
-              {retailStats && sub !== 'aburasoba' ? <KitchenRetailVerbalPanel addToCart={addToCart} /> : null}
+              {retailStats && sub === 'verbal' ? <KitchenRetailVerbalPanel addToCart={addToCart} variant="tab" /> : null}
             </div>
 
             <aside

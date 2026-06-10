@@ -13356,6 +13356,70 @@ button.kitchen-guest-intent--nav {
   color: #5c4033;
 }
 
+.kitchen-retail-hub__tab--verbal.is-active {
+  background: linear-gradient(180deg, #f5f8ff 0%, #e8eef8 100%);
+  border-color: #8aa0c4;
+  color: #334466;
+}
+
+.kretail-verbal-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 4px 2px 6px;
+}
+
+.kretail-verbal-tab__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.kretail-verbal-tab__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #334466;
+}
+
+.kretail-verbal-tab__lead {
+  margin: 0;
+  font-size: 11px;
+  color: #888;
+}
+
+.kretail-verbal-tab__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.kretail-verbal-tab__custom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #e5ddd4;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.kretail-verbal-tab__picks-label {
+  margin: 0;
+  font-size: 11px;
+  color: #888;
+}
+
+.kretail-verbal-tab__picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 6px;
+}
+
 .kitchen-retail-hub__scroll:has(.kitchen-staff-retail-menu--aburasoba) {
   overflow: auto;
   display: flex;
