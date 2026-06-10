@@ -18,7 +18,7 @@ export const SHOCHU_MENU_HOTSPOTS = [
   { kind: 'drink', drinkId: 'pd-shochu-kuro', left: 71, top: 36, width: 12.5, height: 21 },
   { kind: 'drink', drinkId: 'pd-shochu-aka', left: 84.5, top: 36, width: 12.5, height: 21 },
   { kind: 'side', sideId: 'sd-jerky', left: 4, top: 71, width: 38, height: 22 },
-  { kind: 'side', sideId: 'sd-wiener', left: 54, top: 71, width: 38, height: 22 },
+  { kind: 'side', sideId: 'sd-pickles', left: 54, top: 71, width: 38, height: 22 },
 ];
 
 /** おすすめ①ページ：品名チップ用の説明文（厨房・注文名とは別） */
@@ -55,9 +55,9 @@ export const SHOCHU_MENU_ITEM_COPY = {
     ja: '燻製の香り、噛むほど旨味が広がる',
     en: 'Smoky aroma; more umami as you chew.',
   },
-  'sd-wiener': {
-    ja: 'ジューシーな串刺し、焼酎のお供に',
-    en: 'Juicy skewer; great with shochu.',
+  'sd-pickles': {
+    ja: '爽やかな味わいで口の中をリセット',
+    en: 'Refreshing; cleanses the palate.',
   },
 };
 
