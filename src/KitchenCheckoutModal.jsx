@@ -147,7 +147,7 @@ export default function KitchenCheckoutModal({
               <p className="kitchen-checkout-done__print-note">
                 {completed.payment === 'cash'
                   ? '「印刷する」でレシートを出し、ドロワーを開きます。'
-                  : '「印刷する」でお会計明細を印刷します（精算はスマレジ等のまま）。'}
+                  : '「印刷する」でレシートを印刷します。'}
               </p>
               <div className="kitchen-checkout-done__print-actions">
                 <button type="button" className="kitchen-checkout-done__print-yes" onClick={finishWithPrint}>
@@ -453,7 +453,7 @@ export default function KitchenCheckoutModal({
           >
             <span className="kitchen-checkout-pay__label">カード</span>
             <span className="kitchen-checkout-pay__yen">￥{grandTotal.toLocaleString()}</span>
-            <span className="kitchen-checkout-pay__sub">税込・スマレジ等</span>
+            <span className="kitchen-checkout-pay__sub">税込</span>
           </button>
           <button
             type="button"
