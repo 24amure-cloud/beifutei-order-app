@@ -42,6 +42,8 @@ import {
   orderLineSlipMetaPrice,
   orderLineTaxInLabel,
 } from './kitchenOrderDisplay.js';
+import KitchenStaleAlertCell from './KitchenStaleAlertCell.jsx';
+import { summarizePendingStale } from './kitchenPendingStale.js';
 
 function fmtTime(ms) {
   const d = new Date(ms);
@@ -120,26 +122,6 @@ function playKitchenNomihodaiIntentAlert() {
 
 function orderKitchenEmoji(o) {
   return orderKindMeta(o).emoji;
-}
-
-/**
- * 未提供ライブ帯の「フード」判定。それ以外（飲み放題・ドリンク・カフェ飲料・サイドのお酒など）は飲み物。
- * itemId 規約は客席 App.jsx の addToCart に合わせる。
- */
-function pendingKitchenOrderIsFood(o) {
-  if (o.isNomihodai) return false;
-  const id = String(o.itemId || '');
-  if (/^sd-drink-/i.test(id)) return false;
-  if (/^abu:/i.test(id)) return true;
-  if (/^pz-/i.test(id)) return true;
-  if (/^top-/i.test(id)) return true;
-  if (/^ts-/i.test(id)) return true;
-  if (/^sd-/i.test(id)) return true;
-  if (/^fr-/i.test(id)) return true;
-  const line = String(o.itemName || '').split('\n')[0];
-  if (/油そば|米風亭|辛々|担々|ネギ盛り/.test(line)) return true;
-  if (/ピッツァ|ピザ|マルゲリタ|ジェノヴェーゼ|ビスマルク|クワトロフォルマッジ/i.test(line)) return true;
-  return false;
 }
 
 /** 同一テーブルで created_at が近い行を「1回の送信」＝1ヒーローにまとめる */
@@ -535,16 +517,8 @@ export default function KitchenApp() {
     }
     return Array.from(map.values()).sort((a, b) => a.oldest - b.oldest);
   }, [pendingOrders, session.tableId, session.tableLabel]);
-  const { pendingDrinkCount, pendingFoodCount } = useMemo(() => {
-    let food = 0;
-    for (const o of pendingOrders) {
-      if (pendingKitchenOrderIsFood(o)) food += 1;
-    }
-    return {
-      pendingFoodCount: food,
-      pendingDrinkCount: pendingOrders.length - food,
-    };
-  }, [pendingOrders]);
+  const drinkStale = useMemo(() => summarizePendingStale(pendingOrders, 'drink', now), [pendingOrders, now]);
+  const foodStale = useMemo(() => summarizePendingStale(pendingOrders, 'food', now), [pendingOrders, now]);
   const servedOrders = useMemo(
     () => allOrders.filter((o) => o.status === 'served').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
     [allOrders]
@@ -740,33 +714,23 @@ export default function KitchenApp() {
       .sort((a, b) => (Number(b.recordedAt) || 0) - (Number(a.recordedAt) || 0));
   }, [todayDateKey, ledgerRevision]);
 
-  const [liveFlash, setLiveFlash] = useState({ situation: false, drink: false, food: false });
+  const [liveFlash, setLiveFlash] = useState(false);
   const liveSnapRef = useRef(null);
 
   useEffect(() => {
-    const snap = {
-      situation: pendingOrders.length,
-      drink: pendingDrinkCount,
-      food: pendingFoodCount,
-    };
+    const count = pendingOrders.length;
     if (liveSnapRef.current === null) {
-      liveSnapRef.current = snap;
+      liveSnapRef.current = count;
       return;
     }
-    const prev = liveSnapRef.current;
-    const next = {
-      situation: prev.situation !== snap.situation,
-      drink: prev.drink !== snap.drink,
-      food: prev.food !== snap.food,
-    };
-    if (next.situation || next.drink || next.food) {
-      setLiveFlash(next);
-      liveSnapRef.current = snap;
-      const t = setTimeout(() => setLiveFlash({ situation: false, drink: false, food: false }), 900);
+    if (liveSnapRef.current !== count) {
+      setLiveFlash(true);
+      liveSnapRef.current = count;
+      const t = setTimeout(() => setLiveFlash(false), 900);
       return () => clearTimeout(t);
     }
-    liveSnapRef.current = snap;
-  }, [pendingOrders.length, pendingDrinkCount, pendingFoodCount]);
+    liveSnapRef.current = count;
+  }, [pendingOrders.length]);
 
   /** 未提供に「新しい行」が増えたときだけアラート（初回ロードでは鳴らさない） */
   useEffect(() => {
@@ -947,7 +911,7 @@ export default function KitchenApp() {
           type="button"
           className={[
             'kitchen-live-cell kitchen-live-cell--situation kitchen-live-cell--tappable',
-            liveFlash.situation ? 'kitchen-live-cell--flash' : '',
+            liveFlash ? 'kitchen-live-cell--flash' : '',
             pendingOrders.length > 0 ? 'kitchen-live-cell--has-queue' : '',
           ]
             .filter(Boolean)
@@ -959,7 +923,7 @@ export default function KitchenApp() {
           <span className="kitchen-live-cell__value-wrap">
             {pendingOrders.length > 0 ? (
               <span
-                className={`kitchen-live-cell__signal${liveFlash.situation ? ' kitchen-live-cell__signal--pop' : ''}`}
+                className={`kitchen-live-cell__signal${liveFlash ? ' kitchen-live-cell__signal--pop' : ''}`}
                 aria-hidden
               >
                 {pendingOrders.length > 99 ? '99+' : pendingOrders.length}
@@ -969,22 +933,8 @@ export default function KitchenApp() {
           </span>
           <span className="kitchen-live-cell__sub">未提供の合計・タップで注文一覧へ</span>
         </button>
-        <div
-          className={`kitchen-live-cell kitchen-live-cell--drink${liveFlash.drink ? ' kitchen-live-cell--flash' : ''}`}
-          role="status"
-        >
-          <span className="kitchen-live-cell__label">飲み物オーダー数</span>
-          <strong className="kitchen-live-cell__value">{pendingDrinkCount}件</strong>
-          <span className="kitchen-live-cell__sub">飲み放題・ドリンク等</span>
-        </div>
-        <div
-          className={`kitchen-live-cell kitchen-live-cell--food${liveFlash.food ? ' kitchen-live-cell--flash' : ''}`}
-          role="status"
-        >
-          <span className="kitchen-live-cell__label">フードオーダー数</span>
-          <strong className="kitchen-live-cell__value">{pendingFoodCount}件</strong>
-          <span className="kitchen-live-cell__sub">麺・ピザ・サイド等</span>
-        </div>
+        <KitchenStaleAlertCell kind="drink" summary={drinkStale} onClick={goToOrdersTab} />
+        <KitchenStaleAlertCell kind="food" summary={foodStale} onClick={goToOrdersTab} />
         <button
           type="button"
           className={[
