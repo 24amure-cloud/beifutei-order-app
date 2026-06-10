@@ -11,7 +11,7 @@ const REQUIRED_DRINK_SECTION_IDS = ['whisky', 'beer', 'sake', 'shochu', 'cocktai
 const REQUIRED_DRINK_ITEM_IDS = [
   'pd-beer-glass',
   'pd-sake-denshu',
-  'pd-sp-elderflower',
+  'pd-ck-gin-tonic',
   'pd-spot-yamazaki',
   'pd-sour-peach',
   'pd-soft-nabiru',

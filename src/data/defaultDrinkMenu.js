@@ -1,7 +1,9 @@
 /** ドリンクメニュー初期データ（店頭メニュー準拠・税込） */
 /** `nameEn` … 卓タブレット英語 UI 用（未設定時は `name` を表示）。厨房・注文は `name`（日本語）のまま。 */
 
-export const DEFAULT_DRINK_MENU_VERSION = 7;
+import { DEFAULT_DRINK_COCKTAIL_ITEMS } from './defaultDrinkCocktailItems.js';
+
+export const DEFAULT_DRINK_MENU_VERSION = 8;
 
 /** 客席ドリンク：1行3カテゴリ（カクテルは品数・名称が長いため単独行） */
 export const DRINK_MENU_GUEST_ROWS = [
@@ -101,21 +103,7 @@ export const DEFAULT_DRINK_MENU_SECTIONS = [
     id: 'cocktail',
     titleEn: 'COCKTAIL',
     titleJa: 'カクテル',
-    items: [
-      { id: 'pd-sp-elderflower', name: 'サンジェルマン（エルダーフラワー）', nameEn: 'St-Germain', price: 800 },
-      { id: 'pd-sp-campari', name: 'カンパリ', nameEn: 'Campari', price: 700 },
-      { id: 'pd-sp-malibu', name: 'マリブ', nameEn: 'Malibu', price: 700 },
-      { id: 'pd-sp-kahlua', name: 'カルーア', nameEn: 'Kahlúa', price: 700 },
-      { id: 'pd-sp-passoa', name: 'パッソア', nameEn: 'Passoã', price: 700 },
-      { id: 'pd-sp-brandy-xo-deluxe', name: 'ニッカ・ブランデー X.O デラックス', nameEn: 'Nikka brandy X.O Deluxe', price: 800 },
-      { id: 'pd-sp-brandy-xo', name: 'ニッカ・ブランデー X.O', nameEn: 'Nikka brandy X.O', price: 800 },
-      { id: 'pd-wine-glass', name: 'グラスワイン（赤・白）', nameEn: 'Glass wine (red / white)', price: 700 },
-      { id: 'pd-ck-cassis-soda', name: 'カシスソーダ', nameEn: 'Cassis soda', price: 700 },
-      { id: 'pd-ck-cassis-orange', name: 'カシスオレンジ', nameEn: 'Cassis orange', price: 700 },
-      { id: 'pd-ck-cassis-oolong', name: 'カシスウーロン', nameEn: 'Cassis oolong', price: 700 },
-      { id: 'pd-ck-fuzzy', name: 'ファジーネーブル', nameEn: 'Fuzzy navel', price: 700 },
-      { id: 'pd-ck-peach-oolong', name: 'ピーチウーロン', nameEn: 'Peach oolong', price: 700 },
-    ],
+    items: structuredClone(DEFAULT_DRINK_COCKTAIL_ITEMS),
   },
   {
     id: 'soft',
