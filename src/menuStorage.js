@@ -2,6 +2,7 @@ import {
   DEFAULT_DRINK_MENU_SECTIONS,
   DEFAULT_DRINK_MENU_VERSION,
 } from './data/defaultDrinkMenu.js';
+import { drinkCocktailSectionNeedsRefresh } from './drinkCocktailSync.js';
 
 export const DRINK_MENU_STORAGE_KEY = 'beifutei-menu-drink-sections-v1';
 export const DRINK_MENU_VERSION_KEY = 'beifutei-menu-drink-version';
@@ -72,7 +73,9 @@ export function loadDrinkMenuSections() {
       ...sec,
       items: sec.items.filter(isValidItem),
     }));
-    if (cleaned.length === 0 || !isCurrentDrinkMenu(cleaned)) return applyDefaultDrinkMenuMigration();
+    if (cleaned.length === 0 || !isCurrentDrinkMenu(cleaned) || drinkCocktailSectionNeedsRefresh(cleaned)) {
+      return applyDefaultDrinkMenuMigration();
+    }
     return cleaned;
   } catch {
     return applyDefaultDrinkMenuMigration();

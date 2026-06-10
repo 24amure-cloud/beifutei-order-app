@@ -5,6 +5,8 @@ import { useTakeoutSweetsMenu } from './TakeoutSweetsMenuContext.jsx';
 import { useSideDishMenu } from './SideDishMenuContext.jsx';
 import { inventoryMapFromSections } from './takeoutSweetsInventoryStorage.js';
 import { notifyMenuPublished } from './menuMasterBroadcast.js';
+import { DEFAULT_NOMIHODAI_CATALOG } from './data/defaultNomihodaiCatalog.js';
+import { mergeDrinkCocktailFromNomihodai } from './drinkCocktailSync.js';
 
 export function newMasterItemId() {
   return `pd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -137,10 +139,12 @@ export function useMasterMenuEditor() {
   const applyNomihodaiMenu = useCallback(() => {
     const next = structuredClone(draftNh);
     setNomihodaiCatalog(next);
+    setDrinkSections((prev) => mergeDrinkCocktailFromNomihodai(prev, next));
     notifyMenuPublished('nomihodai');
+    notifyMenuPublished('drink');
     setNhApplyNotice('ok');
     window.setTimeout(() => setNhApplyNotice(null), 4000);
-  }, [draftNh, setNomihodaiCatalog]);
+  }, [draftNh, setNomihodaiCatalog, setDrinkSections]);
 
   const discardNomihodaiDraft = useCallback(() => {
     if (nhDirty && !window.confirm('未反映の飲み放題編集を破棄しますか？')) return;
@@ -263,10 +267,12 @@ export function useMasterMenuEditor() {
   const onResetNhDefaults = useCallback(() => {
     if (!window.confirm('飲み放題メニューを初期データに戻しますか？（現在の編集は失われます）')) return;
     resetNomihodaiCatalogToDefault();
+    setDrinkSections((prev) => mergeDrinkCocktailFromNomihodai(prev, DEFAULT_NOMIHODAI_CATALOG));
     notifyMenuPublished('nomihodai');
+    notifyMenuPublished('drink');
     setNhApplyNotice('ok');
     window.setTimeout(() => setNhApplyNotice(null), 4000);
-  }, [resetNomihodaiCatalogToDefault]);
+  }, [resetNomihodaiCatalogToDefault, setDrinkSections]);
 
   const applyTakeoutMenu = useCallback(() => {
     const nextSections = structuredClone(draftTakeout).map((sec) => ({
@@ -434,8 +440,12 @@ export function useMasterMenuEditor() {
 
   const applyAllMenus = useCallback(() => {
     if (!anyMenuDirty) return;
+    const nextNh = nhDirty ? structuredClone(draftNh) : null;
     if (drinkDirty) setDrinkSections(structuredClone(draftDrink));
-    if (nhDirty) setNomihodaiCatalog(structuredClone(draftNh));
+    if (nhDirty) {
+      setNomihodaiCatalog(nextNh);
+      if (!drinkDirty) setDrinkSections((prev) => mergeDrinkCocktailFromNomihodai(prev, nextNh));
+    }
     if (takeoutDirty) {
       const nextSections = structuredClone(draftTakeout).map((sec) => ({
         ...sec,

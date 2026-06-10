@@ -1,7 +1,7 @@
 /** ドリンクメニュー初期データ（店頭メニュー準拠・税込） */
 /** `nameEn` … 卓タブレット英語 UI 用（未設定時は `name` を表示）。厨房・注文は `name`（日本語）のまま。 */
 
-export const DEFAULT_DRINK_MENU_VERSION = 4;
+export const DEFAULT_DRINK_MENU_VERSION = 5;
 
 /** 客席ドリンク：1行3カテゴリ（ハイボール行・焼酎行・ソフト行） */
 export const DRINK_MENU_GUEST_ROWS = [
