@@ -2009,22 +2009,37 @@ body.guest-screensaver-active .cart-drawer-panel {
   word-break: break-word;
 }
 
+/* カクテル：品名が長いため1列・各行は名称→価格+追加の2段（横並び3列だと隣行と重なる） */
 .drink-page-cat--cocktail .drink-page-list {
-  display: grid;
-  grid-template-columns: 1fr;
-  column-gap: 24px;
+  display: flex;
+  flex-direction: column;
 }
 
-@media (min-width: 640px) {
-  .drink-page-cat--cocktail .drink-page-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.drink-page-cat--cocktail .drink-page-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name name'
+    'price action';
+  row-gap: 4px;
+  column-gap: 10px;
+  overflow: hidden;
+  max-width: 100%;
 }
 
-.drink-page-cat--cocktail .drink-page-row__price,
+.drink-page-cat--cocktail .drink-page-row__name {
+  grid-area: name;
+}
+
+.drink-page-cat--cocktail .drink-page-row__price {
+  grid-area: price;
+  align-self: center;
+}
+
 .drink-page-cat--cocktail .drink-page-row__add,
 .drink-page-cat--cocktail .drink-page-row__na {
-  margin-top: 1px;
+  grid-area: action;
+  justify-self: end;
+  align-self: center;
 }
 
 .drink-page-row__price {
