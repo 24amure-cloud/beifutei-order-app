@@ -231,16 +231,16 @@ export function buildReceiptHtml(payload, opts = {}) {
     })
     .join('');
 
-  const detailNote = payload.detailOnly
-    ? '<p class="note">※お支払いはスマレジ等で承ります（明細のみ）</p>'
-    : '';
-
   const cardFeeRow =
     payload.cardFee > 0
       ? summaryRow('TAX5％', formatYen(payload.cardFee), bodySize - 1)
       : '';
 
-  const taxNote = payload.detailOnly ? '' : '<p class="tax-note">※表示金額は税込です</p>';
+  const taxNote = '<p class="tax-note">※表示金額は税込です</p>';
+
+  const payBadge = payload.detailOnly
+    ? ''
+    : `<span class="pay-badge">${escapeHtml(payload.paymentLabel)}</span>`;
 
   return `<!DOCTYPE html>
 <html><head>
@@ -250,7 +250,10 @@ export function buildReceiptHtml(payload, opts = {}) {
 body{font-family:Helvetica,'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;width:384px;margin:0;padding:12px 10px;font-size:${bodySize}px;line-height:1.4;color:#000;background:#fff}
 .store{text-align:center;font-weight:700;font-size:24px;margin:0 0 4px;letter-spacing:0.03em}
 .shop{text-align:center;font-size:14px;margin:0 0 2px;color:#222}
-.doc-title{text-align:center;font-size:28px;font-weight:800;margin:14px 0 10px;letter-spacing:0.35em;padding-left:0.35em;border:2px solid #000;padding:8px 4px}
+.doc-title{text-align:center;font-size:28px;font-weight:800;margin:14px 0 8px;letter-spacing:0.35em;padding-left:0.35em;border:2px solid #000;padding:8px 4px}
+.doc-recipient{display:flex;align-items:flex-end;justify-content:flex-end;gap:8px;margin:0 0 14px;padding:0 4px;font-size:20px}
+.doc-recipient-blank{flex:1;max-width:240px;border-bottom:1px solid #000;min-height:1.5em;margin-bottom:3px}
+.doc-recipient-sama{flex-shrink:0;font-weight:700;letter-spacing:0.2em}
 .meta{font-size:17px;color:#222;margin:2px 0}
 .meta-pay{display:flex;justify-content:space-between;align-items:center;margin:8px 0 2px;font-size:18px}
 .pay-badge{border:1px solid #000;padding:2px 10px;font-weight:700}
@@ -277,10 +280,14 @@ ${RECEIPT_STORE.subtitle ? `<p class="shop">${escapeHtml(RECEIPT_STORE.subtitle)
 <p class="shop">TEL ${escapeHtml(RECEIPT_STORE.phone)}</p>
 <p class="shop">${escapeHtml(RECEIPT_STORE.address)}</p>
 <p class="doc-title">領収書</p>
+<div class="doc-recipient" aria-label="宛名">
+  <span class="doc-recipient-blank"></span>
+  <span class="doc-recipient-sama">様</span>
+</div>
 <p class="meta">${escapeHtml(when)}</p>
 <div class="meta-pay">
   <span>卓 ${escapeHtml(payload.tableLabel)}</span>
-  <span class="pay-badge">${escapeHtml(payload.paymentLabel)}</span>
+  ${payBadge}
 </div>
 <hr>
 ${lineRows || '<p class="meta">（明細行なし）</p>'}
@@ -292,7 +299,6 @@ ${cardFeeRow}
   <p class="total-yen">${escapeHtml(formatYen(payload.total))}</p>
 </div>
 ${taxNote}
-${detailNote}
 <p class="receipt-stamp">上記正に領収いたしました</p>
 <p class="thanks">ありがとうございました</p>
 </body></html>`;
