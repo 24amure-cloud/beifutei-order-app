@@ -2147,10 +2147,13 @@ body.guest-screensaver-active .cart-drawer-panel {
   max-width: 100%;
   padding: 3px 5px;
   border-radius: 5px;
-  background: rgba(255, 252, 245, 0.88);
-  border: 1px solid rgba(169, 30, 30, 0.28);
-  box-shadow: 0 1px 4px rgba(40, 24, 8, 0.12);
+  background: rgba(255, 252, 245, 0.92);
+  border: 1px solid rgba(169, 30, 30, 0.35);
+  box-shadow: 0 2px 8px rgba(40, 24, 8, 0.18);
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
 .shochu-menu-page__hotspot-name {
@@ -2174,27 +2177,22 @@ body.guest-screensaver-active .cart-drawer-panel {
 }
 
 .shochu-menu-page__hotspot:hover:not(:disabled),
-.shochu-menu-page__hotspot:focus-visible:not(:disabled) {
+.shochu-menu-page__hotspot:focus-visible:not(:disabled),
+.shochu-menu-page__hotspot:active:not(:disabled) {
   background: rgba(169, 30, 30, 0.12);
   box-shadow: inset 0 0 0 2px rgba(169, 30, 30, 0.55);
+}
+
+.shochu-menu-page__hotspot:hover:not(:disabled) .shochu-menu-page__hotspot-chip,
+.shochu-menu-page__hotspot:focus-visible:not(:disabled) .shochu-menu-page__hotspot-chip,
+.shochu-menu-page__hotspot:active:not(:disabled) .shochu-menu-page__hotspot-chip {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .shochu-menu-page__hotspot:active:not(:disabled) {
   background: rgba(169, 30, 30, 0.22);
   box-shadow: inset 0 0 0 3px rgba(169, 30, 30, 0.75);
-}
-
-/* タブレット・スマホ：hover が無いので常に薄い赤枠＋商品名チップを表示 */
-@media (hover: none), (pointer: coarse) {
-  .shochu-menu-page__hotspot:not(:disabled) {
-    box-shadow: inset 0 0 0 2px rgba(169, 30, 30, 0.38);
-    background: rgba(169, 30, 30, 0.05);
-  }
-
-  .shochu-menu-page__hotspot:active:not(:disabled) {
-    background: rgba(169, 30, 30, 0.24);
-    box-shadow: inset 0 0 0 3px rgba(169, 30, 30, 0.82);
-  }
 }
 
 .shochu-menu-page__hotspot:disabled {
