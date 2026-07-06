@@ -6,6 +6,7 @@ import LedgerDataNotice from './LedgerDataNotice.jsx';
 import LedgerDemographicsCards from './LedgerDemographicsCards.jsx';
 import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
 import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
+import ManualLedgerEntryPanel from './ManualLedgerEntryPanel.jsx';
 import {
   DAILY_LEDGER_DELETED_IDS_KEY,
   DAILY_LEDGER_STORAGE_KEY,
@@ -101,6 +102,8 @@ export default function DailyLedgerDashboard() {
       <LedgerDataNotice />
       <LedgerDriveSetupPanel />
 
+      <ManualLedgerEntryPanel dateKey={dateKey} onSaved={() => setTick((x) => x + 1)} />
+
       <div className="master-ledger-kpi-grid">
         <div className="master-ledger-kpi master-ledger-kpi--hero">
           <span className="master-ledger-kpi__label">総売上（税込）</span>
@@ -194,6 +197,9 @@ export default function DailyLedgerDashboard() {
                       <span className="master-ledger-desk-memo__table">
                         テーブル{row.tableLabel}
                       </span>
+                      {row.orderSource === 'manual' ? (
+                        <span className="master-ledger-manual-badge">後入力</span>
+                      ) : null}
                       {row.checkoutMemo ? (
                         <span className="master-ledger-desk-memo__text">{row.checkoutMemo}</span>
                       ) : null}

@@ -76,7 +76,7 @@ export function recordDeletedLedgerId(entryId) {
  *   partyWomen?: number,
  *   partyChildren?: number,
  *   guestUiLocale?: 'ja'|'en',
- *   orderSource?: 'table'|'staff_retail',
+ *   orderSource?: 'table'|'staff_retail'|'manual',
  * }} LedgerEntry */
 
 /** 表示用：卓番とメモを横並びで見せる */
@@ -245,9 +245,11 @@ export function appendDailyLedgerEntry(partial) {
     orderSource:
       partial.orderSource === 'staff_retail'
         ? 'staff_retail'
-        : partial.orderSource === 'table'
-          ? 'table'
-          : undefined,
+        : partial.orderSource === 'manual'
+          ? 'manual'
+          : partial.orderSource === 'table'
+            ? 'table'
+            : undefined,
   };
   const prev = loadDailyLedger();
   persistDailyLedgerEntries([...prev.entries, entry]);
