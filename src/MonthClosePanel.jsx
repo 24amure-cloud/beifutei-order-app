@@ -2,13 +2,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   BUCKET_KEYS,
   BUCKET_LABELS,
+  buildMonthCostLines,
   buildMonthSalesSummary,
   costLinesTotalPercent,
-  costLinesWithAmounts,
-  defaultCostLines,
   entriesForMonth,
+  expenseAmountsTotal,
 } from './monthCloseAnalytics.js';
 import { downloadAllMonthClosesCsv, downloadMonthCloseCsv } from './monthCloseCsvExport.js';
+import { getMonthExpenseAmounts, MONTH_EXPENSE_STORAGE_KEY } from './monthExpenseStorage.js';
+import { monthLabel, shiftMonthKey } from './monthNavHelpers.js';
 import {
   MONTH_CLOSE_STORAGE_KEY,
   deleteMonthClose,
@@ -28,35 +30,10 @@ function fmtYen(n) {
   return `￥${Math.max(0, Math.round(Number(n) || 0)).toLocaleString()}`;
 }
 
-function parseMonthKey(key) {
-  const m = /^(\d{4})-(\d{2})$/.exec(String(key || ''));
-  if (!m) {
-    const d = new Date();
-    return { year: d.getFullYear(), month: d.getMonth() + 1 };
-  }
-  return { year: Number(m[1]), month: Number(m[2]) };
-}
-
-function monthKey(year, month) {
-  return `${year}-${String(month).padStart(2, '0')}`;
-}
-
-function shiftMonthKey(key, delta) {
-  const { year, month } = parseMonthKey(key);
-  const d = new Date(year, month - 1 + delta, 1);
-  return monthKey(d.getFullYear(), d.getMonth() + 1);
-}
-
-function monthLabel(key) {
-  const { year, month } = parseMonthKey(key);
-  return `${year}年${month}月`;
-}
-
 export default function MonthClosePanel() {
   const todayKey = getLocalDateKey();
   const [monthCursor, setMonthCursor] = useState(() => todayKey.slice(0, 7));
   const [tick, setTick] = useState(0);
-  const [costLines, setCostLines] = useState(() => defaultCostLines(loadLedgerSettings().cogsPercent));
   const [memo, setMemo] = useState('');
   const [savedList, setSavedList] = useState(() => listMonthCloses());
   const [expandedKey, setExpandedKey] = useState(null);
@@ -70,6 +47,7 @@ export default function MonthClosePanel() {
       if (
         e.key === DAILY_LEDGER_STORAGE_KEY ||
         e.key === MONTH_CLOSE_STORAGE_KEY ||
+        e.key === MONTH_EXPENSE_STORAGE_KEY ||
         e.key === null
       ) {
         refresh();
@@ -78,11 +56,13 @@ export default function MonthClosePanel() {
     window.addEventListener('beifutei-daily-ledger-updated', refresh);
     window.addEventListener('beifutei-daily-ledger-synced', refresh);
     window.addEventListener('beifutei-month-close-updated', refresh);
+    window.addEventListener('beifutei-month-expenses-updated', refresh);
     window.addEventListener('storage', onStorage);
     return () => {
       window.removeEventListener('beifutei-daily-ledger-updated', refresh);
       window.removeEventListener('beifutei-daily-ledger-synced', refresh);
       window.removeEventListener('beifutei-month-close-updated', refresh);
+      window.removeEventListener('beifutei-month-expenses-updated', refresh);
       window.removeEventListener('storage', onStorage);
     };
   }, []);
@@ -92,16 +72,18 @@ export default function MonthClosePanel() {
   const summary = useMemo(() => buildMonthSalesSummary(monthEntries), [monthEntries]);
   const confirmed = useMemo(() => getMonthClose(monthCursor), [monthCursor, savedList, tick]);
 
+  const expenseAmounts = useMemo(() => getMonthExpenseAmounts(monthCursor), [monthCursor, tick]);
+  const cogsPercent = loadLedgerSettings().cogsPercent;
+
   const previewCostLines = useMemo(
-    () => costLinesWithAmounts(summary.grandTotal, costLines),
-    [summary.grandTotal, costLines],
+    () => buildMonthCostLines(summary.grandTotal, cogsPercent, expenseAmounts),
+    [summary.grandTotal, cogsPercent, expenseAmounts],
   );
 
-  const costTotalPct = costLinesTotalPercent(costLines);
+  const costTotalPct = costLinesTotalPercent(previewCostLines);
 
   useEffect(() => {
     if (confirmed) return;
-    setCostLines(defaultCostLines(loadLedgerSettings().cogsPercent));
     setMemo('');
   }, [monthCursor, confirmed]);
 
@@ -113,7 +95,7 @@ export default function MonthClosePanel() {
     if (monthEntries.length === 0) {
       if (!window.confirm('この月の会計データがありません。空のまま確定しますか？')) return;
     }
-    const frozen = costLinesWithAmounts(summary.grandTotal, costLines);
+    const frozen = buildMonthCostLines(summary.grandTotal, cogsPercent, expenseAmounts);
     const msg = [
       `${monthLabel(monthCursor)}を確定します。`,
       `総売上 ${fmtYen(summary.grandTotal)}（会計 ${summary.checkoutCount} 件）`,
@@ -248,9 +230,10 @@ export default function MonthClosePanel() {
       </div>
 
       <div className="month-close-block">
-        <h3 className="month-close-block__h">費用・比率（％入力 → 金額）</h3>
+        <h3 className="month-close-block__h">費用</h3>
         <p className="month-close-block__hint">
-          月間総売上 {fmtYen(display.grandTotal)} を基準に換算。合計 {costTotalPct.toFixed(1)}%
+          原価は日計の店舗設定（％）。人件費・家賃などは「経費入力」タブの金額です。売上比合計{' '}
+          {costTotalPct.toFixed(1)}%
           {!display.isLocked && costTotalPct > 100 && (
             <span className="month-close-warn"> ※100%を超えています</span>
           )}
@@ -259,30 +242,23 @@ export default function MonthClosePanel() {
           {display.costLines.map((row) => (
             <div key={row.key} className="month-close-cost-row">
               <span className="month-close-cost-row__label">{row.label}</span>
-              {display.isLocked ? (
-                <span className="month-close-cost-row__pct">{row.percent}%</span>
-              ) : (
-                <label className="month-close-cost-row__pct-in">
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.1}
-                    value={row.percent}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      setCostLines((lines) =>
-                        lines.map((l) => (l.key === row.key ? { ...l, percent: v } : l)),
-                      );
-                    }}
-                  />
-                  <span>%</span>
-                </label>
-              )}
+              <span className="month-close-cost-row__pct">
+                {row.inputMode === 'percent'
+                  ? `${row.percent.toFixed(1)}%`
+                  : `${row.percent.toFixed(1)}%`}
+              </span>
+              {row.inputMode === 'amount' && !display.isLocked ? (
+                <span className="month-close-cost-row__src">経費入力</span>
+              ) : null}
               <strong className="month-close-cost-row__amt">{fmtYen(row.amountYen)}</strong>
             </div>
           ))}
         </div>
+        {!display.isLocked && expenseAmountsTotal(expenseAmounts) === 0 && (
+          <p className="month-close-block__hint month-close-block__hint--warn">
+            経費が未入力です。「経費入力」タブで人件費などを登録してください。
+          </p>
+        )}
         {!display.isLocked && (
           <label className="month-close-memo">
             <span>メモ（確定時に保存）</span>

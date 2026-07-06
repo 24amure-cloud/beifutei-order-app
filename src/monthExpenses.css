@@ -1,0 +1,205 @@
+.month-expenses-panel__lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #5c5348;
+}
+
+.month-expenses-ref {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.month-expenses-ref__item {
+  padding: 14px 16px;
+  border: 1px solid #e8e2d2;
+  border-radius: 12px;
+  background: #faf8f5;
+}
+
+.month-expenses-ref__lab {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7a7060;
+  margin-bottom: 4px;
+}
+
+.month-expenses-ref__val {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #3d3028;
+}
+
+.month-expenses-ref__sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9a9088;
+}
+
+.month-expenses-form {
+  margin-bottom: 20px;
+  padding: 16px;
+  border: 1px solid #e8e2d2;
+  border-radius: 12px;
+  background: #fffefb;
+}
+
+.month-expenses-form__h {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.month-expenses-form__list {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.month-expenses-form__row {
+  display: grid;
+  grid-template-columns: minmax(100px, 140px) 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.month-expenses-form__label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #3d3028;
+}
+
+.month-expenses-form__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 280px;
+}
+
+.month-expenses-form__yen {
+  font-size: 16px;
+  font-weight: 700;
+  color: #8a7560;
+}
+
+.month-expenses-form__input {
+  flex: 1;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid #d8d0c4;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+
+.month-expenses-form__input:disabled {
+  background: #f0ebe3;
+  color: #6b6256;
+}
+
+.month-expenses-memo {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.month-expenses-memo span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a7560;
+}
+
+.month-expenses-memo textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d8d0c4;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.month-expenses-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.month-expenses-form__saved-at {
+  font-size: 12px;
+  color: #8a7560;
+}
+
+.month-expenses-form__ok {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f5c38;
+  background: #e8f5ec;
+}
+
+.month-expenses-summary {
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8f4ec 0%, #f3ede4 100%);
+  border: 1px solid #e0d6c8;
+}
+
+.month-expenses-summary__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.month-expenses-summary__row strong {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.month-expenses-summary__row--profit {
+  padding-top: 8px;
+  border-top: 1px dashed #d8cfc4;
+  font-weight: 700;
+}
+
+.month-expenses-summary__row--profit strong {
+  font-size: 22px;
+  color: #2a5a3a;
+}
+
+.month-expenses-summary__hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #8a7560;
+}
+
+@media (max-width: 520px) {
+  .month-expenses-form__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .month-expenses-form__input-wrap {
+    max-width: none;
+  }
+}

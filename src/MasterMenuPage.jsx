@@ -5,6 +5,7 @@ import OwnerSalesCalendar from './OwnerSalesCalendar.jsx';
 import MonthClosePanel from './MonthClosePanel.jsx';
 import MasterOpsPanel from './MasterOpsPanel.jsx';
 import MasterGuestUrlsPanel from './MasterGuestUrlsPanel.jsx';
+import MonthExpensesPanel from './MonthExpensesPanel.jsx';
 import ManualLedgerEntryPanel from './ManualLedgerEntryPanel.jsx';
 import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 import {
@@ -33,6 +34,7 @@ const MAIN_TABS = [
   { id: 'manualEntry', label: '伝票後入力', accent: true },
   { id: 'ledger', label: '日計' },
   { id: 'salesCalendar', label: '売上カレンダー' },
+  { id: 'expenses', label: '経費入力' },
   { id: 'monthClose', label: '月締め' },
   { id: 'menu', label: 'メニュー編集', isMenu: true },
 ];
@@ -135,7 +137,7 @@ export default function MasterMenuPage() {
           <p className="master-president-header__lead">数字の確認とメニュー変更ができます。日常の確認は「本日の売上」からどうぞ。</p>
         </header>
 
-        <nav className="master-president-tabs master-president-tabs--six" aria-label="メイン">
+        <nav className="master-president-tabs master-president-tabs--many" aria-label="メイン">
           {MAIN_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -239,6 +241,7 @@ export default function MasterMenuPage() {
             )}
             {activeMode === 'ledger' && <DailyLedgerDashboard />}
             {activeMode === 'salesCalendar' && <OwnerSalesCalendar />}
+            {activeMode === 'expenses' && <MonthExpensesPanel />}
             {activeMode === 'monthClose' && <MonthClosePanel />}
             {activeMode === 'drink' && <MasterDrinkMenuPanel {...editor} />}
             {activeMode === 'nomihodai' && <MasterNomihodaiMenuPanel {...editor} />}

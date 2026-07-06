@@ -6,6 +6,15 @@ import { summarizeLedgerCategoryBuckets } from './ledgerCategoryBuckets.js';
 
 export const BUCKET_KEYS = ['softcream_fruit', 'cafe_drink', 'takeout_sweets'];
 
+export const COGS_COST_KEY = 'cogs';
+export const EXPENSE_AMOUNT_KEYS = ['labor', 'rent', 'other'];
+
+const EXPENSE_LABELS = {
+  labor: '人件費',
+  rent: '家賃・光熱',
+  other: 'その他経費',
+};
+
 export const BUCKET_LABELS = {
   softcream_fruit: 'ソフトクリーム',
   cafe_drink: 'カフェドリンク',
@@ -95,15 +104,48 @@ export function costLinesWithAmounts(grandTotal, costLines) {
   });
 }
 
-export function defaultCostLines(cogsPercent = 35) {
-  return [
-    { key: 'cogs', label: '原価', percent: cogsPercent },
-    { key: 'labor', label: '人件費', percent: 0 },
-    { key: 'rent', label: '家賃・光熱', percent: 0 },
-    { key: 'other', label: 'その他経費', percent: 0 },
+/**
+ * 月締め用：原価は％、その他経費は経費入力ページの金額
+ * @param {number} grandTotal
+ * @param {number} cogsPercent
+ * @param {{ labor?: number, rent?: number, other?: number }} expenseAmounts
+ */
+export function buildMonthCostLines(grandTotal, cogsPercent, expenseAmounts = {}) {
+  const base = Math.max(0, Number(grandTotal) || 0);
+  const cogsPct = Math.min(100, Math.max(0, Number(cogsPercent) || 0));
+  const lines = [
+    {
+      key: COGS_COST_KEY,
+      label: '原価',
+      percent: cogsPct,
+      amountYen: Math.round(base * (cogsPct / 100)),
+      inputMode: 'percent',
+    },
   ];
+  for (const key of EXPENSE_AMOUNT_KEYS) {
+    const amountYen = Math.max(0, Math.round(Number(expenseAmounts[key]) || 0));
+    lines.push({
+      key,
+      label: EXPENSE_LABELS[key],
+      percent: base > 0 ? (amountYen / base) * 100 : 0,
+      amountYen,
+      inputMode: 'amount',
+    });
+  }
+  return lines;
+}
+
+export function defaultCostLines(cogsPercent = 35) {
+  return buildMonthCostLines(0, cogsPercent, {});
 }
 
 export function costLinesTotalPercent(lines) {
   return lines.reduce((s, r) => s + (Number(r.percent) || 0), 0);
+}
+
+export function expenseAmountsTotal(expenseAmounts = {}) {
+  return EXPENSE_AMOUNT_KEYS.reduce(
+    (sum, key) => sum + Math.max(0, Math.round(Number(expenseAmounts[key]) || 0)),
+    0,
+  );
 }

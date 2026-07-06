@@ -31,6 +31,16 @@
   max-height: min(58vh, 480px);
 }
 
+.master-president-tabs--many {
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+
+@media (min-width: 900px) {
+  .master-president-tabs--many {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
 .master-president-tabs--six {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
