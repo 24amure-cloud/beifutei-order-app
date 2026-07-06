@@ -52,9 +52,12 @@ function LedgerMenuItemRow({ pick, onAdd }) {
 
 /**
  * 手書き後入力用 — ハンディ同様のメニューから明細行へ追加
- * @param {{ onPickLine: (line: { name: string, price: number|string }) => void }} props
+ * @param {{
+ *   onPickLine: (line: { name: string, price: number|string }) => void,
+ *   ledgerPresets?: Array<{ name: string, price: number }>,
+ * }} props
  */
-export default function ManualLedgerMenuPicker({ onPickLine }) {
+export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [] }) {
   const { drinkSections } = useMenuMaster();
   const { sideDishSections } = useSideDishMenu();
   const { nomihodaiCatalog } = useNomihodaiCatalog();
@@ -93,6 +96,37 @@ export default function ManualLedgerMenuPicker({ onPickLine }) {
   const quickItems = useMemo(
     () => buildHandyQuickItems(menuCatalog.allItems, recentPicks),
     [menuCatalog.allItems, recentPicks],
+  );
+
+  const ledgerPresetKey = useCallback((name, price) => {
+    const n = String(name || '').trim();
+    const p = Math.max(0, Math.round(Number(price) || 0));
+    return `${n}\0${p}`;
+  }, []);
+
+  const ledgerPresetKeys = useMemo(
+    () => new Set((ledgerPresets || []).map((row) => ledgerPresetKey(row.name, row.price))),
+    [ledgerPresets, ledgerPresetKey],
+  );
+
+  const ledgerPresetPicks = useMemo(
+    () =>
+      (ledgerPresets || []).map((row, index) => ({
+        itemId: `ledger-preset-${index}-${row.name}`,
+        itemName: row.name,
+        price: row.price,
+        kind: 'other',
+        groupId: 'ledger-preset',
+      })),
+    [ledgerPresets],
+  );
+
+  const quickItemsWithoutLedgerDupes = useMemo(
+    () =>
+      quickItems.filter(
+        (pick) => !ledgerPresetKeys.has(ledgerPresetKey(pick.itemName, pick.price)),
+      ),
+    [quickItems, ledgerPresetKeys, ledgerPresetKey],
   );
 
   const browseSections = useMemo(
@@ -228,11 +262,27 @@ export default function ManualLedgerMenuPicker({ onPickLine }) {
               <span className="handy-abu-entry__title">＋ 油そば</span>
               <span className="handy-abu-entry__sub">種類・サイズ・トッピング</span>
             </button>
-            <p className="handy-main__lead">直近・よく使う品 — タップで追加</p>
-            {quickItems.length === 0 ? (
-              <p className="handy-grid__empty">まだ履歴がありません。各タブから追加するとここに並びます。</p>
+            {ledgerPresetPicks.length > 0 ? (
+              <>
+                <p className="handy-main__lead manual-ledger-menu-picker__lead">
+                  この画面で登録した控え — タップで追加
+                </p>
+                {renderItemList(ledgerPresetPicks)}
+              </>
+            ) : null}
+            <p
+              className={`handy-main__lead manual-ledger-menu-picker__lead${ledgerPresetPicks.length > 0 ? ' manual-ledger-menu-picker__lead--section' : ''}`}
+            >
+              {ledgerPresetPicks.length > 0 ? 'メニューでよく使う品' : '直近・よく使う品'} — タップで追加
+            </p>
+            {quickItemsWithoutLedgerDupes.length === 0 ? (
+              <p className="handy-grid__empty">
+                {ledgerPresetPicks.length > 0
+                  ? 'メニューから追加すると、ここにも並びます。'
+                  : 'まだ履歴がありません。各タブから追加するとここに並びます。'}
+              </p>
             ) : (
-              renderItemList(quickItems)
+              renderItemList(quickItemsWithoutLedgerDupes)
             )}
           </>
         ) : groupId === 'aburasoba' ? (

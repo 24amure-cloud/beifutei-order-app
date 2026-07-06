@@ -302,29 +302,7 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
               </p>
             </div>
 
-            <ManualLedgerMenuPicker onPickLine={applyMenuPick} />
-
-            {linePresets.length > 0 ? (
-              <div className="manual-ledger-entry__presets">
-                <p className="manual-ledger-entry__presets-label">この画面で登録した直近明細</p>
-                <div className="manual-ledger-entry__presets-scroll" role="list">
-                  {linePresets.map((preset) => (
-                    <button
-                      key={`${preset.name}-${preset.price}`}
-                      type="button"
-                      className="manual-ledger-entry__preset-chip"
-                      role="listitem"
-                      onClick={() => applyPreset(preset)}
-                    >
-                      <span className="manual-ledger-entry__preset-name">{preset.name}</span>
-                      <span className="manual-ledger-entry__preset-price">
-                        ￥{preset.price.toLocaleString()}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+            <ManualLedgerMenuPicker onPickLine={applyMenuPick} ledgerPresets={linePresets} />
 
             <p className="manual-ledger-entry__lines-edit-label">明細の確認・修正</p>
             <ul className="manual-ledger-entry__line-list">
