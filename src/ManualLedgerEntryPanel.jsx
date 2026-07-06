@@ -38,7 +38,29 @@ function initialRecordedAtLocal(dateKey) {
 }
 
 function newLineRow() {
-  return { id: `ml-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: '', price: '' };
+  return { id: `ml-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: '', price: '', qty: 1 };
+}
+
+function parseLineUnitPrice(row) {
+  const p = Number(String(row?.price ?? '').replace(/,/g, ''));
+  return Number.isFinite(p) && p > 0 ? p : 0;
+}
+
+function parseLineQty(row) {
+  const q = Number(String(row?.qty ?? 1).replace(/,/g, ''));
+  return Number.isFinite(q) && q >= 1 ? Math.floor(q) : 1;
+}
+
+function lineRowTotal(row) {
+  return parseLineUnitPrice(row) * parseLineQty(row);
+}
+
+function findMatchingLineIndex(lines, name, unitPrice) {
+  const n = String(name || '').trim();
+  if (!n || unitPrice <= 0) return -1;
+  return lines.findIndex(
+    (row) => String(row.name || '').trim() === n && parseLineUnitPrice(row) === unitPrice,
+  );
 }
 
 const PAYMENT_OPTIONS = [
@@ -70,10 +92,7 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
   }, [ledgerDateKey]);
 
   const lineSubtotal = useMemo(() => {
-    return lines.reduce((sum, row) => {
-      const p = Number(String(row.price).replace(/,/g, ''));
-      return sum + (Number.isFinite(p) && p > 0 ? p : 0);
-    }, 0);
+    return lines.reduce((sum, row) => sum + lineRowTotal(row), 0);
   }, [lines]);
 
   const parsedTotalYen = useMemo(() => {
@@ -113,20 +132,44 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
     });
   };
 
+  const adjustLineQty = (id, delta) => {
+    setLines((prev) =>
+      prev.map((row) => {
+        if (row.id !== id) return row;
+        const nextQty = parseLineQty(row) + delta;
+        if (nextQty < 1) return row;
+        return { ...row, qty: nextQty };
+      }),
+    );
+  };
+
   const applyPreset = useCallback(
-    (preset) => {
-      const priceStr =
-        preset.price != null && Number(preset.price) > 0 ? String(preset.price) : '';
+    (preset, { increment = false, addQty = 1 } = {}) => {
+      const unitPrice =
+        preset.price != null && Number(preset.price) > 0 ? Math.round(Number(preset.price)) : 0;
+      const priceStr = unitPrice > 0 ? String(unitPrice) : '';
+      const qtyDelta = Math.max(1, Math.floor(Number(addQty) || 1));
+
       setLines((prev) => {
+        if (increment && unitPrice > 0) {
+          const matchIdx = findMatchingLineIndex(prev, preset.name, unitPrice);
+          if (matchIdx >= 0) {
+            setActiveLineId(prev[matchIdx].id);
+            return prev.map((row, i) =>
+              i === matchIdx ? { ...row, qty: parseLineQty(row) + qtyDelta } : row,
+            );
+          }
+        }
+
         let idx = prev.findIndex((row) => row.id === activeLineId);
         if (idx < 0) idx = prev.findIndex((row) => !String(row.name || '').trim());
         const target = idx >= 0 ? prev[idx] : null;
         if (target && !String(target.name || '').trim() && !String(target.price || '').trim()) {
           return prev.map((row, i) =>
-            i === idx ? { ...row, name: preset.name, price: priceStr } : row,
+            i === idx ? { ...row, name: preset.name, price: priceStr, qty: 1 } : row,
           );
         }
-        const row = { ...newLineRow(), name: preset.name, price: priceStr };
+        const row = { ...newLineRow(), name: preset.name, price: priceStr, qty: 1 };
         setActiveLineId(row.id);
         return [...prev, row];
       });
@@ -135,23 +178,67 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
   );
 
   const applyMenuPick = useCallback(
-    ({ name, price }) => {
+    ({ name, price, delta = 1 }) => {
       const priceNum = Number(price);
       const hasPrice = price !== '' && price != null && Number.isFinite(priceNum) && priceNum > 0;
       const preset = { name: String(name || '').trim(), price: hasPrice ? priceNum : 0 };
       if (!preset.name) return;
 
-      applyPreset(preset);
+      const step = delta >= 0 ? 1 : -1;
+      const times = Math.max(1, Math.abs(Math.floor(delta)));
+
+      if (step < 0 && hasPrice) {
+        setLines((prev) => {
+          const matchIdx = findMatchingLineIndex(prev, preset.name, priceNum);
+          if (matchIdx < 0) return prev;
+          const row = prev[matchIdx];
+          const curQty = parseLineQty(row);
+          if (curQty <= times) {
+            if (prev.length <= 1) {
+              const empty = newLineRow();
+              setActiveLineId(empty.id);
+              return [empty];
+            }
+            const next = prev.filter((r) => r.id !== row.id);
+            setActiveLineId(next[0]?.id ?? '');
+            return next;
+          }
+          return prev.map((r, i) =>
+            i === matchIdx ? { ...r, qty: curQty - times } : r,
+          );
+        });
+        setTotalYen((prev) => {
+          const cur = Number(String(prev).replace(/,/g, ''));
+          if (!Number.isFinite(cur) || cur <= 0) return prev;
+          const next = cur - priceNum * times;
+          return next > 0 ? String(next) : '';
+        });
+        return;
+      }
+
+      applyPreset(preset, { increment: hasPrice, addQty: times });
 
       if (hasPrice) {
         setTotalYen((prev) => {
           const cur = Number(String(prev).replace(/,/g, ''));
-          if (!prev || !Number.isFinite(cur) || cur <= 0) return String(priceNum);
-          return String(cur + priceNum);
+          const add = priceNum * times;
+          if (!prev || !Number.isFinite(cur) || cur <= 0) return String(add);
+          return String(cur + add);
         });
       }
     },
     [applyPreset],
+  );
+
+  const getPickQty = useCallback(
+    (name, price) => {
+      const unitPrice = Math.max(0, Math.round(Number(price) || 0));
+      const row = lines.find(
+        (r) => String(r.name || '').trim() === String(name || '').trim() && parseLineUnitPrice(r) === unitPrice,
+      );
+      return row ? parseLineQty(row) : 0;
+    },
+    [lines],
   );
 
   const onSubmit = (e) => {
@@ -176,11 +263,24 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
     const ledgerLines = lines
       .map((row) => {
         const name = String(row.name || '').trim();
-        const price = Number(String(row.price).replace(/,/g, ''));
-        if (!name || !Number.isFinite(price) || price <= 0) return null;
-        return { kind: 'normal', name, price };
+        const unitPrice = parseLineUnitPrice(row);
+        const qty = parseLineQty(row);
+        if (!name || unitPrice <= 0) return null;
+        const lineTotal = unitPrice * qty;
+        return {
+          kind: 'normal',
+          name: qty > 1 ? `${name} ×${qty}` : name,
+          price: lineTotal,
+        };
       })
       .filter(Boolean);
+
+    const lineItemCount = lines.reduce((sum, row) => {
+      const name = String(row.name || '').trim();
+      const unitPrice = parseLineUnitPrice(row);
+      if (!name || unitPrice <= 0) return sum;
+      return sum + parseLineQty(row);
+    }, 0);
 
     const normalSubtotal = ledgerLines.length > 0 ? lineSubtotal : total;
     const userMemo = String(memo || '').replace(/\s+/g, ' ').trim();
@@ -198,7 +298,7 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
       total,
       normalSubtotal,
       nomihodaiPlanYen: 0,
-      normalCount: Math.max(1, ledgerLines.length),
+      normalCount: Math.max(1, lineItemCount || ledgerLines.length),
       nomihodaiCount: 0,
       lines:
         ledgerLines.length > 0
@@ -210,8 +310,15 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
       orderSource: 'manual',
     });
 
-    if (ledgerLines.length > 0) {
-      setLinePresets(rememberManualLedgerLinePresets(ledgerLines));
+    const presetSource = lines
+      .map((row) => ({
+        name: String(row.name || '').trim(),
+        price: parseLineUnitPrice(row),
+      }))
+      .filter((row) => row.name && row.price > 0);
+
+    if (presetSource.length > 0) {
+      setLinePresets(rememberManualLedgerLinePresets(presetSource));
     }
 
     rememberManualLedgerLastRecordedAtLocal(recordedAtLocal);
@@ -302,7 +409,11 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
               </p>
             </div>
 
-            <ManualLedgerMenuPicker onPickLine={applyMenuPick} ledgerPresets={linePresets} />
+            <ManualLedgerMenuPicker
+              onPickLine={applyMenuPick}
+              ledgerPresets={linePresets}
+              getPickQty={getPickQty}
+            />
 
             <p className="manual-ledger-entry__lines-edit-label">明細の確認・修正</p>
             <ul className="manual-ledger-entry__line-list">
@@ -327,9 +438,46 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
                     value={row.price}
                     onChange={(ev) => updateLine(row.id, 'price', ev.target.value)}
                     onFocus={() => setActiveLineId(row.id)}
-                    placeholder="円"
+                    placeholder="単価"
                     inputMode="numeric"
+                    aria-label="単価"
                   />
+                  <div className="manual-ledger-entry__line-qty" aria-label="数量">
+                    <button
+                      type="button"
+                      className="manual-ledger-entry__line-qty-btn"
+                      onClick={() => adjustLineQty(row.id, -1)}
+                      disabled={parseLineQty(row) <= 1}
+                      aria-label="数量を減らす"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      className="manual-ledger-entry__input manual-ledger-entry__input--qty"
+                      value={row.qty ?? 1}
+                      onChange={(ev) => updateLine(row.id, 'qty', ev.target.value)}
+                      onFocus={() => setActiveLineId(row.id)}
+                      inputMode="numeric"
+                      aria-label="個数"
+                    />
+                    <span className="manual-ledger-entry__line-qty-unit">個</span>
+                    <button
+                      type="button"
+                      className="manual-ledger-entry__line-qty-btn manual-ledger-entry__line-qty-btn--plus"
+                      onClick={() => adjustLineQty(row.id, 1)}
+                      aria-label="数量を増やす"
+                    >
+                      ＋
+                    </button>
+                  </div>
+                  {parseLineUnitPrice(row) > 0 && parseLineQty(row) > 1 ? (
+                    <span className="manual-ledger-entry__line-subtotal">
+                      小計 ￥{lineRowTotal(row).toLocaleString()}
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     className="manual-ledger-entry__line-remove"

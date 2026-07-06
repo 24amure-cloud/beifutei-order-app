@@ -16,14 +16,17 @@ import HandyAburasobaBuilder from './HandyAburasobaBuilder.jsx';
 import HandySweetsBrowser from './HandySweetsBrowser.jsx';
 import HandyDrinkBrowser from './HandyDrinkBrowser.jsx';
 import HandyNomihodaiBrowser from './HandyNomihodaiBrowser.jsx';
+import { MANUAL_LEDGER_FIXED_EXTRAS } from './manualLedgerFixedExtras.js';
 
-function LedgerMenuItemRow({ pick, onAdd }) {
+function LedgerMenuItemRow({ pick, qty = 0, onAdd, onRemove }) {
   const soldOut = !!pick.soldOut;
   const price = Math.max(0, Number(pick.price) || 0);
   const priceLabel = price > 0 ? `￥${price.toLocaleString()}` : '単価なし';
 
   return (
-    <div className={`handy-row handy-row--compact${soldOut ? ' handy-row--soldout' : ''}`}>
+    <div
+      className={`handy-row handy-row--compact${qty > 0 ? ' handy-row--in-cart' : ''}${soldOut ? ' handy-row--soldout' : ''}`}
+    >
       <button
         type="button"
         className="handy-row__main"
@@ -37,15 +40,27 @@ function LedgerMenuItemRow({ pick, onAdd }) {
         </span>
         <span className="handy-row__price">{priceLabel}</span>
       </button>
-      <button
-        type="button"
-        className="handy-row__qty-btn handy-row__qty-btn--plus"
-        disabled={soldOut}
-        onClick={() => onAdd(pick)}
-        aria-label={`${pick.itemName}を追加`}
-      >
-        ＋
-      </button>
+      <div className="handy-row__qty" aria-label={`${pick.itemName}の数量`}>
+        <button
+          type="button"
+          className="handy-row__qty-btn"
+          disabled={qty <= 0 || soldOut}
+          onClick={() => onRemove(pick)}
+          aria-label={`${pick.itemName}を1つ減らす`}
+        >
+          −
+        </button>
+        <span className="handy-row__qty-num">{qty || ''}</span>
+        <button
+          type="button"
+          className="handy-row__qty-btn handy-row__qty-btn--plus"
+          disabled={soldOut}
+          onClick={() => onAdd(pick)}
+          aria-label={`${pick.itemName}を1つ増やす`}
+        >
+          ＋
+        </button>
+      </div>
     </div>
   );
 }
@@ -53,11 +68,12 @@ function LedgerMenuItemRow({ pick, onAdd }) {
 /**
  * 手書き後入力用 — ハンディ同様のメニューから明細行へ追加
  * @param {{
- *   onPickLine: (line: { name: string, price: number|string }) => void,
+ *   onPickLine: (line: { name: string, price: number|string, delta?: number }) => void,
  *   ledgerPresets?: Array<{ name: string, price: number }>,
+ *   getPickQty?: (name: string, price: number|string) => number,
  * }} props
  */
-export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [] }) {
+export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [], getPickQty }) {
   const { drinkSections } = useMenuMaster();
   const { sideDishSections } = useSideDishMenu();
   const { nomihodaiCatalog } = useNomihodaiCatalog();
@@ -135,15 +151,17 @@ export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [] 
   );
 
   const commitPick = useCallback(
-    (pick) => {
+    (pick, delta = 1) => {
       const name = String(pick.itemName || '')
         .split('\n')[0]
         .trim();
       if (!name) return;
       const price = Math.max(0, Number(pick.price) || 0);
-      onPickLine({ name, price: price > 0 ? price : '' });
-      pushHandyRecentPick(pick);
-      setRecentTick((x) => x + 1);
+      onPickLine({ name, price: price > 0 ? price : '', delta });
+      if (delta > 0) {
+        pushHandyRecentPick(pick);
+        setRecentTick((x) => x + 1);
+      }
     },
     [onPickLine],
   );
@@ -168,11 +186,30 @@ export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [] 
     (items) => (
       <div className="handy-rows">
         {(items || []).map((pick) => (
-          <LedgerMenuItemRow key={`${pick.itemId}-${pick.groupId}`} pick={pick} onAdd={commitPick} />
+          <LedgerMenuItemRow
+            key={`${pick.itemId}-${pick.groupId}`}
+            pick={pick}
+            qty={getPickQty ? getPickQty(pick.itemName, pick.price) : 0}
+            onAdd={(p) => commitPick(p, 1)}
+            onRemove={(p) => commitPick(p, -1)}
+          />
         ))}
       </div>
     ),
-    [commitPick],
+    [commitPick, getPickQty],
+  );
+
+  const fixedExtraPicks = useMemo(
+    () =>
+      MANUAL_LEDGER_FIXED_EXTRAS.map((item) => ({
+        itemId: item.itemId,
+        itemName: item.itemName,
+        price: item.price,
+        kind: item.kind,
+        groupId: item.groupId,
+        sectionTitle: item.sectionTitle,
+      })),
+    [],
   );
 
   return (
@@ -262,9 +299,11 @@ export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [] 
               <span className="handy-abu-entry__title">＋ 油そば</span>
               <span className="handy-abu-entry__sub">種類・サイズ・トッピング</span>
             </button>
+            <p className="handy-main__lead manual-ledger-menu-picker__lead">追加項目 — タップで追加</p>
+            {renderItemList(fixedExtraPicks)}
             {ledgerPresetPicks.length > 0 ? (
               <>
-                <p className="handy-main__lead manual-ledger-menu-picker__lead">
+                <p className="handy-main__lead manual-ledger-menu-picker__lead manual-ledger-menu-picker__lead--section">
                   この画面で登録した控え — タップで追加
                 </p>
                 {renderItemList(ledgerPresetPicks)}
