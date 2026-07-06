@@ -76,6 +76,13 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
     }, 0);
   }, [lines]);
 
+  const parsedTotalYen = useMemo(() => {
+    const n = Number(String(totalYen).replace(/,/g, ''));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }, [totalYen]);
+
+  const displayGrandTotal = parsedTotalYen > 0 ? parsedTotalYen : lineSubtotal;
+
   const resetForm = () => {
     const first = newLineRow();
     setTableLabel('');
@@ -147,7 +154,8 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
     [applyPreset],
   );
 
-  const onSubmit = (e) => {    e.preventDefault();
+  const onSubmit = (e) => {
+    e.preventDefault();
     setErr('');
     setOkMsg('');
 
@@ -291,11 +299,6 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
               <h4 className="manual-ledger-entry__lines-title">明細</h4>
               <p className="manual-ledger-entry__lines-hint">
                 下のメニューからタップで追加（ハンディと同じ操作）。合計だけでも登録できます。
-                {lineSubtotal > 0 ? (
-                  <span className="manual-ledger-entry__lines-sub">
-                    明細計: ￥{lineSubtotal.toLocaleString()}
-                  </span>
-                ) : null}
               </p>
             </div>
 
@@ -364,6 +367,28 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
             <button type="button" className="master-btn master-btn--secondary master-btn--small" onClick={addLine}>
               明細行を追加
             </button>
+
+            <div className="manual-ledger-entry__lines-total" aria-live="polite">
+              {lineSubtotal > 0 ? (
+                <div className="manual-ledger-entry__lines-total-row">
+                  <span className="manual-ledger-entry__lines-total-lab">明細計</span>
+                  <strong className="manual-ledger-entry__lines-total-val">
+                    ￥{lineSubtotal.toLocaleString()}
+                  </strong>
+                </div>
+              ) : null}
+              <div className="manual-ledger-entry__lines-total-row manual-ledger-entry__lines-total-row--grand">
+                <span className="manual-ledger-entry__lines-total-lab">お会計合計（税込）</span>
+                <strong className="manual-ledger-entry__lines-total-val manual-ledger-entry__lines-total-val--grand">
+                  {displayGrandTotal > 0 ? `￥${displayGrandTotal.toLocaleString()}` : '—'}
+                </strong>
+              </div>
+              {parsedTotalYen > 0 && lineSubtotal > 0 && parsedTotalYen !== lineSubtotal ? (
+                <p className="manual-ledger-entry__lines-total-note">
+                  上部の合計欄（￥{parsedTotalYen.toLocaleString()}）で登録されます
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <label className="manual-ledger-entry__field manual-ledger-entry__field--memo">

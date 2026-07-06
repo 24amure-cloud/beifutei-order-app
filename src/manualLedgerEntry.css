@@ -369,6 +369,57 @@
   cursor: not-allowed;
 }
 
+.manual-ledger-entry__lines-total {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 2px solid #e8e0d4;
+}
+
+.manual-ledger-entry__lines-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.manual-ledger-entry__lines-total-row--grand {
+  margin-bottom: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f5efe6;
+}
+
+.manual-ledger-entry__lines-total-lab {
+  font-size: 14px;
+  font-weight: 700;
+  color: #5a4a38;
+}
+
+.manual-ledger-entry__lines-total-row--grand .manual-ledger-entry__lines-total-lab {
+  font-size: 15px;
+  color: #3d3028;
+}
+
+.manual-ledger-entry__lines-total-val {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #2a5a8a;
+}
+
+.manual-ledger-entry__lines-total-val--grand {
+  font-size: 26px;
+  color: #3d3028;
+}
+
+.manual-ledger-entry__lines-total-note {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #8a7560;
+  text-align: right;
+}
+
 .manual-ledger-entry__err {
   margin: 0 0 10px;
   font-size: 13px;
