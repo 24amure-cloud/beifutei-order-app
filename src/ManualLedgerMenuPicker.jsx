@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { useMenuMaster } from './MenuMasterContext.jsx';
 import { useSideDishMenu } from './SideDishMenuContext.jsx';
 import { useNomihodaiCatalog } from './NomihodaiCatalogContext.jsx';
-import { useTakeoutSweetsMenu } from './TakeoutSweetsMenuContext.jsx';
+import { useDrinkMenuForGuest } from './useDrinkMenuForGuest.js';
+import { useTakeoutSweetsDisplay } from './useTakeoutSweetsDisplay.js';
 import {
   HANDY_MENU_GROUPS,
   buildHandyMenuCatalog,
@@ -16,6 +16,7 @@ import HandyAburasobaBuilder from './HandyAburasobaBuilder.jsx';
 import HandySweetsBrowser from './HandySweetsBrowser.jsx';
 import HandyDrinkBrowser from './HandyDrinkBrowser.jsx';
 import HandyNomihodaiBrowser from './HandyNomihodaiBrowser.jsx';
+import HandyRetailBrowser from './HandyRetailBrowser.jsx';
 import { MANUAL_LEDGER_FIXED_EXTRAS } from './manualLedgerFixedExtras.js';
 
 function LedgerMenuItemRow({ pick, qty = 0, onAdd, onRemove }) {
@@ -74,10 +75,10 @@ function LedgerMenuItemRow({ pick, qty = 0, onAdd, onRemove }) {
  * }} props
  */
 export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [], getPickQty }) {
-  const { drinkSections } = useMenuMaster();
+  const drinkSections = useDrinkMenuForGuest();
   const { sideDishSections } = useSideDishMenu();
   const { nomihodaiCatalog } = useNomihodaiCatalog();
-  const { takeoutSections } = useTakeoutSweetsMenu();
+  const { sectionsForDisplay } = useTakeoutSweetsDisplay();
 
   const [groupId, setGroupId] = useState('quick');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -92,9 +93,9 @@ export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [],
         drinkSections,
         sideDishSections,
         nomihodaiCatalog,
-        takeoutSections,
+        takeoutSections: sectionsForDisplay,
       }),
-    [drinkSections, sideDishSections, nomihodaiCatalog, takeoutSections],
+    [drinkSections, sideDishSections, nomihodaiCatalog, sectionsForDisplay],
   );
 
   const trimmedSearch = searchQuery.trim();
@@ -146,7 +147,10 @@ export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [],
   );
 
   const browseSections = useMemo(
-    () => (groupId && groupId !== 'quick' && groupId !== 'custom' ? getHandySectionsForGroup(menuCatalog.sections, groupId) : []),
+    () =>
+      groupId && groupId !== 'quick' && groupId !== 'custom' && groupId !== 'retail'
+        ? getHandySectionsForGroup(menuCatalog.sections, groupId)
+        : [],
     [groupId, menuCatalog.sections],
   );
 
@@ -339,6 +343,8 @@ export default function ManualLedgerMenuPicker({ onPickLine, ledgerPresets = [],
           />
         ) : groupId === 'drink' ? (
           <HandyDrinkBrowser renderItemList={renderItemList} />
+        ) : groupId === 'retail' ? (
+          <HandyRetailBrowser renderItemList={renderItemList} />
         ) : groupId === 'nomihodai' ? (
           <HandyNomihodaiBrowser renderItemList={renderItemList} />
         ) : groupId === 'custom' ? (
