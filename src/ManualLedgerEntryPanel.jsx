@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { appendDailyLedgerEntry, getLocalDateKey } from './dailyLedger.js';
 import { verifyOwnerLedgerDeletePin } from './ownerLedgerDeletePin.js';
+import {
+  loadManualLedgerLinePresets,
+  rememberManualLedgerLinePresets,
+} from './manualLedgerLinePresets.js';
 import './manualLedgerEntry.css';
+
+const DEFAULT_TABLE_LABEL = '控え';
 
 function pad2(n) {
   return String(n).padStart(2, '0');
@@ -47,6 +53,8 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
   const [totalYen, setTotalYen] = useState('');
   const [memo, setMemo] = useState('');
   const [lines, setLines] = useState(() => [newLineRow()]);
+  const [activeLineId, setActiveLineId] = useState(() => lines[0]?.id ?? '');
+  const [linePresets, setLinePresets] = useState(() => loadManualLedgerLinePresets());
   const [pin, setPin] = useState('');
   const [err, setErr] = useState('');
   const [okMsg, setOkMsg] = useState('');
@@ -63,18 +71,22 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
   }, [lines]);
 
   const resetForm = () => {
+    const first = newLineRow();
     setTableLabel('');
     setPayment('cash');
     setTotalYen('');
     setMemo('');
-    setLines([newLineRow()]);
+    setLines([first]);
+    setActiveLineId(first.id);
     setPin('');
     setErr('');
     setRecordedAtLocal(defaultDatetimeForDateKey(dateKey));
   };
 
   const addLine = () => {
-    setLines((prev) => [...prev, newLineRow()]);
+    const row = newLineRow();
+    setLines((prev) => [...prev, row]);
+    setActiveLineId(row.id);
   };
 
   const updateLine = (id, field, value) => {
@@ -82,7 +94,30 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
   };
 
   const removeLine = (id) => {
-    setLines((prev) => (prev.length <= 1 ? prev : prev.filter((row) => row.id !== id)));
+    setLines((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((row) => row.id !== id);
+      if (activeLineId === id) setActiveLineId(next[0]?.id ?? '');
+      return next;
+    });
+  };
+
+  const applyPreset = (preset) => {
+    setLines((prev) => {
+      let idx = prev.findIndex((row) => row.id === activeLineId);
+      if (idx < 0) idx = prev.findIndex((row) => !String(row.name || '').trim());
+      const target = idx >= 0 ? prev[idx] : null;
+      if (target && !String(target.name || '').trim() && !String(target.price || '').trim()) {
+        return prev.map((row, i) =>
+          i === idx
+            ? { ...row, name: preset.name, price: String(preset.price) }
+            : row,
+        );
+      }
+      const row = { ...newLineRow(), name: preset.name, price: String(preset.price) };
+      setActiveLineId(row.id);
+      return [...prev, row];
+    });
   };
 
   const onSubmit = (e) => {
@@ -95,11 +130,7 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
       return;
     }
 
-    const tl = String(tableLabel || '').trim();
-    if (!tl) {
-      setErr('卓番を入力してください（例: 3）');
-      return;
-    }
+    const tl = String(tableLabel || '').trim() || DEFAULT_TABLE_LABEL;
 
     const recordedAt = parseDatetimeLocal(recordedAtLocal);
     if (recordedAt == null) {
@@ -150,8 +181,13 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
       orderSource: 'manual',
     });
 
+    if (ledgerLines.length > 0) {
+      setLinePresets(rememberManualLedgerLinePresets(ledgerLines));
+    }
+
+    const tableNote = String(tableLabel || '').trim() ? `テーブル${tl}・` : '';
     setOkMsg(
-      `登録しました（テーブル${tl}・￥${total.toLocaleString()}・${new Date(recordedAt).toLocaleString('ja-JP')}）`,
+      `登録しました（${tableNote}￥${total.toLocaleString()}・${new Date(recordedAt).toLocaleString('ja-JP')}）`,
     );
     resetForm();
     onSaved?.();
@@ -186,16 +222,15 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
             </label>
 
             <label className="manual-ledger-entry__field">
-              <span className="manual-ledger-entry__lab">卓番</span>
+              <span className="manual-ledger-entry__lab">卓番（任意）</span>
               <input
                 type="text"
                 className="manual-ledger-entry__input"
                 value={tableLabel}
                 onChange={(ev) => setTableLabel(ev.target.value)}
-                placeholder="例: 3"
+                placeholder="空欄でOK"
                 inputMode="numeric"
                 autoComplete="off"
-                required
               />
             </label>
 
@@ -242,14 +277,45 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
                 ) : null}
               </p>
             </div>
+
+            {linePresets.length > 0 ? (
+              <div className="manual-ledger-entry__presets">
+                <p className="manual-ledger-entry__presets-label">直近の明細（スライドしてタップ）</p>
+                <div className="manual-ledger-entry__presets-scroll" role="list">
+                  {linePresets.map((preset) => (
+                    <button
+                      key={`${preset.name}-${preset.price}`}
+                      type="button"
+                      className="manual-ledger-entry__preset-chip"
+                      role="listitem"
+                      onClick={() => applyPreset(preset)}
+                    >
+                      <span className="manual-ledger-entry__preset-name">{preset.name}</span>
+                      <span className="manual-ledger-entry__preset-price">
+                        ￥{preset.price.toLocaleString()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="manual-ledger-entry__presets-empty">
+                明細を登録すると、次回からここに候補が並びます（最大10件）
+              </p>
+            )}
+
             <ul className="manual-ledger-entry__line-list">
               {lines.map((row) => (
-                <li key={row.id} className="manual-ledger-entry__line-row">
+                <li
+                  key={row.id}
+                  className={`manual-ledger-entry__line-row${activeLineId === row.id ? ' manual-ledger-entry__line-row--active' : ''}`}
+                >
                   <input
                     type="text"
                     className="manual-ledger-entry__input manual-ledger-entry__input--name"
                     value={row.name}
                     onChange={(ev) => updateLine(row.id, 'name', ev.target.value)}
+                    onFocus={() => setActiveLineId(row.id)}
                     placeholder="品名（例: 飲み放題2h）"
                   />
                   <input
@@ -259,6 +325,7 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
                     className="manual-ledger-entry__input manual-ledger-entry__input--price"
                     value={row.price}
                     onChange={(ev) => updateLine(row.id, 'price', ev.target.value)}
+                    onFocus={() => setActiveLineId(row.id)}
                     placeholder="円"
                     inputMode="numeric"
                   />
