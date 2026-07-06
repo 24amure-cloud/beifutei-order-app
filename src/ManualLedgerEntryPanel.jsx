@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { appendDailyLedgerEntry, getLocalDateKey } from './dailyLedger.js';
 import {
+  loadManualLedgerLastRecordedAtLocal,
   loadManualLedgerLinePresets,
+  rememberManualLedgerLastRecordedAtLocal,
   rememberManualLedgerLinePresets,
 } from './manualLedgerLinePresets.js';
 import './manualLedgerEntry.css';
@@ -30,6 +32,10 @@ function parseDatetimeLocal(value) {
   return Number.isFinite(ts) ? ts : null;
 }
 
+function initialRecordedAtLocal(dateKey) {
+  return loadManualLedgerLastRecordedAtLocal() ?? defaultDatetimeForDateKey(dateKey);
+}
+
 function newLineRow() {
   return { id: `ml-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, name: '', price: '' };
 }
@@ -46,7 +52,7 @@ const PAYMENT_OPTIONS = [
  */
 export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
   const [open, setOpen] = useState(false);
-  const [recordedAtLocal, setRecordedAtLocal] = useState(() => defaultDatetimeForDateKey(dateKey));
+  const [recordedAtLocal, setRecordedAtLocal] = useState(() => initialRecordedAtLocal(dateKey));
   const [tableLabel, setTableLabel] = useState('');
   const [payment, setPayment] = useState('cash');
   const [totalYen, setTotalYen] = useState('');
@@ -58,6 +64,7 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
   const [okMsg, setOkMsg] = useState('');
 
   useEffect(() => {
+    if (loadManualLedgerLastRecordedAtLocal()) return;
     setRecordedAtLocal(defaultDatetimeForDateKey(dateKey));
   }, [dateKey]);
 
@@ -77,7 +84,6 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
     setLines([first]);
     setActiveLineId(first.id);
     setErr('');
-    setRecordedAtLocal(defaultDatetimeForDateKey(dateKey));
   };
 
   const addLine = () => {
@@ -177,6 +183,8 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
       setLinePresets(rememberManualLedgerLinePresets(ledgerLines));
     }
 
+    rememberManualLedgerLastRecordedAtLocal(recordedAtLocal);
+
     const tableNote = String(tableLabel || '').trim() ? `テーブル${tl}・` : '';
     setOkMsg(
       `登録しました（${tableNote}￥${total.toLocaleString()}・${new Date(recordedAt).toLocaleString('ja-JP')}）`,
@@ -198,7 +206,7 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
         <form className="manual-ledger-entry__form" onSubmit={onSubmit}>
           <p className="manual-ledger-entry__lead">
             紙の伝票控えを見ながら入力してください。厨房での会計操作と同じく日計・売上カレンダーに反映されます。
-            会計が実際にあった日時を選んでください（昨日分なども可）。
+            会計が実際にあった日時を選んでください。登録後も日時は前回のまま残り、続けて入力しやすくなります。
           </p>
 
           <div className="manual-ledger-entry__grid">

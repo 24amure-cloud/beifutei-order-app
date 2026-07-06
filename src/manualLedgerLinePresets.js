@@ -1,7 +1,32 @@
-/** 手書き後入力フォームの明細候補（localStorage・最大10件） */
+/** 手書き後入力フォームの明細候補・前回会計日時（localStorage） */
 
 export const MANUAL_LEDGER_LINE_PRESETS_KEY = 'beifutei-manual-ledger-line-presets-v1';
+export const MANUAL_LEDGER_LAST_RECORDED_AT_KEY = 'beifutei-manual-ledger-last-recorded-at-v1';
 const MAX_PRESETS = 10;
+
+function isValidDatetimeLocal(value) {
+  const ts = Date.parse(String(value || ''));
+  return Number.isFinite(ts);
+}
+
+/** @returns {string|null} datetime-local 形式 */
+export function loadManualLedgerLastRecordedAtLocal() {
+  try {
+    const raw = localStorage.getItem(MANUAL_LEDGER_LAST_RECORDED_AT_KEY);
+    if (!raw || typeof raw !== 'string') return null;
+    const v = raw.trim();
+    return isValidDatetimeLocal(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** @param {string} value datetime-local 形式 */
+export function rememberManualLedgerLastRecordedAtLocal(value) {
+  const v = String(value || '').trim();
+  if (!isValidDatetimeLocal(v)) return;
+  localStorage.setItem(MANUAL_LEDGER_LAST_RECORDED_AT_KEY, v);
+}
 
 /** @typedef {{ name: string, price: number }} ManualLedgerLinePreset */
 
