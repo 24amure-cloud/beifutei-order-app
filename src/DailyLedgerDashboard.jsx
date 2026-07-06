@@ -6,7 +6,6 @@ import LedgerDataNotice from './LedgerDataNotice.jsx';
 import LedgerDemographicsCards from './LedgerDemographicsCards.jsx';
 import LedgerEntryDeleteButton from './LedgerEntryDeleteButton.jsx';
 import LedgerEntryEditDateButton from './LedgerEntryEditDateButton.jsx';
-import ManualLedgerEntryPanel from './ManualLedgerEntryPanel.jsx';
 import {
   DAILY_LEDGER_DELETED_IDS_KEY,
   DAILY_LEDGER_STORAGE_KEY,
@@ -77,7 +76,7 @@ export default function DailyLedgerDashboard() {
         <div>
           <h2 className="master-card-title">日計</h2>
           <p className="master-page-lead master-page-lead--compact">
-            日付を選ぶと、その日の会計一覧と売上内訳が見られます。
+            日付を選ぶと、その日の会計一覧と売上内訳が見られます。手書き控えの登録は「伝票後入力」タブから行います。
           </p>
         </div>
         <div className="master-ledger-head-tools">
@@ -101,8 +100,6 @@ export default function DailyLedgerDashboard() {
 
       <LedgerDataNotice />
       <LedgerDriveSetupPanel />
-
-      <ManualLedgerEntryPanel dateKey={dateKey} onSaved={() => setTick((x) => x + 1)} />
 
       <div className="master-ledger-kpi-grid">
         <div className="master-ledger-kpi master-ledger-kpi--hero">

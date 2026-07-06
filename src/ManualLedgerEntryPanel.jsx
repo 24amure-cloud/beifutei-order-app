@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { appendDailyLedgerEntry, getLocalDateKey } from './dailyLedger.js';
-import ManualLedgerMenuPicker from './ManualLedgerMenuPicker.jsx';import {
+import ManualLedgerMenuPicker from './ManualLedgerMenuPicker.jsx';
+import {
   loadManualLedgerLastRecordedAtLocal,
   loadManualLedgerLinePresets,
   rememberManualLedgerLastRecordedAtLocal,
@@ -47,12 +48,12 @@ const PAYMENT_OPTIONS = [
 ];
 
 /**
- * 手書き伝票控えの後入力（オーナー画面・日計）
- * @param {{ dateKey: string, onSaved?: () => void }} props
+ * 伝票後入力（オーナー画面・専用タブ）
+ * @param {{ dateKey?: string, onSaved?: () => void }} props
  */
-export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
-  const [open, setOpen] = useState(false);
-  const [recordedAtLocal, setRecordedAtLocal] = useState(() => initialRecordedAtLocal(dateKey));
+export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }) {
+  const [ledgerDateKey] = useState(() => dateKeyProp || getLocalDateKey());
+  const [recordedAtLocal, setRecordedAtLocal] = useState(() => initialRecordedAtLocal(ledgerDateKey));
   const [tableLabel, setTableLabel] = useState('');
   const [payment, setPayment] = useState('cash');
   const [totalYen, setTotalYen] = useState('');
@@ -65,8 +66,8 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
 
   useEffect(() => {
     if (loadManualLedgerLastRecordedAtLocal()) return;
-    setRecordedAtLocal(defaultDatetimeForDateKey(dateKey));
-  }, [dateKey]);
+    setRecordedAtLocal(defaultDatetimeForDateKey(ledgerDateKey));
+  }, [ledgerDateKey]);
 
   const lineSubtotal = useMemo(() => {
     return lines.reduce((sum, row) => {
@@ -216,20 +217,18 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
   };
 
   return (
-    <div className="master-ledger-block master-ledger-block--manual-entry">
-      <details className="manual-ledger-entry" open={open} onToggle={(ev) => setOpen(ev.target.open)}>
-        <summary className="manual-ledger-entry__summary">
-          <span className="manual-ledger-entry__summary-title">手書き伝票の後入力</span>
-          <span className="manual-ledger-entry__summary-hint">
-            営業中に打ち込めなかった控えを日計へ追加
-          </span>
-        </summary>
+    <section className="master-card master-card--manual-entry-page manual-ledger-entry-page">
+      <header className="manual-ledger-entry-page__head">
+        <h2 className="master-card-title">伝票後入力</h2>
+        <p className="manual-ledger-entry-page__lead">
+          営業中に打ち込めなかった手書き控えを日計へ追加します。厨房の会計と同じデータに載ります。
+        </p>
+      </header>
 
-        <form className="manual-ledger-entry__form" onSubmit={onSubmit}>
-          <p className="manual-ledger-entry__lead">
-            紙の伝票控えを見ながら入力してください。厨房での会計操作と同じく日計・売上カレンダーに反映されます。
-            会計が実際にあった日時を選んでください。登録後も日時は前回のまま残り、続けて入力しやすくなります。
-          </p>
+      <form className="manual-ledger-entry__form manual-ledger-entry__form--page" onSubmit={onSubmit}>
+        <p className="manual-ledger-entry__lead">
+          会計日時は前回のまま残るので、続けて入力しやすくなっています。
+        </p>
 
           <div className="manual-ledger-entry__grid">
             <label className="manual-ledger-entry__field">
@@ -324,7 +323,8 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
               </div>
             ) : null}
 
-            <p className="manual-ledger-entry__lines-edit-label">明細の確認・修正</p>            <ul className="manual-ledger-entry__line-list">
+            <p className="manual-ledger-entry__lines-edit-label">明細の確認・修正</p>
+            <ul className="manual-ledger-entry__line-list">
               {lines.map((row) => (
                 <li
                   key={row.id}
@@ -398,7 +398,6 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
             </button>
           </div>
         </form>
-      </details>
-    </div>
+    </section>
   );
 }

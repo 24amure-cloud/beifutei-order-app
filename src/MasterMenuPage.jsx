@@ -5,6 +5,7 @@ import OwnerSalesCalendar from './OwnerSalesCalendar.jsx';
 import MonthClosePanel from './MonthClosePanel.jsx';
 import MasterOpsPanel from './MasterOpsPanel.jsx';
 import MasterGuestUrlsPanel from './MasterGuestUrlsPanel.jsx';
+import ManualLedgerEntryPanel from './ManualLedgerEntryPanel.jsx';
 import StoreEntryUrlsPanel from './StoreEntryUrlsPanel.jsx';
 import {
   MasterDrinkMenuPanel,
@@ -17,6 +18,7 @@ import { useMasterMenuEditor } from './useMasterMenuEditor.js';
 import { useNomihodaiSession } from './NomihodaiSessionContext.jsx';
 import { getLocalDateKey } from './dailyLedger.js';
 import { sideDishSectionNavLabel } from './sideDishMenuLabels.js';
+import { buildHandyPageAbsoluteUrl } from './guestOrderUrl.js';
 
 const MENU_MODES = ['drink', 'nomihodai', 'takeout', 'sidedish'];
 const MENU_LABELS = {
@@ -28,6 +30,7 @@ const MENU_LABELS = {
 
 const MAIN_TABS = [
   { id: 'ops', label: '本日の売上' },
+  { id: 'manualEntry', label: '伝票後入力', accent: true },
   { id: 'ledger', label: '日計' },
   { id: 'salesCalendar', label: '売上カレンダー' },
   { id: 'monthClose', label: '月締め' },
@@ -89,6 +92,7 @@ export default function MasterMenuPage() {
   };
 
   const kitchenHref = `${String(import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')}kitchen.html`;
+  const handyHref = buildHandyPageAbsoluteUrl();
   const menuMode = isMenuMode(activeMode) ? activeMode : lastMenuMode;
   const catPrefix =
     menuMode === 'drink'
@@ -110,6 +114,8 @@ export default function MasterMenuPage() {
   const tabActive = (tab) =>
     tab.isMenu ? isMenuMode(activeMode) : activeMode === tab.id;
 
+  const isManualEntry = activeMode === 'manualEntry';
+
   return (
     <main className="main-content master-page master-page--president">
       <div className="master-page-inner master-owner-shell master-owner-shell--president">
@@ -129,12 +135,12 @@ export default function MasterMenuPage() {
           <p className="master-president-header__lead">数字の確認とメニュー変更ができます。日常の確認は「本日の売上」からどうぞ。</p>
         </header>
 
-        <nav className="master-president-tabs" aria-label="メイン">
+        <nav className="master-president-tabs master-president-tabs--six" aria-label="メイン">
           {MAIN_TABS.map((tab) => (
             <button
               key={tab.id}
               type="button"
-              className={`master-president-tab${tabActive(tab) ? ' master-president-tab--active' : ''}`}
+              className={`master-president-tab${tabActive(tab) ? ' master-president-tab--active' : ''}${tab.accent ? ' master-president-tab--accent' : ''}`}
               onClick={() => onMainTab(tab)}
             >
               {tab.label}
@@ -142,6 +148,9 @@ export default function MasterMenuPage() {
           ))}
         </nav>
 
+        {isManualEntry ? (
+          <ManualLedgerEntryPanel />
+        ) : (
         <div className="master-owner-grid master-owner-grid--president">
           <aside className="master-owner-aside master-owner-aside--president" aria-label="よく使う操作">
             <a
@@ -151,6 +160,14 @@ export default function MasterMenuPage() {
               rel="noopener noreferrer"
             >
               厨房・スタッフ画面を開く
+            </a>
+            <a
+              href={handyHref}
+              className="master-president-handy"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              ハンディ注文を開く
             </a>
 
             <StoreEntryUrlsPanel variant="master-president" />
@@ -229,6 +246,7 @@ export default function MasterMenuPage() {
             {activeMode === 'sidedish' && <MasterSideDishMenuPanel {...editor} />}
           </div>
         </div>
+        )}
       </div>
     </main>
   );
