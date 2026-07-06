@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { appendDailyLedgerEntry, getLocalDateKey } from './dailyLedger.js';
-import { verifyOwnerLedgerDeletePin } from './ownerLedgerDeletePin.js';
 import {
   loadManualLedgerLinePresets,
   rememberManualLedgerLinePresets,
@@ -55,7 +54,6 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
   const [lines, setLines] = useState(() => [newLineRow()]);
   const [activeLineId, setActiveLineId] = useState(() => lines[0]?.id ?? '');
   const [linePresets, setLinePresets] = useState(() => loadManualLedgerLinePresets());
-  const [pin, setPin] = useState('');
   const [err, setErr] = useState('');
   const [okMsg, setOkMsg] = useState('');
 
@@ -78,7 +76,6 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
     setMemo('');
     setLines([first]);
     setActiveLineId(first.id);
-    setPin('');
     setErr('');
     setRecordedAtLocal(defaultDatetimeForDateKey(dateKey));
   };
@@ -124,11 +121,6 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
     e.preventDefault();
     setErr('');
     setOkMsg('');
-
-    if (!verifyOwnerLedgerDeletePin(pin)) {
-      setErr('オーナー用パスワードが違います');
-      return;
-    }
 
     const tl = String(tableLabel || '').trim() || DEFAULT_TABLE_LABEL;
 
@@ -355,21 +347,6 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
               onChange={(ev) => setMemo(ev.target.value)}
               placeholder="例: ラストオーダー分・担当田中"
               maxLength={80}
-            />
-          </label>
-
-          <label className="manual-ledger-entry__field manual-ledger-entry__field--pin">
-            <span className="manual-ledger-entry__lab">オーナー用パスワード</span>
-            <input
-              type="password"
-              className="manual-ledger-entry__input manual-ledger-entry__input--pin"
-              value={pin}
-              onChange={(ev) => {
-                setPin(ev.target.value);
-                setErr('');
-              }}
-              autoComplete="off"
-              inputMode="numeric"
             />
           </label>
 
