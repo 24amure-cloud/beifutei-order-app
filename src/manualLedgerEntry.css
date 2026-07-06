@@ -125,6 +125,36 @@
   grid-column: span 1;
 }
 
+.manual-ledger-entry__lines-total-field {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.manual-ledger-entry__input--total-bottom {
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 14px;
+  font-size: 26px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.manual-ledger-entry__lines-total-sync {
+  margin-left: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2a5a8a;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .manual-ledger-entry__field--memo,
 .manual-ledger-entry__field--pin {
   margin-bottom: 10px;
@@ -376,6 +406,10 @@
   padding: 10px 12px;
   border-radius: 10px;
   background: #f5efe6;
+}
+
+.manual-ledger-entry__lines-total-field.manual-ledger-entry__lines-total-row--grand {
+  display: flex;
 }
 
 .manual-ledger-entry__lines-total-lab {

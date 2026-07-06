@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { appendDailyLedgerEntry, getLocalDateKey } from './dailyLedger.js';
 import ManualLedgerMenuPicker from './ManualLedgerMenuPicker.jsx';
 import {
@@ -85,6 +85,7 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
   const [linePresets, setLinePresets] = useState(() => loadManualLedgerLinePresets());
   const [err, setErr] = useState('');
   const [okMsg, setOkMsg] = useState('');
+  const totalManualRef = useRef(false);
 
   useEffect(() => {
     if (loadManualLedgerLastRecordedAtLocal()) return;
@@ -95,18 +96,24 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
     return lines.reduce((sum, row) => sum + lineRowTotal(row), 0);
   }, [lines]);
 
+  useEffect(() => {
+    if (totalManualRef.current) return;
+    if (lineSubtotal > 0) {
+      setTotalYen(String(lineSubtotal));
+    }
+  }, [lineSubtotal]);
+
   const parsedTotalYen = useMemo(() => {
     const n = Number(String(totalYen).replace(/,/g, ''));
     return Number.isFinite(n) && n > 0 ? n : 0;
   }, [totalYen]);
-
-  const displayGrandTotal = parsedTotalYen > 0 ? parsedTotalYen : lineSubtotal;
 
   const resetForm = () => {
     const first = newLineRow();
     setTableLabel('');
     setPayment('cash');
     setTotalYen('');
+    totalManualRef.current = false;
     setMemo('');
     setLines([first]);
     setActiveLineId(first.id);
@@ -130,6 +137,18 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
       if (activeLineId === id) setActiveLineId(next[0]?.id ?? '');
       return next;
     });
+  };
+
+  const syncTotalFromLines = () => {
+    totalManualRef.current = false;
+    if (lineSubtotal > 0) {
+      setTotalYen(String(lineSubtotal));
+    }
+  };
+
+  const onTotalYenChange = (value) => {
+    totalManualRef.current = true;
+    setTotalYen(value);
   };
 
   const adjustLineQty = (id, delta) => {
@@ -207,25 +226,10 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
             i === matchIdx ? { ...r, qty: curQty - times } : r,
           );
         });
-        setTotalYen((prev) => {
-          const cur = Number(String(prev).replace(/,/g, ''));
-          if (!Number.isFinite(cur) || cur <= 0) return prev;
-          const next = cur - priceNum * times;
-          return next > 0 ? String(next) : '';
-        });
         return;
       }
 
       applyPreset(preset, { increment: hasPrice, addQty: times });
-
-      if (hasPrice) {
-        setTotalYen((prev) => {
-          const cur = Number(String(prev).replace(/,/g, ''));
-          const add = priceNum * times;
-          if (!prev || !Number.isFinite(cur) || cur <= 0) return String(add);
-          return String(cur + add);
-        });
-      }
     },
     [applyPreset],
   );
@@ -254,7 +258,7 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
       return;
     }
 
-    const total = Number(String(totalYen).replace(/,/g, ''));
+    const total = parsedTotalYen > 0 ? parsedTotalYen : lineSubtotal;
     if (!Number.isFinite(total) || total <= 0) {
       setErr('お会計合計（税込）を入力してください');
       return;
@@ -384,28 +388,13 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
                 ))}
               </select>
             </label>
-
-            <label className="manual-ledger-entry__field manual-ledger-entry__field--total">
-              <span className="manual-ledger-entry__lab">お会計合計（税込）</span>
-              <input
-                type="number"
-                min={1}
-                step={1}
-                className="manual-ledger-entry__input manual-ledger-entry__input--total"
-                value={totalYen}
-                onChange={(ev) => setTotalYen(ev.target.value)}
-                placeholder="伝票の合計"
-                inputMode="numeric"
-                required
-              />
-            </label>
           </div>
 
           <div className="manual-ledger-entry__lines">
             <div className="manual-ledger-entry__lines-head">
               <h4 className="manual-ledger-entry__lines-title">明細</h4>
               <p className="manual-ledger-entry__lines-hint">
-                下のメニューからタップで追加（ハンディと同じ操作）。合計だけでも登録できます。
+                下のメニューからタップで追加。下部の合計は明細から自動で入ります（伝票と違うときは直接修正）。
               </p>
             </div>
 
@@ -503,15 +492,31 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
                   </strong>
                 </div>
               ) : null}
-              <div className="manual-ledger-entry__lines-total-row manual-ledger-entry__lines-total-row--grand">
+              <label className="manual-ledger-entry__lines-total-row manual-ledger-entry__lines-total-row--grand manual-ledger-entry__lines-total-field">
                 <span className="manual-ledger-entry__lines-total-lab">お会計合計（税込）</span>
-                <strong className="manual-ledger-entry__lines-total-val manual-ledger-entry__lines-total-val--grand">
-                  {displayGrandTotal > 0 ? `￥${displayGrandTotal.toLocaleString()}` : '—'}
-                </strong>
-              </div>
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  className="manual-ledger-entry__input manual-ledger-entry__input--total-bottom"
+                  value={totalYen}
+                  onChange={(ev) => onTotalYenChange(ev.target.value)}
+                  placeholder={lineSubtotal > 0 ? String(lineSubtotal) : '伝票の合計'}
+                  inputMode="numeric"
+                  required
+                  aria-label="お会計合計（税込）"
+                />
+              </label>
               {parsedTotalYen > 0 && lineSubtotal > 0 && parsedTotalYen !== lineSubtotal ? (
                 <p className="manual-ledger-entry__lines-total-note">
-                  上部の合計欄（￥{parsedTotalYen.toLocaleString()}）で登録されます
+                  明細計と異なります（この金額で登録）
+                  <button
+                    type="button"
+                    className="manual-ledger-entry__lines-total-sync"
+                    onClick={syncTotalFromLines}
+                  >
+                    明細計に合わせる
+                  </button>
                 </p>
               ) : null}
             </div>
