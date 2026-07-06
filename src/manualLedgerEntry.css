@@ -125,6 +125,68 @@
   color: #8a7560;
 }
 
+.manual-ledger-entry__lines-edit-label {
+  margin: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #8a7560;
+}
+
+.manual-ledger-menu-picker {
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #faf8f4;
+  border: 1px solid #e8e0d4;
+}
+
+.manual-ledger-menu-picker__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+.manual-ledger-menu-picker__search {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid #d8d0c4;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5a4a38;
+  cursor: pointer;
+}
+
+.manual-ledger-menu-picker__search.is-active {
+  background: #3d3028;
+  color: #fff;
+  border-color: #3d3028;
+}
+
+.manual-ledger-menu-picker__cats {
+  position: static;
+  margin-bottom: 8px;
+}
+
+.manual-ledger-menu-picker__body {
+  max-height: min(52vh, 420px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+
+.manual-ledger-menu-picker .handy-cats__btn {
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.manual-ledger-menu-picker .handy-main__lead {
+  font-size: 12px;
+  margin: 8px 0;
+}
+
 .manual-ledger-entry__lines-sub {
   display: inline-block;
   margin-left: 8px;

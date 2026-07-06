@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { appendDailyLedgerEntry, getLocalDateKey } from './dailyLedger.js';
-import {
+import ManualLedgerMenuPicker from './ManualLedgerMenuPicker.jsx';import {
   loadManualLedgerLastRecordedAtLocal,
   loadManualLedgerLinePresets,
   rememberManualLedgerLastRecordedAtLocal,
@@ -105,26 +105,48 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
     });
   };
 
-  const applyPreset = (preset) => {
-    setLines((prev) => {
-      let idx = prev.findIndex((row) => row.id === activeLineId);
-      if (idx < 0) idx = prev.findIndex((row) => !String(row.name || '').trim());
-      const target = idx >= 0 ? prev[idx] : null;
-      if (target && !String(target.name || '').trim() && !String(target.price || '').trim()) {
-        return prev.map((row, i) =>
-          i === idx
-            ? { ...row, name: preset.name, price: String(preset.price) }
-            : row,
-        );
-      }
-      const row = { ...newLineRow(), name: preset.name, price: String(preset.price) };
-      setActiveLineId(row.id);
-      return [...prev, row];
-    });
-  };
+  const applyPreset = useCallback(
+    (preset) => {
+      const priceStr =
+        preset.price != null && Number(preset.price) > 0 ? String(preset.price) : '';
+      setLines((prev) => {
+        let idx = prev.findIndex((row) => row.id === activeLineId);
+        if (idx < 0) idx = prev.findIndex((row) => !String(row.name || '').trim());
+        const target = idx >= 0 ? prev[idx] : null;
+        if (target && !String(target.name || '').trim() && !String(target.price || '').trim()) {
+          return prev.map((row, i) =>
+            i === idx ? { ...row, name: preset.name, price: priceStr } : row,
+          );
+        }
+        const row = { ...newLineRow(), name: preset.name, price: priceStr };
+        setActiveLineId(row.id);
+        return [...prev, row];
+      });
+    },
+    [activeLineId],
+  );
 
-  const onSubmit = (e) => {
-    e.preventDefault();
+  const applyMenuPick = useCallback(
+    ({ name, price }) => {
+      const priceNum = Number(price);
+      const hasPrice = price !== '' && price != null && Number.isFinite(priceNum) && priceNum > 0;
+      const preset = { name: String(name || '').trim(), price: hasPrice ? priceNum : 0 };
+      if (!preset.name) return;
+
+      applyPreset(preset);
+
+      if (hasPrice) {
+        setTotalYen((prev) => {
+          const cur = Number(String(prev).replace(/,/g, ''));
+          if (!prev || !Number.isFinite(cur) || cur <= 0) return String(priceNum);
+          return String(cur + priceNum);
+        });
+      }
+    },
+    [applyPreset],
+  );
+
+  const onSubmit = (e) => {    e.preventDefault();
     setErr('');
     setOkMsg('');
 
@@ -267,9 +289,9 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
 
           <div className="manual-ledger-entry__lines">
             <div className="manual-ledger-entry__lines-head">
-              <h4 className="manual-ledger-entry__lines-title">明細（任意）</h4>
+              <h4 className="manual-ledger-entry__lines-title">明細</h4>
               <p className="manual-ledger-entry__lines-hint">
-                控えに品名があれば入力。合計だけでも登録できます。
+                下のメニューからタップで追加（ハンディと同じ操作）。合計だけでも登録できます。
                 {lineSubtotal > 0 ? (
                   <span className="manual-ledger-entry__lines-sub">
                     明細計: ￥{lineSubtotal.toLocaleString()}
@@ -278,9 +300,11 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
               </p>
             </div>
 
+            <ManualLedgerMenuPicker onPickLine={applyMenuPick} />
+
             {linePresets.length > 0 ? (
               <div className="manual-ledger-entry__presets">
-                <p className="manual-ledger-entry__presets-label">直近の明細（スライドしてタップ）</p>
+                <p className="manual-ledger-entry__presets-label">この画面で登録した直近明細</p>
                 <div className="manual-ledger-entry__presets-scroll" role="list">
                   {linePresets.map((preset) => (
                     <button
@@ -298,13 +322,9 @@ export default function ManualLedgerEntryPanel({ dateKey, onSaved }) {
                   ))}
                 </div>
               </div>
-            ) : (
-              <p className="manual-ledger-entry__presets-empty">
-                明細を登録すると、次回からここに候補が並びます（最大10件）
-              </p>
-            )}
+            ) : null}
 
-            <ul className="manual-ledger-entry__line-list">
+            <p className="manual-ledger-entry__lines-edit-label">明細の確認・修正</p>            <ul className="manual-ledger-entry__line-list">
               {lines.map((row) => (
                 <li
                   key={row.id}
