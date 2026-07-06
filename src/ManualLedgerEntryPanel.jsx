@@ -132,7 +132,11 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
 
   const removeLine = (id) => {
     setLines((prev) => {
-      if (prev.length <= 1) return prev;
+      if (prev.length <= 1) {
+        const empty = newLineRow();
+        setActiveLineId(empty.id);
+        return [empty];
+      }
       const next = prev.filter((row) => row.id !== id);
       if (activeLineId === id) setActiveLineId(next[0]?.id ?? '');
       return next;
@@ -152,12 +156,35 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
   };
 
   const adjustLineQty = (id, delta) => {
+    setLines((prev) => {
+      const idx = prev.findIndex((row) => row.id === id);
+      if (idx < 0) return prev;
+      const row = prev[idx];
+      const curQty = parseLineQty(row);
+      const nextQty = curQty + delta;
+      if (nextQty >= 1) {
+        return prev.map((r) => (r.id === id ? { ...r, qty: nextQty } : r));
+      }
+      if (prev.length <= 1) {
+        const empty = newLineRow();
+        setActiveLineId(empty.id);
+        return [empty];
+      }
+      const next = prev.filter((r) => r.id !== id);
+      if (activeLineId === id) setActiveLineId(next[0]?.id ?? '');
+      return next;
+    });
+  };
+
+  const normalizeLineQty = (id) => {
     setLines((prev) =>
       prev.map((row) => {
         if (row.id !== id) return row;
-        const nextQty = parseLineQty(row) + delta;
-        if (nextQty < 1) return row;
-        return { ...row, qty: nextQty };
+        const raw = String(row.qty ?? '').trim();
+        if (!raw) return { ...row, qty: 1 };
+        const q = Math.floor(Number(raw.replace(/,/g, '')));
+        if (!Number.isFinite(q) || q < 1) return { ...row, qty: 1 };
+        return { ...row, qty: q };
       }),
     );
   };
@@ -436,8 +463,7 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
                       type="button"
                       className="manual-ledger-entry__line-qty-btn"
                       onClick={() => adjustLineQty(row.id, -1)}
-                      disabled={parseLineQty(row) <= 1}
-                      aria-label="数量を減らす"
+                      aria-label={parseLineQty(row) <= 1 ? 'この行を削除' : '数量を減らす'}
                     >
                       −
                     </button>
@@ -446,8 +472,9 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
                       min={1}
                       step={1}
                       className="manual-ledger-entry__input manual-ledger-entry__input--qty"
-                      value={row.qty ?? 1}
+                      value={row.qty ?? ''}
                       onChange={(ev) => updateLine(row.id, 'qty', ev.target.value)}
+                      onBlur={() => normalizeLineQty(row.id)}
                       onFocus={() => setActiveLineId(row.id)}
                       inputMode="numeric"
                       aria-label="個数"
@@ -472,7 +499,6 @@ export default function ManualLedgerEntryPanel({ dateKey: dateKeyProp, onSaved }
                     className="manual-ledger-entry__line-remove"
                     onClick={() => removeLine(row.id)}
                     aria-label="この行を削除"
-                    disabled={lines.length <= 1}
                   >
                     削除
                   </button>
