@@ -1,4 +1,4 @@
-import { BUCKET_LABELS } from './monthCloseAnalytics.js';
+import { BUCKET_KEYS, BUCKET_LABELS } from './monthCloseAnalytics.js';
 
 function escapeCsvCell(value) {
   const s = value == null ? '' : String(value);
@@ -23,9 +23,10 @@ export function buildMonthCloseCsv(record) {
   push('飲み放題比率%', record.nhSharePct.toFixed(1));
   push('フード比率%', record.foodSharePct.toFixed(1));
 
-  for (const [key, label] of Object.entries(BUCKET_LABELS)) {
+  for (const key of BUCKET_KEYS) {
     const b = record.bucketShares[key];
     if (!b) continue;
+    const label = BUCKET_LABELS[key] || key;
     push(`${label}売上`, b.revenue);
     push(`${label}構成比%`, b.sharePct.toFixed(1));
     push(`${label}総売上比%`, b.sharePctOfGrand.toFixed(1));
@@ -33,6 +34,7 @@ export function buildMonthCloseCsv(record) {
   }
 
   for (const line of record.costLines || []) {
+    if (line.baseYen != null) push(`${line.label}対象売上`, line.baseYen);
     push(`${line.label}%`, line.percent);
     push(`${line.label}金額`, line.amountYen);
   }
@@ -64,9 +66,7 @@ export function downloadAllMonthClosesCsv(records) {
     'grandTotal',
     'cashTotal',
     'cardTotal',
-    'softcream',
-    'cafe',
-    'takeout',
+    ...BUCKET_KEYS,
     'nhPlanTotal',
     'foodTotal',
     'cogsPercent',
@@ -83,9 +83,7 @@ export function downloadAllMonthClosesCsv(records) {
         r.grandTotal,
         r.cashTotal,
         r.cardTotal,
-        r.bucketShares?.softcream_fruit?.revenue ?? 0,
-        r.bucketShares?.cafe_drink?.revenue ?? 0,
-        r.bucketShares?.takeout_sweets?.revenue ?? 0,
+        ...BUCKET_KEYS.map((k) => r.bucketShares?.[k]?.revenue ?? 0),
         r.nhPlanTotal,
         r.foodTotal,
         cogs?.percent ?? '',

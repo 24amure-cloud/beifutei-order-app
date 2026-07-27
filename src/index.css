@@ -5602,11 +5602,104 @@ button.fruit-toggle-btn {
   margin-bottom: 20px;
 }
 
+.master-president-header__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
 .master-president-header__date {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 15px;
   font-weight: 600;
   color: #5c5348;
+}
+
+.owner-weather {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #d8e8f4;
+  background: linear-gradient(135deg, #f4f9ff 0%, #eef6fc 100%);
+  min-width: min(100%, 260px);
+}
+
+.owner-weather--compact {
+  padding: 8px 12px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.owner-weather__icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.owner-weather--compact .owner-weather__icon {
+  font-size: 24px;
+}
+
+.owner-weather__body {
+  min-width: 0;
+}
+
+.owner-weather__place {
+  margin: 0 0 2px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #4a6a82;
+  letter-spacing: 0.03em;
+}
+
+.owner-weather__main {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.owner-weather__temp {
+  font-size: 18px;
+  font-weight: 900;
+  color: #1e3a52;
+}
+
+.owner-weather--compact .owner-weather__temp {
+  font-size: 16px;
+}
+
+.owner-weather__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3d5f78;
+}
+
+.owner-weather__sub {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #5a7080;
+}
+
+.owner-weather__err {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: #a33;
+}
+
+.master-president-dashboard__hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
 }
 
 .master-president-header__title {
@@ -6949,8 +7042,22 @@ button.fruit-toggle-btn {
 .owner-cal-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.owner-cal-nav__center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 9.5em;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff9ec 0%, #fff 100%);
+  border: 1px solid #e0d4c4;
 }
 
 .owner-cal-nav__btn {
@@ -6970,11 +7077,98 @@ button.fruit-toggle-btn {
 }
 
 .owner-cal-nav__label {
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 17px;
+  font-weight: 900;
   color: #2a2419;
-  min-width: 8.5em;
   text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.owner-cal-nav__sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6a5c4e;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.owner-cal-nav__today {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #c9a962;
+  background: #fffdf6;
+  color: #6b4f1a;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.owner-cal-nav__today:hover {
+  background: #fff6e3;
+}
+
+.owner-cal-month-banner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 12px 14px 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2a2419 0%, #4a3b34 100%);
+  color: #fff;
+}
+
+.owner-cal-month-banner__title {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  line-height: 1;
+}
+
+.owner-cal-month-banner__year {
+  font-size: 14px;
+  font-weight: 800;
+  opacity: 0.88;
+}
+
+.owner-cal-month-banner__month {
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.owner-cal-month-banner__unit {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.owner-cal-month-banner__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.owner-cal-month-banner__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.owner-cal-month-banner__stat small {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.owner-cal-month-banner__stat strong {
+  font-size: 15px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .owner-cal-layout {
@@ -7011,6 +7205,29 @@ button.fruit-toggle-btn {
   color: #7a6f62;
 }
 
+.owner-cal-wx-legend {
+  margin: 0 0 6px;
+  font-size: 10px;
+  color: #7a6f62;
+  line-height: 1.35;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-cal-wx-retry {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 10px;
+  font-weight: 800;
+  color: #a33;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: inherit;
+}
+
 .owner-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -7018,18 +7235,18 @@ button.fruit-toggle-btn {
 }
 
 .owner-cal-cell {
-  min-height: 64px;
+  min-height: 92px;
   border-radius: 10px;
   border: 1px solid #e4dcd0;
   background: #fff;
-  padding: 6px 4px 8px;
+  padding: 5px 3px 6px;
   cursor: pointer;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 2px;
+  justify-content: space-between;
+  gap: 3px;
   font: inherit;
   color: inherit;
 }
@@ -7040,11 +7257,12 @@ button.fruit-toggle-btn {
 }
 
 .owner-cal-cell--pad {
-  min-height: 64px;
-  visibility: hidden;
+  min-height: 92px;
   pointer-events: none;
-  border: none;
-  background: transparent;
+  border: 1px dashed #e8e0d4;
+  background: #f3efe8;
+  opacity: 0.45;
+  cursor: default;
 }
 
 .owner-cal-cell--today {
@@ -7061,6 +7279,18 @@ button.fruit-toggle-btn {
   font-size: 14px;
   font-weight: 800;
   color: #2a2419;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.owner-cal-cell__today-mark {
+  font-size: 8px;
+  font-weight: 900;
+  color: #9a7b2e;
+  letter-spacing: 0.04em;
 }
 
 .owner-cal-cell__yen {
@@ -7071,6 +7301,102 @@ button.fruit-toggle-btn {
   word-break: break-all;
 }
 
+.owner-cal-cell__wx {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: calc(100% - 4px);
+  min-height: 38px;
+  padding: 3px 2px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #eef6fc 0%, #e3f0fa 100%);
+  border: 1px solid #c8dced;
+  line-height: 1.1;
+}
+
+.owner-cal-cell__wx-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.owner-cal-cell__wx-temp {
+  font-size: 9px;
+  font-weight: 900;
+  color: #2a4a62;
+  letter-spacing: -0.02em;
+}
+
+.owner-cal-cell__wx-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: #4a6a82;
+}
+
+.owner-cal-cell__wx--loading {
+  font-size: 11px;
+  opacity: 0.55;
+  background: #f0f0f0;
+  border-color: #ddd;
+}
+
+.owner-cal-cell__wx--empty {
+  min-height: 38px;
+  background: transparent;
+  border: 1px dashed #ebe4dc;
+  opacity: 0.35;
+}
+
+.owner-cal-weather-kpi {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f4f9ff 0%, #eef6fc 100%);
+  border: 1px solid #d8e8f4;
+}
+
+.owner-cal-weather-kpi__icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.owner-cal-weather-kpi__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.owner-cal-weather-kpi__lab {
+  font-size: 10px;
+  font-weight: 800;
+  color: #4a6a82;
+}
+
+.owner-cal-weather-kpi__val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e3a52;
+}
+
+.owner-cal-weather-kpi__sub {
+  font-size: 11px;
+  color: #5a7080;
+}
+
+.owner-cal-weather-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #6a6258;
+}
+
+.owner-cal-weather-note--err {
+  color: #a33;
+}
+
 .owner-cal-detail {
   min-width: 0;
   border: 1px solid #e8e2d2;
@@ -7079,11 +7405,30 @@ button.fruit-toggle-btn {
   padding: 16px 18px 20px;
 }
 
+.owner-cal-detail__head {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e8e2d2;
+}
+
+.owner-cal-detail__month-tag {
+  margin: 0 0 4px;
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #2a2419;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
 .owner-cal-detail__title {
-  margin: 0 0 14px;
-  font-size: 17px;
-  font-weight: 800;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
   color: #2a2419;
+  line-height: 1.35;
 }
 
 .owner-cal-kpis {
@@ -7150,6 +7495,32 @@ button.fruit-toggle-btn {
   border-radius: 10px;
   border: 1px solid #e8e2d2;
   background: #fdfaf6;
+}
+
+.owner-cal-bucket--tap {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.owner-cal-bucket--tap:hover,
+.owner-cal-bucket--tap:focus-visible {
+  border-color: #c4b59a;
+  background: #fff8ef;
+  box-shadow: 0 1px 0 rgba(42, 36, 25, 0.06);
+  outline: none;
+}
+
+.owner-cal-bucket__go {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a6a40;
 }
 
 .owner-cal-bucket__lab {
@@ -7243,6 +7614,79 @@ button.fruit-toggle-btn {
   font-size: 14px;
   color: #5c5348;
   line-height: 1.5;
+}
+
+.month-close-bucket-detail__back {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border: 1px solid #d9d0c0;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4a3b34;
+  cursor: pointer;
+}
+
+.month-close-bucket-detail__back:hover,
+.month-close-bucket-detail__back:focus-visible {
+  background: #f7f1e8;
+  outline: none;
+}
+
+.month-close-bucket-detail__table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e8e2d2;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.month-close-bucket-detail__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.month-close-bucket-detail__table th,
+.month-close-bucket-detail__table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0e9df;
+  text-align: left;
+  vertical-align: top;
+}
+
+.month-close-bucket-detail__table th {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6e6458;
+  background: #faf6f0;
+  position: sticky;
+  top: 0;
+}
+
+.month-close-bucket-detail__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.month-close-bucket-detail__date {
+  width: 4.5em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: #5c5348;
+}
+
+.month-close-bucket-detail__name {
+  word-break: break-word;
+}
+
+.month-close-bucket-detail__price {
+  width: 6.5em;
+  text-align: right !important;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .month-close-nav {
@@ -7373,8 +7817,8 @@ button.fruit-toggle-btn {
 
 .month-close-cost-row {
   display: grid;
-  grid-template-columns: 1fr 100px 120px;
-  gap: 12px;
+  grid-template-columns: 1fr minmax(88px, 110px) auto 120px;
+  gap: 10px 12px;
   align-items: center;
   padding: 10px 12px;
   border: 1px solid #e8e2d2;
@@ -7382,14 +7826,34 @@ button.fruit-toggle-btn {
   background: #fff;
 }
 
+.month-close-cost-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .month-close-cost-row__label {
   font-weight: 600;
+}
+
+.month-close-cost-row__base {
+  font-size: 12px;
+  color: #6e6458;
+  font-variant-numeric: tabular-nums;
+}
+
+.month-close-cost-row__pct {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: #3d3830;
 }
 
 .month-close-cost-row__pct-in {
   display: flex;
   align-items: center;
   gap: 4px;
+  justify-self: start;
 }
 
 .month-close-cost-row__pct-in input {
@@ -7413,6 +7877,14 @@ button.fruit-toggle-btn {
   padding: 2px 8px;
   border-radius: 999px;
   background: #f0e8dc;
+  justify-self: start;
+  white-space: nowrap;
+}
+
+.month-close-cost-row__src--empty {
+  visibility: hidden;
+  padding: 0;
+  background: transparent;
 }
 
 .month-close-block__hint--warn {
@@ -7504,6 +7976,53 @@ button.fruit-toggle-btn {
 .month-close-list__detail .master-btn {
   margin-top: 8px;
   margin-right: 8px;
+}
+
+.month-ledger-csv__lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #5c5348;
+  line-height: 1.55;
+}
+
+.month-ledger-csv__row {
+  display: grid;
+  grid-template-columns: minmax(88px, 1fr) auto auto minmax(72px, auto) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e8e2d2;
+  border-radius: 10px;
+  background: #faf8f5;
+  font-size: 14px;
+}
+
+.month-ledger-csv__month {
+  font-weight: 600;
+}
+
+.month-ledger-csv__meta {
+  font-size: 13px;
+  color: #6a6258;
+  white-space: nowrap;
+}
+
+.month-ledger-csv__total {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .month-ledger-csv__row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .month-ledger-csv__row .master-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }
 
 .owner-cal-slips {
@@ -23827,6 +24346,134 @@ a.kitchen-v2-tab--handy:hover {
 
 .handy-app--fast {
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.handy-app--workspace {
+  padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px));
+}
+
+.handy-app--workspace.handy-app--slip-mode {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+.handy-app--workspace .handy-foot--fast {
+  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+}
+
+.handy-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 45;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: rgba(20, 17, 14, 0.98);
+  border-top: 1px solid #3d3428;
+  backdrop-filter: blur(10px);
+}
+
+.handy-dock__btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #c9bfb0;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.handy-dock__btn.is-active {
+  border-color: #ffb74d;
+  background: rgba(255, 183, 77, 0.14);
+  color: #ffb74d;
+}
+
+.handy-dock__btn--checkout.has-alert {
+  color: #ffcc80;
+}
+
+.handy-dock__btn--kitchen {
+  color: #a5d6a7;
+}
+
+.handy-dock__icon {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.handy-dock__badge {
+  position: absolute;
+  top: 4px;
+  right: 12px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e65100;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 16px;
+  text-align: center;
+}
+
+.handy-slip-wrap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.handy-slip-head {
+  padding: 8px 10px 4px;
+  background: #241f19;
+  border-bottom: 1px solid #3d3428;
+}
+
+.handy-slip-head__lead {
+  margin: 0 0 6px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.handy-toolbar__tables--slip {
+  padding-bottom: 0;
+}
+
+.handy-slip-panel {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 10px 10px;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.handy-slip-panel .kitchen-slip-board-layout {
+  min-height: min(58vh, 560px);
+}
+
+.handy-slip-panel .kitchen-slip-board-picker__btn,
+.handy-slip-panel .kitchen-table-status--slip-board-card {
+  background: #fffdf9;
+}
+
+.handy-error--inline {
+  margin: 4px 0 0;
+  width: 100%;
 }
 
 .handy-toolbar {

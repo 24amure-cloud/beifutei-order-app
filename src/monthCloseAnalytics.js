@@ -2,11 +2,15 @@
  * 月次締め用：日計から月間集計を生成
  */
 
-import { summarizeLedgerCategoryBuckets } from './ledgerCategoryBuckets.js';
+import { MENU_BUCKET_KEYS, MENU_BUCKET_LABELS, summarizeLedgerMenuBuckets } from './ledgerCategoryBuckets.js';
 
-export const BUCKET_KEYS = ['softcream_fruit', 'cafe_drink', 'takeout_sweets'];
+export const BUCKET_KEYS = MENU_BUCKET_KEYS;
+export const BUCKET_LABELS = MENU_BUCKET_LABELS;
 
 export const COGS_COST_KEY = 'cogs';
+export const SWEETS_COST_KEY = 'sweets';
+/** スイーツ費用の対象売上（ソフト＋カフェ＋テイクアウトスイーツ） */
+export const SWEETS_BUCKET_KEYS = ['softcream_fruit', 'cafe_drink', 'takeout_sweets'];
 export const EXPENSE_AMOUNT_KEYS = ['labor', 'rent', 'other'];
 
 const EXPENSE_LABELS = {
@@ -15,11 +19,17 @@ const EXPENSE_LABELS = {
   other: 'その他経費',
 };
 
-export const BUCKET_LABELS = {
-  softcream_fruit: 'ソフトクリーム',
-  cafe_drink: 'カフェドリンク',
-  takeout_sweets: 'テイクアウトスイーツ',
-};
+/**
+ * @param {Record<string, { revenue?: number }>|null|undefined} bucketShares
+ */
+export function sumSweetsRevenue(bucketShares) {
+  if (!bucketShares) return 0;
+  let sum = 0;
+  for (const key of SWEETS_BUCKET_KEYS) {
+    sum += Math.max(0, Number(bucketShares[key]?.revenue) || 0);
+  }
+  return sum;
+}
 
 /** @typedef {{
  *   key: string,
@@ -35,6 +45,18 @@ export const BUCKET_LABELS = {
 export function entriesForMonth(entries, monthKey) {
   const prefix = `${monthKey}-`;
   return entries.filter((e) => e && String(e.dateKey || '').startsWith(prefix));
+}
+
+/**
+ * 月内・指定カテゴリの明細行（日付・品名・値段）
+ * @param {import('./dailyLedger.js').LedgerEntry[]} monthEntries
+ * @param {string} bucketKey
+ */
+export function listMonthBucketDetailLines(monthEntries, bucketKey) {
+  const { buckets } = summarizeLedgerMenuBuckets(monthEntries);
+  const bucket = buckets[bucketKey];
+  if (!bucket) return [];
+  return Array.isArray(bucket.lines) ? bucket.lines : [];
 }
 
 /**
@@ -56,13 +78,8 @@ export function buildMonthSalesSummary(monthEntries) {
     foodTotal += Math.max(0, Number(e.normalSubtotal) || 0) + alc;
   }
 
-  const buckets = summarizeLedgerCategoryBuckets(monthEntries);
-  const bucketGrand =
-    buckets.softcream_fruit.revenue +
-    buckets.cafe_drink.revenue +
-    buckets.takeout_sweets.revenue;
-
-  const shareBase = bucketGrand > 0 ? bucketGrand : grandTotal;
+  const { buckets, bucketGrand } = summarizeLedgerMenuBuckets(monthEntries);
+  const shareBase = grandTotal > 0 ? grandTotal : 1;
 
   const bucketShares = {};
   for (const key of BUCKET_KEYS) {
@@ -105,14 +122,18 @@ export function costLinesWithAmounts(grandTotal, costLines) {
 }
 
 /**
- * 月締め用：原価は％、その他経費は経費入力ページの金額
+ * 月締め用：原価は％、スイーツは対象売上への％、その他経費は経費入力の金額
  * @param {number} grandTotal
  * @param {number} cogsPercent
  * @param {{ labor?: number, rent?: number, other?: number }} expenseAmounts
+ * @param {{ sweetsPercent?: number, sweetsBaseYen?: number }} [opts]
  */
-export function buildMonthCostLines(grandTotal, cogsPercent, expenseAmounts = {}) {
+export function buildMonthCostLines(grandTotal, cogsPercent, expenseAmounts = {}, opts = {}) {
   const base = Math.max(0, Number(grandTotal) || 0);
   const cogsPct = Math.min(100, Math.max(0, Number(cogsPercent) || 0));
+  const sweetsBase = Math.max(0, Math.round(Number(opts.sweetsBaseYen) || 0));
+  const sweetsPct = Math.min(100, Math.max(0, Number(opts.sweetsPercent) || 0));
+  const sweetsYen = Math.round(sweetsBase * (sweetsPct / 100));
   const lines = [
     {
       key: COGS_COST_KEY,
@@ -120,6 +141,16 @@ export function buildMonthCostLines(grandTotal, cogsPercent, expenseAmounts = {}
       percent: cogsPct,
       amountYen: Math.round(base * (cogsPct / 100)),
       inputMode: 'percent',
+    },
+    {
+      key: SWEETS_COST_KEY,
+      label: 'スイーツ',
+      percent: sweetsPct,
+      amountYen: sweetsYen,
+      baseYen: sweetsBase,
+      /** 総売上に対する比率（売上比合計用） */
+      shareOfGrandPct: base > 0 ? (sweetsYen / base) * 100 : 0,
+      inputMode: 'percent_on_sweets',
     },
   ];
   for (const key of EXPENSE_AMOUNT_KEYS) {
@@ -139,8 +170,17 @@ export function defaultCostLines(cogsPercent = 35) {
   return buildMonthCostLines(0, cogsPercent, {});
 }
 
-export function costLinesTotalPercent(lines) {
-  return lines.reduce((s, r) => s + (Number(r.percent) || 0), 0);
+/** 売上比合計（各行の金額 ÷ 総売上）。grandTotal 未指定時は percent 合算 */
+export function costLinesTotalPercent(lines, grandTotal) {
+  const base = Math.max(0, Number(grandTotal) || 0);
+  if (base > 0) {
+    const totalYen = lines.reduce((s, r) => s + Math.max(0, Number(r.amountYen) || 0), 0);
+    return (totalYen / base) * 100;
+  }
+  return lines.reduce((s, r) => {
+    if (r.inputMode === 'percent_on_sweets') return s + (Number(r.shareOfGrandPct) || 0);
+    return s + (Number(r.percent) || 0);
+  }, 0);
 }
 
 export function expenseAmountsTotal(expenseAmounts = {}) {

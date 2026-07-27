@@ -2,14 +2,22 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   BUCKET_KEYS,
   BUCKET_LABELS,
+  SWEETS_COST_KEY,
   buildMonthCostLines,
   buildMonthSalesSummary,
   costLinesTotalPercent,
   entriesForMonth,
   expenseAmountsTotal,
+  listMonthBucketDetailLines,
+  sumSweetsRevenue,
 } from './monthCloseAnalytics.js';
 import { downloadAllMonthClosesCsv, downloadMonthCloseCsv } from './monthCloseCsvExport.js';
-import { getMonthExpenseAmounts, MONTH_EXPENSE_STORAGE_KEY } from './monthExpenseStorage.js';
+import {
+  getMonthCostPercents,
+  getMonthExpenseAmounts,
+  MONTH_EXPENSE_STORAGE_KEY,
+  saveMonthCostPercents,
+} from './monthExpenseStorage.js';
 import { monthLabel, shiftMonthKey } from './monthNavHelpers.js';
 import {
   MONTH_CLOSE_STORAGE_KEY,
@@ -30,13 +38,21 @@ function fmtYen(n) {
   return `￥${Math.max(0, Math.round(Number(n) || 0)).toLocaleString()}`;
 }
 
+function fmtDateKey(dateKey) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey || ''));
+  if (!m) return dateKey || '—';
+  return `${Number(m[2])}/${Number(m[3])}`;
+}
+
 export default function MonthClosePanel() {
   const todayKey = getLocalDateKey();
   const [monthCursor, setMonthCursor] = useState(() => todayKey.slice(0, 7));
   const [tick, setTick] = useState(0);
   const [memo, setMemo] = useState('');
+  const [sweetsPctInput, setSweetsPctInput] = useState('');
   const [savedList, setSavedList] = useState(() => listMonthCloses());
   const [expandedKey, setExpandedKey] = useState(null);
+  const [detailBucketKey, setDetailBucketKey] = useState(null);
 
   useEffect(() => {
     const refresh = () => {
@@ -74,18 +90,36 @@ export default function MonthClosePanel() {
 
   const expenseAmounts = useMemo(() => getMonthExpenseAmounts(monthCursor), [monthCursor, tick]);
   const cogsPercent = loadLedgerSettings().cogsPercent;
-
-  const previewCostLines = useMemo(
-    () => buildMonthCostLines(summary.grandTotal, cogsPercent, expenseAmounts),
-    [summary.grandTotal, cogsPercent, expenseAmounts],
+  const sweetsBaseYen = useMemo(
+    () => sumSweetsRevenue(summary.bucketShares),
+    [summary.bucketShares],
+  );
+  const sweetsPercent = Math.min(
+    100,
+    Math.max(0, Number(String(sweetsPctInput).replace(/,/g, '')) || 0),
   );
 
-  const costTotalPct = costLinesTotalPercent(previewCostLines);
+  const previewCostLines = useMemo(
+    () =>
+      buildMonthCostLines(summary.grandTotal, cogsPercent, expenseAmounts, {
+        sweetsPercent,
+        sweetsBaseYen,
+      }),
+    [summary.grandTotal, cogsPercent, expenseAmounts, sweetsPercent, sweetsBaseYen],
+  );
 
   useEffect(() => {
     if (confirmed) return;
     setMemo('');
+    const pct = getMonthCostPercents(monthCursor).sweets;
+    setSweetsPctInput(pct > 0 ? String(pct) : '');
   }, [monthCursor, confirmed]);
+
+  const persistSweetsPercent = (raw) => {
+    if (confirmed) return;
+    const pct = Math.min(100, Math.max(0, Number(String(raw).replace(/,/g, '')) || 0));
+    saveMonthCostPercents(monthCursor, { ...getMonthCostPercents(monthCursor), sweets: pct });
+  };
 
   const onConfirm = () => {
     if (confirmed) {
@@ -95,7 +129,11 @@ export default function MonthClosePanel() {
     if (monthEntries.length === 0) {
       if (!window.confirm('この月の会計データがありません。空のまま確定しますか？')) return;
     }
-    const frozen = buildMonthCostLines(summary.grandTotal, cogsPercent, expenseAmounts);
+    persistSweetsPercent(sweetsPctInput);
+    const frozen = buildMonthCostLines(summary.grandTotal, cogsPercent, expenseAmounts, {
+      sweetsPercent,
+      sweetsBaseYen,
+    });
     const msg = [
       `${monthLabel(monthCursor)}を確定します。`,
       `総売上 ${fmtYen(summary.grandTotal)}（会計 ${summary.checkoutCount} 件）`,
@@ -136,7 +174,71 @@ export default function MonthClosePanel() {
         isLocked: false,
       };
 
+  const costTotalPct = costLinesTotalPercent(
+    display.costLines || [],
+    display.grandTotal ?? summary.grandTotal,
+  );
+
   const bucketKeys = BUCKET_KEYS;
+
+  const detailLines = useMemo(() => {
+    if (!detailBucketKey) return [];
+    return listMonthBucketDetailLines(monthEntries, detailBucketKey);
+  }, [detailBucketKey, monthEntries]);
+
+  const detailTotal = useMemo(
+    () => detailLines.reduce((s, ln) => s + Math.max(0, Number(ln.price) || 0), 0),
+    [detailLines],
+  );
+
+  useEffect(() => {
+    setDetailBucketKey(null);
+  }, [monthCursor]);
+
+  if (detailBucketKey) {
+    const title = BUCKET_LABELS[detailBucketKey] || detailBucketKey;
+    return (
+      <section className="month-close-panel master-card month-close-bucket-detail" aria-labelledby="month-close-bucket-detail-title">
+        <button
+          type="button"
+          className="month-close-bucket-detail__back"
+          onClick={() => setDetailBucketKey(null)}
+        >
+          ← 月締めに戻る
+        </button>
+        <h2 id="month-close-bucket-detail-title" className="master-card-title">
+          {title} 明細
+        </h2>
+        <p className="month-close-panel__lead">
+          {monthLabel(monthCursor)} · {detailLines.length} 行 · 合計 {fmtYen(detailTotal)}
+        </p>
+        {detailLines.length === 0 ? (
+          <p className="master-ledger-empty">このカテゴリの明細行はありません</p>
+        ) : (
+          <div className="month-close-bucket-detail__table-wrap">
+            <table className="month-close-bucket-detail__table">
+              <thead>
+                <tr>
+                  <th scope="col">日付</th>
+                  <th scope="col">品目</th>
+                  <th scope="col">値段</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detailLines.map((ln, i) => (
+                  <tr key={`${ln.dateKey}-${ln.itemId}-${i}`}>
+                    <td className="month-close-bucket-detail__date">{fmtDateKey(ln.dateKey)}</td>
+                    <td className="month-close-bucket-detail__name">{ln.name}</td>
+                    <td className="month-close-bucket-detail__price">{fmtYen(ln.price)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="month-close-panel master-card" aria-labelledby="month-close-title">
@@ -144,7 +246,7 @@ export default function MonthClosePanel() {
         月締め
       </h2>
       <p className="month-close-panel__lead">
-        月間の売上と飲食店比率を確認し、1回の確定で保存します。ソフトクリーム・カフェドリンク・テイクアウトスイーツは日計と同じ集計です。
+        月間の売上と飲食店比率を確認し、1回の確定で保存します。メニュー別内訳は総売上と一致する分類です。
       </p>
 
       <LedgerDataNotice />
@@ -205,25 +307,37 @@ export default function MonthClosePanel() {
       </div>
 
       <div className="month-close-block">
-        <h3 className="month-close-block__h">ソフトクリーム・カフェドリンク・テイクアウトスイーツ</h3>
+        <h3 className="month-close-block__h">メニュー別売上</h3>
         <p className="month-close-block__hint">
-          3カテゴリ合計 {fmtYen(display.bucketGrand)}（総売上の
+          分類合計 {fmtYen(display.bucketGrand)}（総売上の
           {display.grandTotal > 0
             ? ((display.bucketGrand / display.grandTotal) * 100).toFixed(1)
             : '0'}
-          %）。ID未分類 {fmtYen(display.unclassifiedInBuckets ?? 0)}
+          %）
+          {(display.unclassifiedInBuckets ?? 0) > 0
+            ? ` · 差額 ${fmtYen(display.unclassifiedInBuckets)}`
+            : ' · 総売上と一致'}
+          {' · '}
+          カテゴリをタップすると明細（日付・品目・値段）を表示します
         </p>
         <div className="owner-cal-buckets">
-          {bucketKeys.map((key) => {
+          {bucketKeys.filter((key) => (display.bucketShares[key]?.revenue ?? 0) > 0).map((key) => {
             const b = display.bucketShares[key];
             return (
-              <div key={key} className="owner-cal-bucket">
+              <button
+                key={key}
+                type="button"
+                className="owner-cal-bucket owner-cal-bucket--tap"
+                onClick={() => setDetailBucketKey(key)}
+              >
                 <span className="owner-cal-bucket__lab">{BUCKET_LABELS[key]}</span>
                 <strong className="owner-cal-bucket__val">{fmtYen(b.revenue)}</strong>
                 <span className="owner-cal-bucket__sub">
-                  構成比 {b.sharePct.toFixed(1)}% · 総売上比 {b.sharePctOfGrand.toFixed(1)}% · {b.lineCount} 行
+                  構成比 {b.sharePct.toFixed(1)}% · 総売上比 {b.sharePctOfGrand.toFixed(1)}% · {b.lineCount}{' '}
+                  行
                 </span>
-              </div>
+                <span className="owner-cal-bucket__go">明細を見る →</span>
+              </button>
             );
           })}
         </div>
@@ -232,27 +346,65 @@ export default function MonthClosePanel() {
       <div className="month-close-block">
         <h3 className="month-close-block__h">費用</h3>
         <p className="month-close-block__hint">
-          原価は日計の店舗設定（％）。人件費・家賃などは「経費入力」タブの金額です。売上比合計{' '}
+          原価は日計の店舗設定（％）。スイーツはソフト・カフェ・テイクアウトスイーツ合算売上への％。人件費・家賃などは「経費入力」タブの金額です。売上比合計{' '}
           {costTotalPct.toFixed(1)}%
           {!display.isLocked && costTotalPct > 100 && (
             <span className="month-close-warn"> ※100%を超えています</span>
           )}
         </p>
         <div className="month-close-cost-table">
-          {display.costLines.map((row) => (
-            <div key={row.key} className="month-close-cost-row">
-              <span className="month-close-cost-row__label">{row.label}</span>
-              <span className="month-close-cost-row__pct">
-                {row.inputMode === 'percent'
-                  ? `${row.percent.toFixed(1)}%`
-                  : `${row.percent.toFixed(1)}%`}
-              </span>
-              {row.inputMode === 'amount' && !display.isLocked ? (
-                <span className="month-close-cost-row__src">経費入力</span>
-              ) : null}
-              <strong className="month-close-cost-row__amt">{fmtYen(row.amountYen)}</strong>
-            </div>
-          ))}
+          {display.costLines.map((row) => {
+            const isSweets = row.key === SWEETS_COST_KEY;
+            const sweetsBase = isSweets
+              ? Math.max(0, Number(row.baseYen) || (display.isLocked ? 0 : sweetsBaseYen))
+              : 0;
+            return (
+              <div
+                key={row.key}
+                className={`month-close-cost-row${isSweets ? ' month-close-cost-row--sweets' : ''}`}
+              >
+                <div className="month-close-cost-row__main">
+                  <span className="month-close-cost-row__label">{row.label}</span>
+                  {isSweets ? (
+                    <span className="month-close-cost-row__base">
+                      対象売上（ソフト＋カフェ＋TO） {fmtYen(sweetsBase)}
+                    </span>
+                  ) : null}
+                </div>
+                {isSweets && !display.isLocked ? (
+                  <label className="month-close-cost-row__pct-in">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      inputMode="decimal"
+                      value={sweetsPctInput}
+                      onChange={(e) => setSweetsPctInput(e.target.value)}
+                      onBlur={(e) => persistSweetsPercent(e.target.value)}
+                      placeholder="0"
+                      aria-label="スイーツ費用％"
+                    />
+                    <span>%</span>
+                  </label>
+                ) : (
+                  <span className="month-close-cost-row__pct">
+                    {row.inputMode === 'percent_on_sweets'
+                      ? `${Number(row.percent || 0).toFixed(1)}%（対スイーツ）`
+                      : `${Number(row.percent || 0).toFixed(1)}%`}
+                  </span>
+                )}
+                {row.inputMode === 'amount' && !display.isLocked ? (
+                  <span className="month-close-cost-row__src">経費入力</span>
+                ) : isSweets && !display.isLocked ? (
+                  <span className="month-close-cost-row__src">％入力</span>
+                ) : (
+                  <span className="month-close-cost-row__src month-close-cost-row__src--empty" />
+                )}
+                <strong className="month-close-cost-row__amt">{fmtYen(row.amountYen)}</strong>
+              </div>
+            );
+          })}
         </div>
         {!display.isLocked && expenseAmountsTotal(expenseAmounts) === 0 && (
           <p className="month-close-block__hint month-close-block__hint--warn">
@@ -346,9 +498,12 @@ export default function MonthClosePanel() {
                   {open && (
                     <div className="month-close-list__detail">
                       <p>
-                        ソフト {fmtYen(r.bucketShares?.softcream_fruit?.revenue ?? 0)} / カフェ{' '}
+                        NH {fmtYen(r.bucketShares?.nomihodai_plan?.revenue ?? r.nhPlanTotal ?? 0)} / 油そば{' '}
+                        {fmtYen(r.bucketShares?.aburasoba_takeout?.revenue ?? 0)} / ソフト{' '}
+                        {fmtYen(r.bucketShares?.softcream_fruit?.revenue ?? 0)} / カフェ{' '}
                         {fmtYen(r.bucketShares?.cafe_drink?.revenue ?? 0)} / テイクアウト{' '}
-                        {fmtYen(r.bucketShares?.takeout_sweets?.revenue ?? 0)}
+                        {fmtYen(r.bucketShares?.takeout_sweets?.revenue ?? 0)} / ドリンク{' '}
+                        {fmtYen(r.bucketShares?.drink?.revenue ?? 0)}
                       </p>
                       <p>
                         NH {(r.nhSharePct ?? 0).toFixed(1)}% · フード {(r.foodSharePct ?? 0).toFixed(1)}%
